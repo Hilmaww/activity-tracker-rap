@@ -45,7 +45,7 @@ def add_action(ticket_id):
         photo_path = None
         if photo:
             filename = secure_filename(photo.filename)
-            photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            photo_path = os.path.join(main_bp.config['UPLOAD_FOLDER'], filename)
             photo.save(photo_path)
 
         action = TicketAction(
@@ -58,7 +58,7 @@ def add_action(ticket_id):
         db.session.add(action)
         db.session.commit()
 
-        return jsonify({'message': 'Action added successfully'})
+        return render_template('view_ticket.html', tickets=TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all(), message="Action added successfully", message_category="success")
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 

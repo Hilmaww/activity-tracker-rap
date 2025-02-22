@@ -11,10 +11,10 @@
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>Site:</strong> {{ ticket.site.name }}</p>
-                    <p><strong>Problem Category:</strong> {{ ticket.problem_category }}</p>
+                    <p><strong>Problem Category:</strong> {{ ticket.problem_category.name }}</p>
                     <p><strong>Created By:</strong> {{ ticket.created_by }}</p>
                     <p><strong>Created At:</strong> {{ ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-                    <p><strong>Status:</strong> {{ ticket.status }}</p>
+                    <p><strong>Status:</strong> {{ ticket.status.name }}</p>
                 </div>
                 <div class="col-md-6">
                     <p><strong>Description:</strong></p>
