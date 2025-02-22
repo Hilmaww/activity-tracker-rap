@@ -76,6 +76,38 @@ def view_ticket(ticket_id):
     actions = TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all()
     return render_template('view_ticket.html', ticket=ticket, actions=actions)
 
+@main_bp.route('/tickets/<int:ticket_id>/update_status', methods=['POST'])
+def update_ticket_status(ticket_id):
+    try:
+        ticket = Ticket.query.get_or_404(ticket_id)
+        new_status = request.form.get('status')
+        
+        # Add an action to record the status change
+        action_text = f"Status updated from {ticket.status.name} to {new_status}"
+        action = TicketAction(
+            ticket_id=ticket_id,
+            action_text=action_text,
+            created_by=request.form.get('created_by', 'system')
+        )
+        
+        # Update the ticket status
+        ticket.status = TicketStatus[new_status]
+        
+        db.session.add(action)
+        db.session.commit()
+        
+        return render_template('view_ticket.html', 
+                             ticket=ticket, 
+                             actions=TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all(),
+                             message="Status updated successfully",
+                             message_category="success")
+    except Exception as e:
+        return render_template('view_ticket.html', 
+                             ticket=ticket, 
+                             actions=TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all(),
+                             message="Failed to update status",
+                             message_category="danger")
+
 # Add a test route
 @main_bp.route('/test')
 def test():

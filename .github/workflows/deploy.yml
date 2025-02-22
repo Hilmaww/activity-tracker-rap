@@ -1,0 +1,26 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches:
+      - master  # Or your main branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Or a suitable runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH keys
+        uses: shimataro/ssh-deploy-action@v2
+        with:
+          host: ${{ secrets.VM_IP }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+          script: |
+            cd /home/muhammadfaw/tsel_enom_tracker # Replace with the actual path
+            git pull
+            sudo systemctl restart enom_activity_tracker_service
+
