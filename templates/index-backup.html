@@ -9,33 +9,25 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- Custom CSS -->
     <style>
-        .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
-        }
-        
-        .ticket-stats {
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .ticket-stats { 
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 30px;
         }
-        
-        .action-buttons {
-            margin: 20px 0;
-        }
-        
         .status-badge {
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 0.9em;
         }
-        
+        .table-responsive { margin-top: 20px; }
+        .form-section { max-width: 800px; margin: 0 auto; }
         .card {
             transition: transform 0.2s;
+            margin-bottom: 15px;
         }
-        
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 4px 8px rgba(0,0,0,.1);
@@ -43,7 +35,6 @@
     </style>
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">Tech Team Tracker</a>
@@ -63,9 +54,9 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <div class="container mt-4">
-        <!-- Dashboard Overview -->
+        {% if request.endpoint == 'index' %}
+        <!-- Dashboard Stats -->
         <div class="row ticket-stats">
             <div class="col-md-3">
                 <div class="card text-center">
@@ -75,58 +66,50 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">In Progress</h5>
-                        <p class="card-text h3">{{ in_progress_tickets|default(0) }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Pending</h5>
-                        <p class="card-text h3">{{ pending_tickets|default(0) }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Resolved</h5>
-                        <p class="card-text h3">{{ resolved_tickets|default(0) }}</p>
-                    </div>
-                </div>
-            </div>
+            <!-- Similar cards for other statuses -->
         </div>
+        {% endif %}
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
-            <a href="/tickets" class="btn btn-secondary">View All Tickets</a>
-        </div>
-
-        <!-- Content Block -->
+        <!-- Main Content Block -->
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-light text-center text-muted py-4 mt-5">
-        <p>Technical Team Activity Tracker © 2024</p>
-    </footer>
-
-    <!-- Bootstrap JS and dependencies -->
+    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JavaScript -->
     <script>
-        // Add any custom JavaScript here
+        // Form validation
+        (() => {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+
+        // Status badge colors
         document.addEventListener('DOMContentLoaded', function() {
-            // Enable Bootstrap tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
+            const statusCells = document.querySelectorAll('td:nth-child(4)');
+            statusCells.forEach(cell => {
+                const status = cell.textContent.trim();
+                switch(status) {
+                    case 'OPEN':
+                        cell.classList.add('badge', 'bg-primary');
+                        break;
+                    case 'IN_PROGRESS':
+                        cell.classList.add('badge', 'bg-warning');
+                        break;
+                    case 'RESOLVED':
+                        cell.classList.add('badge', 'bg-success');
+                        break;
+                    // Add more cases as needed
+                }
             });
         });
     </script>
