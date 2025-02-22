@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request, current_app
 from app.models.models import Site, Ticket, TicketAction, ProblemCategory
 from app import db
 from datetime import datetime
@@ -45,7 +45,7 @@ def add_action(ticket_id):
         photo_path = None
         if photo:
             filename = secure_filename(photo.filename)
-            photo_path = os.path.join(main_bp.config['UPLOAD_FOLDER'], filename)
+            photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             photo.save(photo_path)
 
         action = TicketAction(
