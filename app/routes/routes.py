@@ -9,7 +9,7 @@ main_bp = Blueprint('main', __name__, template_folder='../../templates')
 
 @main_bp.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', tickets=Ticket.query.all())
 
 @main_bp.route('/tickets', methods=['GET'])
 def list_tickets():
@@ -29,12 +29,12 @@ def create_ticket():
             )
             db.session.add(new_ticket)
             db.session.commit()
-            return render_template('tickets.html', tickets=Ticket.query.all(), message="Ticket created successfully", message_category="success")
+            return render_template('create_ticket.html', tickets=Ticket.query.all(), message="Ticket created successfully", message_category="success")
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
     sites = Site.query.all()
-    return render_template('tickets.html', sites=sites, categories=ProblemCategory)
+    return render_template('create_ticket.html', sites=sites, categories=ProblemCategory)
 
 @main_bp.route('/tickets/<int:ticket_id>/actions', methods=['POST'])
 def add_action(ticket_id):
