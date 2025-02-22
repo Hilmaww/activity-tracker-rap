@@ -29,9 +29,9 @@ def create_ticket():
             )
             db.session.add(new_ticket)
             db.session.commit()
-            return jsonify({'message': 'Ticket created successfully', 'ticket_id': new_ticket.id})
+            return render_template('create_ticket.html', tickets=Ticket.query.all(), message="Ticket created successfully", message_category="success")
         except Exception as e:
-            return jsonify({'error': str(e)}), 400
+            return render_template('create_ticket.html', tickets=Ticket.query.all(), message="Ticket creation failed", message_category="danger")
 
     sites = Site.query.all()
     return render_template('create_ticket.html', sites=sites, categories=ProblemCategory)
@@ -61,6 +61,12 @@ def add_action(ticket_id):
         return jsonify({'message': 'Action added successfully'})
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+@main_bp.route('/tickets/<int:ticket_id>', methods=['GET'])
+def view_ticket(ticket_id):
+    ticket = Ticket.query.get_or_404(ticket_id)
+    actions = TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all()
+    return render_template('view_ticket.html', ticket=ticket, actions=actions)
 
 # Add a test route
 @main_bp.route('/test')
