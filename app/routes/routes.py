@@ -29,7 +29,7 @@ def create_ticket():
             )
             db.session.add(new_ticket)
             db.session.commit()
-            return render_template('create_ticket.html', tickets=Ticket.query.all(), message="Ticket created successfully", message_category="success")
+            return jsonify({'message': 'Ticket created successfully', 'ticket_id': new_ticket.id})
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 

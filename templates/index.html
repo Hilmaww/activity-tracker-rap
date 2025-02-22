@@ -71,7 +71,7 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <h5 class="card-title">Open Tickets</h5>
-                        <p class="card-text h3">{{ tickets|selectattr('status', 'equalto', 'OPEN')|list|length }}</p>
+                        <p class="card-text h3">{{ tickets|selectattr('status.name', 'equalto', 'OPEN')|list|length }}</p>
                     </div>
                 </div>
             </div>
@@ -79,7 +79,7 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <h5 class="card-title">In Progress</h5>
-                        <p class="card-text h3">{{ tickets|selectattr('status', 'equalto', 'IN_PROGRESS')|list|length }}</p>
+                        <p class="card-text h3">{{ tickets|selectattr('status.name', 'equalto', 'IN_PROGRESS')|list|length }}</p>
                     </div>
                 </div>
             </div>
@@ -87,7 +87,7 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <h5 class="card-title">Pending</h5>
-                        <p class="card-text h3">{{ tickets|selectattr('status', 'equalto', 'PENDING')|list|length }}</p>
+                        <p class="card-text h3">{{ tickets|selectattr('status.name', 'equalto', 'PENDING')|list|length }}</p>
                     </div>
                 </div>
             </div>
@@ -95,7 +95,7 @@
                 <div class="card text-center">
                     <div class="card-body">
                         <h5 class="card-title">Resolved</h5>
-                        <p class="card-text h3">{{ tickets|selectattr('status', 'equalto', 'RESOLVED')|list|length }}</p>
+                        <p class="card-text h3">{{ tickets|selectattr('status.name', 'equalto', 'RESOLVED')|list|length }}</p>
                     </div>
                 </div>
             </div>
