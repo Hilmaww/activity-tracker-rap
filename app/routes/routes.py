@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, render_template, request, current_app
-from app.models.models import Site, Ticket, TicketAction, ProblemCategory
+from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus
 from app import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
