@@ -9,7 +9,15 @@ main_bp = Blueprint('main', __name__, template_folder='../../templates')
 
 @main_bp.route('/')
 def index():
-    return render_template('index.html', tickets=Ticket.query.all())
+    open_tickets = Ticket.query.filter_by(status=TicketStatus.OPEN).count()
+    in_progress_tickets = Ticket.query.filter_by(status=TicketStatus.IN_PROGRESS).count()
+    pending_tickets = Ticket.query.filter_by(status=TicketStatus.PENDING).count()
+    resolved_tickets = Ticket.query.filter_by(status=TicketStatus.RESOLVED).count()
+
+    return render_template('index.html', open_tickets=open_tickets,
+                       in_progress_tickets=in_progress_tickets,
+                       pending_tickets=pending_tickets,
+                       resolved_tickets=resolved_tickets)
 
 @main_bp.route('/tickets', methods=['GET'])
 def list_tickets():
@@ -58,7 +66,7 @@ def add_action(ticket_id):
         db.session.add(action)
         db.session.commit()
 
-        return render_template('view_ticket.html', tickets=TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all(), message="Action added successfully", message_category="success")
+        return render_template('view_ticket.html', ticket=TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all(), message="Action added successfully", message_category="success")
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
