@@ -89,6 +89,12 @@
         </div>
     </div>
 
+    <!-- Map Section -->
+    <div class="map-container">
+        <h4 class="text-center mb-4">Site Locations with Active Tickets</h4>
+        <div id="siteMap"></div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="action-buttons">
         <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
@@ -208,6 +214,44 @@
             }
         }
     );
+
+    // Initialize the map
+    const map = L.map('siteMap').setView([-2.5489, 118.0149], 5); // Center on Indonesia
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Create a marker cluster group
+    const markers = L.markerClusterGroup();
+
+    // Add markers for sites with tickets
+    const sites = {{ site_markers | tojson }};
+    sites.forEach(site => {
+        const marker = L.marker([site.latitude, site.longitude]);
+        
+        // Create popup content
+        const popupContent = `
+            <div class="site-popup">
+                <h5>${site.site_id} - ${site.name}</h5>
+                <p>Kabupaten: ${site.kabupaten}</p>
+                <p>Active Tickets: ${site.ticket_count}</p>
+                <p><a href="/tickets?site=${site.id}" class="btn btn-sm btn-primary mt-2">View Tickets</a></p>
+            </div>
+        `;
+        
+        marker.bindPopup(popupContent);
+        markers.addLayer(marker);
+    });
+
+    // Add the marker cluster group to the map
+    map.addLayer(markers);
+
+    // Fit the map to show all markers
+    if (sites.length > 0) {
+        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+    }
 </script>
 {% endblock %}
 

@@ -88,6 +88,28 @@ def index():
         trend_data.append(count)
         trend_labels.append(date.strftime('%Y-%m-%d'))
 
+    # Get sites with active tickets and their coordinates
+    sites_with_tickets = db.session.query(
+        Site,
+        func.count(Ticket.id).label('ticket_count')
+    ).join(
+        Ticket,
+        Site.id == Ticket.site_id
+    ).filter(
+        Ticket.status.in_([TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.PENDING])
+    ).group_by(Site.id).all()
+
+    # Format site data for the map
+    site_markers = [{
+        'id': site.Site.id,
+        'site_id': site.Site.site_id,
+        'name': site.Site.name,
+        'kabupaten': site.Site.kabupaten,
+        'latitude': float(site.Site.latitude),
+        'longitude': float(site.Site.longitude),
+        'ticket_count': site.ticket_count
+    } for site in sites_with_tickets if site.Site.latitude and site.Site.longitude]
+
     return render_template('index.html',
                        open_tickets=open_tickets,
                        in_progress_tickets=in_progress_tickets,
@@ -99,7 +121,8 @@ def index():
                        avg_resolution_time=round(avg_resolution_time, 1),
                        trend_data=trend_data,
                        trend_labels=trend_labels,
-                       statuses=TicketStatus)
+                       statuses=TicketStatus,
+                       site_markers=site_markers)
 
 @main_bp.route('/tickets', methods=['GET'])
 def list_tickets():
