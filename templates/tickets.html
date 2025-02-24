@@ -76,6 +76,7 @@
         <table class="table table-hover">
             <thead>
                 <tr>
+                    <th>Actions</th>
                     <th>Ticket Number</th>
                     <th>Site</th>
                     <th>Category</th>
@@ -83,7 +84,6 @@
                     <th>ENOM Assignee</th>
                     <th>Created At</th>
                     <th>Closed At</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -91,6 +91,9 @@
                 <tr>
                     <td>{{ ticket.ticket_number }}</td>
                     <td>{{ ticket.site.site_id }} - {{ ticket.site.name }}</td>
+                    <td>
+                        <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">View</a>
+                    </td>
                     <td>{{ ticket.problem_category.name }}</td>
                     <td>{{ ticket.status.name }}</td>
                     <td>{{ ticket.assigned_to_enom.name if ticket.assigned_to_enom else '-' }}</td>
@@ -102,9 +105,6 @@
                         </span>
                     </td>
                     <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>
-                        <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">View</a>
-                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
