@@ -99,7 +99,7 @@
                     <div class="card-body">
                         <p class="mb-1">{{ action.action_text }}</p>
                         {% if action.photo_path %}
-                        <img src="{{ url_for('static', filename=action.photo_path) }}" class="img-fluid mt-2" style="max-width: 300px;">
+                        <img src="/{{ action.photo_path }}" class="img-fluid mt-2" style="max-width: 300px;">
                         {% endif %}
                         <small class="text-muted">
                             Added by {{ action.created_by }} on {{ action.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
