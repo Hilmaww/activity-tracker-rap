@@ -100,6 +100,16 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
+            <div class="custom-map-controls mt-2">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-light" id="center-indonesia" title="Center on Indonesia">
+                        <i class="fas fa-home"></i>
+                    </button>
+                    <button type="button" class="btn btn-light" id="toggle-clusters" title="Toggle Clustering">
+                        <i class="fas fa-layer-group"></i>
+                    </button>
+                </div>
+            </div>
         </div>
         <div id="siteMap">
             <div class="map-loading">
@@ -246,6 +256,29 @@
     const mapContainer = document.getElementById('siteMap');
     const mapLoading = mapContainer.querySelector('.map-loading');
     
+    // Create a marker cluster group
+    const markers = L.markerClusterGroup();
+    
+    // Define marker colors for different statuses
+    const statusColors = {
+        'OPEN': '#ff6384',      // Red
+        'IN_PROGRESS': '#36a2eb', // Blue
+        'PENDING': '#ffce56'    // Yellow
+    };
+
+    // Custom marker icon function
+    function createCustomMarker(status, count) {
+        const color = statusColors[status] || '#4bc0c0';
+        return L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);">
+                    ${count}
+                   </div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+    }
+
     // Initialize the map
     const map = L.map('siteMap').setView([-2.5489, 118.0149], 5);
 
@@ -268,43 +301,93 @@
         }).addTo(map);
     }
 
-    // Add loading state to search
-    const searchInput = document.getElementById('site-search');
-    const searchContainer = searchInput.parentElement;
-    const searchLoading = document.createElement('i');
-    searchLoading.className = 'fas fa-spinner fa-spin search-loading';
-    searchLoading.style.display = 'none';
-    searchContainer.appendChild(searchLoading);
+    // Add markers for sites with tickets
+    const sites = {{ site_markers | tojson }};
+    let allMarkers = [];
 
-    let searchTimeout;
-    searchInput.addEventListener('input', (e) => {
-        searchLoading.style.display = 'block';
-        clearTimeout(searchTimeout);
+    // Create all markers first
+    sites.forEach(site => {
+        const marker = L.marker([site.lat, site.long], {
+            icon: createCustomMarker(site.status, site.ticket_count)
+        });
         
-        searchTimeout = setTimeout(() => {
-            const searchText = e.target.value.toLowerCase();
-            
-            allMarkers.forEach(({marker, searchText: markerText}) => {
-                marker.getElement().classList.add('marker-loading');
-                if (searchText === '' || markerText.includes(searchText)) {
-                    markers.addLayer(marker);
-                } else {
-                    markers.removeLayer(marker);
-                }
-                setTimeout(() => marker.getElement().classList.remove('marker-loading'), 300);
-            });
-            
-            searchLoading.style.display = 'none';
-        }, 300);
+        const popupContent = `
+            <div class="site-popup">
+                <h5>${site.site_id} - ${site.name}</h5>
+                <p>Kabupaten: ${site.kabupaten}</p>
+                <p>Active Tickets: ${site.ticket_count}</p>
+                <div class="status-breakdown">
+                    ${Object.entries(site.status_counts).map(([status, count]) => 
+                        `<div class="status-item">
+                            <span class="status-dot" style="background-color: ${statusColors[status]}"></span>
+                            ${status}: ${count}
+                        </div>`
+                    ).join('')}
+                </div>
+                <p><a href="/tickets?site=${site.id}" class="btn btn-sm btn-primary mt-2">View Tickets</a></p>
+            </div>
+        `;
+        
+        marker.bindPopup(popupContent);
+        markers.addLayer(marker);
+        
+        allMarkers.push({
+            marker: marker,
+            searchText: `${site.site_id} ${site.name} ${site.kabupaten}`.toLowerCase()
+        });
     });
 
-    // Add loading state to clustering toggle
+    // Add the marker cluster group to the map
+    map.addLayer(markers);
+
+    // Fit the map to show all markers
+    if (sites.length > 0) {
+        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+    }
+
+    // Initialize search functionality
+    const searchInput = document.getElementById('site-search');
+    const clearButton = document.getElementById('clear-search');
+    let searchTimeout;
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchText = e.target.value.toLowerCase();
+                allMarkers.forEach(({marker, searchText: markerText}) => {
+                    if (searchText === '' || markerText.includes(searchText)) {
+                        markers.addLayer(marker);
+                    } else {
+                        markers.removeLayer(marker);
+                    }
+                });
+            }, 300);
+        });
+    }
+
+    if (clearButton) {
+        clearButton.addEventListener('click', () => {
+            if (searchInput) {
+                searchInput.value = '';
+                allMarkers.forEach(({marker}) => markers.addLayer(marker));
+            }
+        });
+    }
+
+    // Initialize map controls
+    const centerButton = document.getElementById('center-indonesia');
     const toggleClustersButton = document.getElementById('toggle-clusters');
-    toggleClustersButton.addEventListener('click', () => {
-        toggleClustersButton.disabled = true;
-        toggleClustersButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        setTimeout(() => {
+    let clusteringEnabled = true;
+
+    if (centerButton) {
+        centerButton.addEventListener('click', () => {
+            map.setView([-2.5489, 118.0149], 5);
+        });
+    }
+
+    if (toggleClustersButton) {
+        toggleClustersButton.addEventListener('click', () => {
             if (clusteringEnabled) {
                 map.removeLayer(markers);
                 allMarkers.forEach(({marker}) => marker.addTo(map));
@@ -313,22 +396,11 @@
                 markers.addTo(map);
             }
             clusteringEnabled = !clusteringEnabled;
-            
-            toggleClustersButton.disabled = false;
-            toggleClustersButton.innerHTML = '<i class="fas fa-layer-group"></i>';
-        }, 300);
-    });
+        });
+    }
 
-    // Remove loading overlay when map and markers are ready
-    Promise.all([
-        new Promise(resolve => map.whenReady(resolve)),
-        new Promise(resolve => {
-            if (sites.length === 0) resolve();
-            markers.on('layeradd', () => {
-                if (markers.getLayers().length === sites.length) resolve();
-            });
-        })
-    ]).then(() => {
+    // Remove loading overlay when map is ready
+    map.whenReady(() => {
         mapLoading.style.display = 'none';
     });
 </script>
