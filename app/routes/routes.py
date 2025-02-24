@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, render_template, request, current_app, redirect, url_for
 from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee
-from app import db
+from app import db, logger
 from datetime import datetime, timedelta
 import pytz
 from werkzeug.utils import secure_filename
@@ -17,8 +17,8 @@ def index():
     # Get current date and 30 days ago date in Jakarta time
     current_datetime = datetime.now(jakarta_tz)
     current_date = current_datetime.date()
-    print(f"Current Jakarta datetime: {current_datetime}")
-    print(f"Current Jakarta date: {current_date}")
+    current_app.logger.info(f"Current Jakarta datetime: {current_datetime}")
+    current_app.logger.info(f"Current Jakarta date: {current_date}")
     
     # Current status counts (existing)
     open_tickets = Ticket.query.filter_by(status=TicketStatus.OPEN).count()
@@ -80,28 +80,25 @@ def index():
     trend_data = []
     trend_labels = []
     
-    print("\nDebug 7-day trend data:")
+    current_app.logger.info("\nDebug 7-day trend data:")
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
         start_of_day = datetime.combine(date, datetime.min.time(), tzinfo=jakarta_tz)
         end_of_day = datetime.combine(date, datetime.max.time(), tzinfo=jakarta_tz)
         
-        # Debug print the time ranges we're querying
-        print(f"\nDate bucket: {date}")
-        print(f"Start of day: {start_of_day}")
-        print(f"End of day: {end_of_day}")
+        current_app.logger.info(f"\nDate bucket: {date}")
+        current_app.logger.info(f"Start of day: {start_of_day}")
+        current_app.logger.info(f"End of day: {end_of_day}")
         
-        # Get the actual tickets for debugging
         tickets = Ticket.query.filter(
             func.timezone('Asia/Jakarta', Ticket.created_at) >= start_of_day,
             func.timezone('Asia/Jakarta', Ticket.created_at) <= end_of_day
         ).all()
         
-        # Print each ticket's creation time
-        print(f"Tickets found for {date}:")
+        current_app.logger.info(f"Tickets found for {date}:")
         for ticket in tickets:
             jakarta_time = ticket.created_at.astimezone(jakarta_tz)
-            print(f"- Ticket {ticket.ticket_number}: created_at = {ticket.created_at} (UTC) = {jakarta_time} (Jakarta)")
+            current_app.logger.info(f"- Ticket {ticket.ticket_number}: created_at = {ticket.created_at} (UTC) = {jakarta_time} (Jakarta)")
         
         count = len(tickets)
         trend_data.append(count)

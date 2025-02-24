@@ -3,10 +3,22 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 
 # Setup logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('enom_tracker')
+logger.setLevel(logging.INFO)
+
+# Create handlers
+handler = logging.handlers.SysLogHandler(address='/dev/log')
+formatter = logging.Formatter('%(name)s[%(process)d]: %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# Also log to a file for easier debugging
+file_handler = logging.FileHandler('/var/log/enom_tracker/app.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 db = SQLAlchemy()
 
@@ -14,6 +26,10 @@ def create_app():
     app = Flask(__name__, template_folder='../templates/')
     
     migrate = Migrate(app, db)
+
+    # Setup logging
+    app.logger.addHandler(handler)
+    app.logger.setLevel(logging.INFO)
 
     # Configuration
     username = os.getenv('DB_USERNAME')
@@ -45,6 +61,9 @@ def create_app():
     # Create tables
     with app.app_context():
         db.create_all()
+
+    # Make sure log directory exists
+    os.makedirs('/var/log/enom_tracker', exist_ok=True)
 
     return app
 
