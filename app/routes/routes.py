@@ -249,16 +249,17 @@ def search_sites():
     sites = Site.query.filter(
         or_(
             Site.name.ilike(f'%{search_term}%'),
-            Site.location.ilike(f'%{search_term}%')
+            Site.site_id.ilike(f'%{search_term}%'),
+            Site.kabupaten.ilike(f'%{search_term}%')
         )
     ).limit(50).all()  # Limit results for performance
     
     # Format results for Select2
     results = [{
         'id': site.id,
-        'text': f'{site.name} - {site.location}',
+        'text': f'{site.site_id} - {site.name}',
         'name': site.name,
-        'location': site.location
+        'kabupaten': site.kabupaten
     } for site in sites]
     
     return jsonify({
