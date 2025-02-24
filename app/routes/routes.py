@@ -15,7 +15,8 @@ jakarta_tz = pytz.timezone('Asia/Jakarta')
 @main_bp.route('/')
 def index():
     # Get current date and 30 days ago date in Jakarta time
-    current_date = datetime.now(jakarta_tz).date()
+    current_datetime = datetime.now(jakarta_tz)
+    current_date = current_datetime.date()  # This ensures we get Jakarta date
     thirty_days_ago = current_date - timedelta(days=30)
     
     # Current status counts (existing)
@@ -80,13 +81,14 @@ def index():
     
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
-        # Convert the comparison date to a timezone-aware datetime at start of day in Jakarta
-        jakarta_date = datetime.combine(date, datetime.min.time(), tzinfo=jakarta_tz)
+        # Create start and end of day timestamps in Jakarta time
+        start_of_day = datetime.combine(date, datetime.min.time(), tzinfo=jakarta_tz)
+        end_of_day = datetime.combine(date, datetime.max.time(), tzinfo=jakarta_tz)
         
         # Query using Jakarta timezone and compare full day
         count = Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= jakarta_date,
-            func.timezone('Asia/Jakarta', Ticket.created_at) < jakarta_date + timedelta(days=1)
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= start_of_day,
+            func.timezone('Asia/Jakarta', Ticket.created_at) <= end_of_day
         ).count()
         
         trend_data.append(count)
