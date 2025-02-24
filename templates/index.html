@@ -93,7 +93,20 @@
     <!-- Map Section -->
     <div class="map-container">
         <h4 class="text-center mb-4">Site Locations with Active Tickets</h4>
-        <div id="siteMap"></div>
+        <div class="map-controls mb-3">
+            <div class="input-group">
+                <input type="text" id="site-search" class="form-control" placeholder="Search for a site...">
+                <button class="btn btn-outline-secondary" type="button" id="clear-search">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div id="siteMap">
+            <div class="map-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading map...</span>
+            </div>
+        </div>
     </div>
 
     <!-- Action Buttons -->
@@ -229,43 +242,156 @@
         }
     });
 
+    // Initialize the map with loading state
+    const mapContainer = document.getElementById('siteMap');
+    const mapLoading = mapContainer.querySelector('.map-loading');
+    
     // Initialize the map
-    const map = L.map('siteMap').setView([-2.5489, 118.0149], 5); // Center on Indonesia
+    const map = L.map('siteMap').setView([-2.5489, 118.0149], 5);
 
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    // Add Mapbox tiles with token from backend
+    const mapboxToken = '{{ mapbox_token }}';
+    if (mapboxToken) {
+        L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+            attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox/streets-v11',
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken: mapboxToken
+        }).addTo(map);
+    } else {
+        // Fallback to OpenStreetMap
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(map);
+    }
 
-    // Create a marker cluster group
-    const markers = L.markerClusterGroup();
+    // Add loading state to search
+    const searchInput = document.getElementById('site-search');
+    const searchContainer = searchInput.parentElement;
+    const searchLoading = document.createElement('i');
+    searchLoading.className = 'fas fa-spinner fa-spin search-loading';
+    searchLoading.style.display = 'none';
+    searchContainer.appendChild(searchLoading);
 
-    // Add markers for sites with tickets
-    const sites = {{ site_markers | tojson }};
-    sites.forEach(site => {
-        const marker = L.marker([site.lat, site.long]);
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+        searchLoading.style.display = 'block';
+        clearTimeout(searchTimeout);
         
-        // Create popup content
-        const popupContent = `
-            <div class="site-popup">
-                <h5>${site.site_id} - ${site.name}</h5>
-                <p>Kabupaten: ${site.kabupaten}</p>
-                <p>Active Tickets: ${site.ticket_count}</p>
-                <p><a href="/tickets?site=${site.id}" class="btn btn-sm btn-primary mt-2">View Tickets</a></p>
-            </div>
-        `;
-        
-        marker.bindPopup(popupContent);
-        markers.addLayer(marker);
+        searchTimeout = setTimeout(() => {
+            const searchText = e.target.value.toLowerCase();
+            
+            allMarkers.forEach(({marker, searchText: markerText}) => {
+                marker.getElement().classList.add('marker-loading');
+                if (searchText === '' || markerText.includes(searchText)) {
+                    markers.addLayer(marker);
+                } else {
+                    markers.removeLayer(marker);
+                }
+                setTimeout(() => marker.getElement().classList.remove('marker-loading'), 300);
+            });
+            
+            searchLoading.style.display = 'none';
+        }, 300);
     });
 
-    // Add the marker cluster group to the map
-    map.addLayer(markers);
+    // Add loading state to clustering toggle
+    const toggleClustersButton = document.getElementById('toggle-clusters');
+    toggleClustersButton.addEventListener('click', () => {
+        toggleClustersButton.disabled = true;
+        toggleClustersButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        setTimeout(() => {
+            if (clusteringEnabled) {
+                map.removeLayer(markers);
+                allMarkers.forEach(({marker}) => marker.addTo(map));
+            } else {
+                allMarkers.forEach(({marker}) => map.removeLayer(marker));
+                markers.addTo(map);
+            }
+            clusteringEnabled = !clusteringEnabled;
+            
+            toggleClustersButton.disabled = false;
+            toggleClustersButton.innerHTML = '<i class="fas fa-layer-group"></i>';
+        }, 300);
+    });
 
-    // Fit the map to show all markers
-    if (sites.length > 0) {
-        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
-    }
+    // Remove loading overlay when map and markers are ready
+    Promise.all([
+        new Promise(resolve => map.whenReady(resolve)),
+        new Promise(resolve => {
+            if (sites.length === 0) resolve();
+            markers.on('layeradd', () => {
+                if (markers.getLayers().length === sites.length) resolve();
+            });
+        })
+    ]).then(() => {
+        mapLoading.style.display = 'none';
+    });
 </script>
+
+<style>
+    .status-breakdown {
+        margin-top: 8px;
+        font-size: 12px;
+    }
+    
+    .status-item {
+        display: flex;
+        align-items: center;
+        margin: 2px 0;
+    }
+    
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+    
+    .map-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .map-loading i {
+        font-size: 24px;
+        margin-right: 10px;
+        color: #36a2eb;
+    }
+    
+    .marker-loading {
+        opacity: 0.5;
+    }
+    
+    .custom-map-controls .btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .search-loading {
+        position: absolute;
+        right: 45px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+    }
+</style>
 {% endblock %}
 

@@ -6,8 +6,11 @@ import pytz
 from werkzeug.utils import secure_filename
 import os
 from sqlalchemy import or_, func
+from dotenv import load_dotenv
 
 main_bp = Blueprint('main', __name__, template_folder='../../templates')
+
+load_dotenv()  # Add this near the top of the file
 
 # Get Jakarta timezone
 jakarta_tz = pytz.timezone('Asia/Jakarta')
@@ -17,8 +20,6 @@ def index():
     # Get current date and 30 days ago date in Jakarta time
     current_datetime = datetime.now(jakarta_tz)
     current_date = current_datetime.date()
-    current_app.logger.info(f"Current Jakarta datetime: {current_datetime}")
-    current_app.logger.info(f"Current Jakarta date: {current_date}")
     
     # Current status counts (existing)
     open_tickets = Ticket.query.filter_by(status=TicketStatus.OPEN).count()
@@ -113,7 +114,6 @@ def index():
     trend_data = []
     trend_labels = []
     
-    current_app.logger.info("\nDebug 7-day trend data:")
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
         
@@ -121,20 +121,11 @@ def index():
         start_of_day = datetime.combine(date, datetime.min.time()).astimezone(jakarta_tz)
         end_of_day = datetime.combine(date, datetime.max.time()).astimezone(jakarta_tz)
         
-        current_app.logger.info(f"\nDate bucket: {date}")
-        current_app.logger.info(f"Start of day: {start_of_day}")
-        current_app.logger.info(f"End of day: {end_of_day}")
-        
         # Query using AT TIME ZONE to convert timestamps to Jakarta time before comparison
         tickets = Ticket.query.filter(
             Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
             Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1)
         ).all()
-        
-        current_app.logger.info(f"Tickets found for {date}:")
-        for ticket in tickets:
-            jakarta_time = ticket.created_at.astimezone(jakarta_tz)
-            current_app.logger.info(f"- Ticket {ticket.ticket_number}: created_at = {ticket.created_at} (UTC) = {jakarta_time} (Jakarta)")
         
         count = len(tickets)
         trend_data.append(count)
@@ -159,7 +150,28 @@ def index():
         'kabupaten': site.Site.kabupaten,
         'lat': float(site.Site.lat),
         'long': float(site.Site.long),
-        'ticket_count': site.ticket_count
+        'ticket_count': site.ticket_count,
+        'status_counts': {
+            'OPEN': Ticket.query.filter(
+                Ticket.site_id == site.Site.id,
+                Ticket.status == TicketStatus.OPEN
+            ).count(),
+            'IN_PROGRESS': Ticket.query.filter(
+                Ticket.site_id == site.Site.id,
+                Ticket.status == TicketStatus.IN_PROGRESS
+            ).count(),
+            'PENDING': Ticket.query.filter(
+                Ticket.site_id == site.Site.id,
+                Ticket.status == TicketStatus.PENDING
+            ).count()
+        },
+        'status': max(
+            ['OPEN', 'IN_PROGRESS', 'PENDING'],
+            key=lambda s: Ticket.query.filter(
+                Ticket.site_id == site.Site.id,
+                Ticket.status == getattr(TicketStatus, s)
+            ).count()
+        ) if site.ticket_count > 0 else 'NONE'
     } for site in sites_with_tickets if site.Site.lat and site.Site.long]
 
     return render_template('index.html',
@@ -176,7 +188,8 @@ def index():
                        trend_data=trend_data,
                        trend_labels=trend_labels,
                        statuses=TicketStatus,
-                       site_markers=site_markers)
+                       site_markers=site_markers,
+                       mapbox_token=os.getenv('MAPBOX_TOKEN'))
 
 @main_bp.route('/tickets', methods=['GET'])
 def list_tickets():

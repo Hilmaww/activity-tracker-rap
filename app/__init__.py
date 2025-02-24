@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+from dotenv import load_dotenv
 
 # Setup logging
 logger = logging.getLogger('enom_tracker')
@@ -21,6 +22,8 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 db = SQLAlchemy()
+
+load_dotenv()
 
 def create_app():
     app = Flask(__name__, template_folder='../templates/')
@@ -47,6 +50,7 @@ def create_app():
             'options': '-c timezone=UTC'
         }
     }
+    app.config['MAPBOX_TOKEN'] = os.getenv('MAPBOX_TOKEN')
 
     # Initialize extensions
     db.init_app(app)
