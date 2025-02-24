@@ -16,8 +16,9 @@ jakarta_tz = pytz.timezone('Asia/Jakarta')
 def index():
     # Get current date and 30 days ago date in Jakarta time
     current_datetime = datetime.now(jakarta_tz)
-    current_date = current_datetime.date()  # This ensures we get Jakarta date
-    thirty_days_ago = current_date - timedelta(days=30)
+    current_date = current_datetime.date()
+    print(f"Current Jakarta datetime: {current_datetime}")
+    print(f"Current Jakarta date: {current_date}")
     
     # Current status counts (existing)
     open_tickets = Ticket.query.filter_by(status=TicketStatus.OPEN).count()
@@ -27,25 +28,25 @@ def index():
 
     # Total tickets in last 30 days (using timezone aware query)
     total_30_days = Ticket.query.filter(
-        func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago
+        func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30)
     ).count()
 
     # Status distribution for last 30 days
     status_30_days = {
         'OPEN': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
             Ticket.status == TicketStatus.OPEN
         ).count(),
         'IN_PROGRESS': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
             Ticket.status == TicketStatus.IN_PROGRESS
         ).count(),
         'PENDING': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
             Ticket.status == TicketStatus.PENDING
         ).count(),
         'RESOLVED': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
             Ticket.status == TicketStatus.RESOLVED
         ).count()
     }
@@ -54,14 +55,14 @@ def index():
     category_distribution = {}
     for category in ProblemCategory:
         count = Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
             Ticket.problem_category == category
         ).count()
         category_distribution[category.name] = count
 
     # Average resolution time in the last 30 days
     resolved_tickets_30_days = Ticket.query.filter(
-        func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
+        func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
         Ticket.closed_at.isnot(None)
     ).all()
     
@@ -79,18 +80,30 @@ def index():
     trend_data = []
     trend_labels = []
     
+    print("\nDebug 7-day trend data:")
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
-        # Create start and end of day timestamps in Jakarta time
         start_of_day = datetime.combine(date, datetime.min.time(), tzinfo=jakarta_tz)
         end_of_day = datetime.combine(date, datetime.max.time(), tzinfo=jakarta_tz)
         
-        # Query using Jakarta timezone and compare full day
-        count = Ticket.query.filter(
+        # Debug print the time ranges we're querying
+        print(f"\nDate bucket: {date}")
+        print(f"Start of day: {start_of_day}")
+        print(f"End of day: {end_of_day}")
+        
+        # Get the actual tickets for debugging
+        tickets = Ticket.query.filter(
             func.timezone('Asia/Jakarta', Ticket.created_at) >= start_of_day,
             func.timezone('Asia/Jakarta', Ticket.created_at) <= end_of_day
-        ).count()
+        ).all()
         
+        # Print each ticket's creation time
+        print(f"Tickets found for {date}:")
+        for ticket in tickets:
+            jakarta_time = ticket.created_at.astimezone(jakarta_tz)
+            print(f"- Ticket {ticket.ticket_number}: created_at = {ticket.created_at} (UTC) = {jakarta_time} (Jakarta)")
+        
+        count = len(tickets)
         trend_data.append(count)
         trend_labels.append(date.strftime('%Y-%m-%d'))
 
