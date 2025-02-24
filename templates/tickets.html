@@ -80,6 +80,7 @@
                     <th>Site</th>
                     <th>Category</th>
                     <th>Status</th>
+                    <th>ENOM Assignee</th>
                     <th>Created By</th>
                     <th>Created At</th>
                     <th>Actions</th>
@@ -92,6 +93,7 @@
                     <td>{{ ticket.site.name }}</td>
                     <td>{{ ticket.problem_category.name }}</td>
                     <td>{{ ticket.status.name }}</td>
+                    <td>{{ ticket.assigned_to_enom.name if ticket.assigned_to_enom else '-' }}</td>
                     <td>{{ ticket.created_by }}</td>
                     <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>
