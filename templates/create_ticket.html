@@ -64,7 +64,7 @@
             ajax: {
                 url: '/api/sites/search',
                 dataType: 'json',
-                delay: 250, // Wait 250ms after typing before sending request
+                delay: 250,
                 data: function(params) {
                     return {
                         term: params.term || '',
@@ -79,7 +79,7 @@
                 },
                 cache: true
             },
-            minimumInputLength: 2, // Require at least 2 characters before searching
+            minimumInputLength: 2,
             templateResult: formatSite,
             templateSelection: formatSite
         });
@@ -90,24 +90,16 @@
                 return site.text;
             }
             
-            var $site = $(site.element);
-            var name = $site.data('name');
-            var location = $site.data('location');
-            
-            var $container = $(
-                '<div class="site-option">' +
-                    '<div class="site-name">' + name + '</div>' +
-                    '<small class="text-muted">' + location + '</small>' +
-                '</div>'
-            );
-            
-            return $container;
+            // For search results
+            return $('<div class="site-option">' +
+                '<div class="site-name">' + site.text + '</div>' +
+                (site.kabupaten ? '<small class="text-muted">Kabupaten: ' + site.kabupaten + '</small>' : '') +
+                '</div>');
         }
     });
 </script>
 
 <style>
-    /* Custom styles for site options */
     .site-option {
         padding: 4px;
     }
@@ -116,7 +108,6 @@
         font-weight: 500;
     }
     
-    /* Ensure dropdown is above other elements */
     .select2-dropdown {
         z-index: 9999;
     }

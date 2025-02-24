@@ -257,7 +257,8 @@ def search_sites():
     # Format results for Select2
     results = [{
         'id': site.id,
-        'text': f'{site.site_id} - {site.name}',
+        'text': f'{site.site_id} - {site.name}',  # This is what Select2 uses for display
+        'site_id': site.site_id,
         'name': site.name,
         'kabupaten': site.kabupaten
     } for site in sites]
@@ -265,6 +266,6 @@ def search_sites():
     return jsonify({
         'results': results,
         'pagination': {
-            'more': False  # Set to True if you implement pagination
+            'more': False
         }
     })
