@@ -10,17 +10,69 @@ main_bp = Blueprint('main', __name__, template_folder='../../templates')
 
 @main_bp.route('/')
 def index():
+    # Get current date and 30 days ago date
+    current_date = datetime.now().date()
+    thirty_days_ago = current_date - timedelta(days=30)
+    
+    # Current status counts (existing)
     open_tickets = Ticket.query.filter_by(status=TicketStatus.OPEN).count()
     in_progress_tickets = Ticket.query.filter_by(status=TicketStatus.IN_PROGRESS).count()
     pending_tickets = Ticket.query.filter_by(status=TicketStatus.PENDING).count()
     resolved_tickets = Ticket.query.filter_by(status=TicketStatus.RESOLVED).count()
+
+    # Total tickets in last 30 days
+    total_30_days = Ticket.query.filter(
+        db.func.date(Ticket.created_at) >= thirty_days_ago
+    ).count()
+
+    # Status distribution for last 30 days
+    status_30_days = {
+        'OPEN': Ticket.query.filter(
+            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            Ticket.status == TicketStatus.OPEN
+        ).count(),
+        'IN_PROGRESS': Ticket.query.filter(
+            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            Ticket.status == TicketStatus.IN_PROGRESS
+        ).count(),
+        'PENDING': Ticket.query.filter(
+            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            Ticket.status == TicketStatus.PENDING
+        ).count(),
+        'RESOLVED': Ticket.query.filter(
+            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            Ticket.status == TicketStatus.RESOLVED
+        ).count()
+    }
+
+    # Problem category distribution for last 30 days
+    category_distribution = {}
+    for category in ProblemCategory:
+        count = Ticket.query.filter(
+            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            Ticket.problem_category == category
+        ).count()
+        category_distribution[category.name] = count
+
+    # Average resolution time in the last 30 days
+    resolved_tickets_30_days = Ticket.query.filter(
+        db.func.date(Ticket.created_at) >= thirty_days_ago,
+        Ticket.closed_at.isnot(None)
+    ).all()
+    
+    resolution_times = []
+    for ticket in resolved_tickets_30_days:
+        resolution_time = ticket.closed_at - ticket.created_at
+        resolution_times.append(resolution_time.total_seconds() / 3600)  # Convert to hours
+    
+    avg_resolution_time = sum(resolution_times) / len(resolution_times) if resolution_times else 0
 
     # Get trend data for the last 7 days
     trend_data = []
     trend_labels = []
     
     for i in range(6, -1, -1):
-        date = datetime.now().date() - timedelta(days=i)
+        date = current_date - timedelta(days=i)
         count = Ticket.query.filter(
             db.func.date(Ticket.created_at) == date
         ).count()
@@ -28,10 +80,15 @@ def index():
         trend_data.append(count)
         trend_labels.append(date.strftime('%Y-%m-%d'))
 
-    return render_template('index.html', open_tickets=open_tickets,
+    return render_template('index.html',
+                       open_tickets=open_tickets,
                        in_progress_tickets=in_progress_tickets,
                        pending_tickets=pending_tickets,
                        resolved_tickets=resolved_tickets,
+                       total_30_days=total_30_days,
+                       status_30_days=status_30_days,
+                       category_distribution=category_distribution,
+                       avg_resolution_time=round(avg_resolution_time, 1),
                        trend_data=trend_data,
                        trend_labels=trend_labels,
                        statuses=TicketStatus)

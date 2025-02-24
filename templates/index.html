@@ -35,13 +35,22 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Last 30 Days</h5>
+                    <p class="card-text h3">{{ total_30_days }}</p>
+                    <small class="text-muted">Total Tickets</small>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Charts Section -->
     <div class="row mt-4">
         <div class="col-md-6">
             <div class="chart-container">
-                <h4 class="text-center mb-4">Ticket Status Distribution</h4>
+                <h4 class="text-center mb-4">30-Day Status Distribution</h4>
                 <div class="chart-wrapper">
                     <canvas id="statusPieChart"></canvas>
                 </div>
@@ -49,9 +58,32 @@
         </div>
         <div class="col-md-6">
             <div class="chart-container">
-                <h4 class="text-center mb-4">Tickets Trend (Last 7 Days)</h4>
+                <h4 class="text-center mb-4">7-Day Ticket Trend</h4>
                 <div class="chart-wrapper">
                     <canvas id="trendLineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Charts Section -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h4 class="text-center mb-4">Problem Category Distribution</h4>
+                <div class="chart-wrapper">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h4 class="text-center mb-4">Average Resolution Time</h4>
+                <div class="chart-wrapper">
+                    <div class="text-center pt-4">
+                        <h2 class="display-4">{{ avg_resolution_time }}</h2>
+                        <p class="text-muted">Hours</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -73,7 +105,7 @@
         });
     });
 
-    // Chart configurations
+    // Status Distribution Chart (30 days)
     const statusPieChart = new Chart(
         document.getElementById('statusPieChart'),
         {
@@ -82,10 +114,10 @@
                 labels: ['Open', 'In Progress', 'Pending', 'Resolved'],
                 datasets: [{
                     data: [
-                        {{ open_tickets }},
-                        {{ in_progress_tickets }},
-                        {{ pending_tickets }},
-                        {{ resolved_tickets }}
+                        {{ status_30_days['OPEN'] }},
+                        {{ status_30_days['IN_PROGRESS'] }},
+                        {{ status_30_days['PENDING'] }},
+                        {{ status_30_days['RESOLVED'] }}
                     ],
                     backgroundColor: [
                         '#ff6384',
@@ -107,7 +139,7 @@
         }
     );
 
-    // Assuming you pass trend_data from your Flask route
+    // Trend Line Chart (existing)
     const trendLineChart = new Chart(
         document.getElementById('trendLineChart'),
         {
@@ -136,6 +168,41 @@
                 plugins: {
                     legend: {
                         position: 'bottom'
+                    }
+                }
+            }
+        }
+    );
+
+    // Problem Category Distribution Chart
+    const categoryChart = new Chart(
+        document.getElementById('categoryChart'),
+        {
+            type: 'bar',
+            data: {
+                labels: {{ category_distribution.keys() | list | tojson }},
+                datasets: [{
+                    label: 'Number of Tickets',
+                    data: {{ category_distribution.values() | list | tojson }},
+                    backgroundColor: '#36a2eb',
+                    borderColor: '#2693e6',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
             }
