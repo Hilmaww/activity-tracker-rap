@@ -240,3 +240,30 @@ def update_ticket_status(ticket_id):
 @main_bp.route('/test')
 def test():
     return jsonify({"status": "ok"})
+
+@main_bp.route('/api/sites/search', methods=['GET'])
+def search_sites():
+    search_term = request.args.get('term', '')
+    
+    # Query sites with search term
+    sites = Site.query.filter(
+        or_(
+            Site.name.ilike(f'%{search_term}%'),
+            Site.location.ilike(f'%{search_term}%')
+        )
+    ).limit(50).all()  # Limit results for performance
+    
+    # Format results for Select2
+    results = [{
+        'id': site.id,
+        'text': f'{site.name} - {site.location}',
+        'name': site.name,
+        'location': site.location
+    } for site in sites]
+    
+    return jsonify({
+        'results': results,
+        'pagination': {
+            'more': False  # Set to True if you implement pagination
+        }
+    })
