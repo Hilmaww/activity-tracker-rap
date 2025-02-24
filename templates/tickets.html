@@ -10,6 +10,68 @@
         </a>
     </div>
 
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <!-- Search Bar -->
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="search" placeholder="Search tickets..." 
+                           value="{{ request.args.get('search', '') }}">
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="col-md-2">
+                    <select class="form-select" name="status">
+                        <option value="">All Statuses</option>
+                        {% for status in statuses %}
+                        <option value="{{ status.name }}" 
+                                {% if request.args.get('status') == status.name %}selected{% endif %}>
+                            {{ status.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Category Filter -->
+                <div class="col-md-2">
+                    <select class="form-select" name="category">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.name }}"
+                                {% if request.args.get('category') == category.name %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Site Filter -->
+                <div class="col-md-2">
+                    <select class="form-select" name="site">
+                        <option value="">All Sites</option>
+                        {% for site in sites %}
+                        <option value="{{ site.id }}"
+                                {% if request.args.get('site')|int == site.id %}selected{% endif %}>
+                            {{ site.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filter Button -->
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+                
+                <!-- Reset Button -->
+                <div class="col-md-1">
+                    <a href="{{ url_for('main.list_tickets') }}" class="btn btn-secondary w-100">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-striped">
             <thead>
@@ -41,4 +103,18 @@
         </table>
     </div>
 </div>
+
+<!-- Add JavaScript for auto-submit on select change -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.querySelector('form');
+    const selectElements = filterForm.querySelectorAll('select');
+    
+    selectElements.forEach(select => {
+        select.addEventListener('change', () => {
+            filterForm.submit();
+        });
+    });
+});
+</script>
 {% endblock %}

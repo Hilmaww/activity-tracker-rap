@@ -4,6 +4,7 @@ from app import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
+from sqlalchemy import or_
 
 main_bp = Blueprint('main', __name__, template_folder='../../templates')
 
@@ -17,12 +18,41 @@ def index():
     return render_template('index.html', open_tickets=open_tickets,
                        in_progress_tickets=in_progress_tickets,
                        pending_tickets=pending_tickets,
-                       resolved_tickets=resolved_tickets)
+                       resolved_tickets=resolved_tickets,
+                       statuses=TicketStatus)
 
 @main_bp.route('/tickets', methods=['GET'])
 def list_tickets():
-    tickets = Ticket.query.order_by(Ticket.created_at.desc()).all()
-    return render_template('tickets.html', tickets=tickets)
+    # Get filter parameters
+    status_filter = request.args.get('status')
+    search_query = request.args.get('search')
+    category_filter = request.args.get('category')
+    site_filter = request.args.get('site')
+    
+    # Start with base query
+    query = Ticket.query
+    
+    # Apply filters
+    if status_filter:
+        query = query.filter(Ticket.status == TicketStatus[status_filter])
+    if category_filter:
+        query = query.filter(Ticket.problem_category == ProblemCategory[category_filter])
+    if site_filter:
+        query = query.filter(Ticket.site_id == site_filter)
+    if search_query:
+        query = query.filter(or_(
+            Ticket.ticket_number.ilike(f'%{search_query}%'),
+            Ticket.created_by.ilike(f'%{search_query}%'),
+            Ticket.description.ilike(f'%{search_query}%')
+        ))
+    
+    tickets = query.order_by(Ticket.created_at.desc()).all()
+    sites = Site.query.all()
+    return render_template('tickets.html', 
+                         tickets=tickets, 
+                         sites=sites,
+                         categories=ProblemCategory,
+                         statuses=TicketStatus)
 
 @main_bp.route('/tickets/new', methods=['GET', 'POST'])
 def create_ticket():
