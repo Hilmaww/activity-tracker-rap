@@ -12,9 +12,13 @@ class TicketStatus(str, Enum):
 
 class ProblemCategory(str, Enum):
     TECHNICAL = "TECHNICAL"
-    ENVIRONMENTAL = "ENVIRONMENTAL"
-    ADMINISTRATIVE = "ADMINISTRATIVE"
-    OTHERS = "OTHERS"
+    ENVIRONMENTAL = "NON TECHNICAL"
+
+class EnomAssignee(str, Enum):
+    RIZKI = "RIZKI"
+    DOLLI = "DOLLI"
+    ATUN = "ATUN"
+    PARLIN = "PARLIN"
 
 class Site(db.Model):
     __tablename__ = 'sites'
@@ -41,7 +45,7 @@ class Ticket(db.Model):
     status = db.Column(db.Enum(TicketStatus), default=TicketStatus.OPEN)
 
     created_by = db.Column(db.String(100), nullable=False)  # TSEL team member
-    assigned_to_enom = db.Column(db.String(100))  # ENOM team member
+    assigned_to_enom = db.Column(db.Enum(EnomAssignee), nullable=True)  # ENOM team member
     assigned_to_ts = db.Column(db.String(100))  # Technical Support member
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
