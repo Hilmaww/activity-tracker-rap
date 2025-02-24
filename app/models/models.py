@@ -12,7 +12,7 @@ class TicketStatus(str, Enum):
 
 class ProblemCategory(str, Enum):
     TECHNICAL = "TECHNICAL"
-    NON-TECHNICAL = "NON-TECHNICAL"
+    NON_TECHNICAL = "NON-TECHNICAL"
 
 class EnomAssignee(str, Enum):
     RIZKI = "RIZKI"
