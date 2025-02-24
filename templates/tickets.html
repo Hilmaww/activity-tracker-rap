@@ -89,11 +89,11 @@
             <tbody>
                 {% for ticket in tickets %}
                 <tr>
-                    <td>{{ ticket.ticket_number }}</td>
-                    <td>{{ ticket.site.site_id }} - {{ ticket.site.name }}</td>
                     <td>
                         <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">View</a>
                     </td>
+                    <td>{{ ticket.ticket_number }}</td>
+                    <td>{{ ticket.site.site_id }} - {{ ticket.site.name }}</td>
                     <td>{{ ticket.problem_category.name }}</td>
                     <td>{{ ticket.status.name }}</td>
                     <td>{{ ticket.assigned_to_enom.name if ticket.assigned_to_enom else '-' }}</td>
