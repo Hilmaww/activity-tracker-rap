@@ -78,6 +78,37 @@ def index():
     
     avg_resolution_time = sum(resolution_times) / len(resolution_times) if resolution_times else 0
 
+    # Get assignee distribution for last 30 days
+    assignee_distribution = {}
+    for assignee in EnomAssignee:
+        count = Ticket.query.filter(
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago,
+            Ticket.assigned_to_enom == assignee
+        ).count()
+        assignee_distribution[assignee.name] = count
+
+    # Get top 5 sites with most tickets in last 30 days
+    top_sites = db.session.query(
+        Site.site_id,
+        Site.name,
+        func.count(Ticket.id).label('ticket_count')
+    ).join(
+        Ticket,
+        Site.id == Ticket.site_id
+    ).filter(
+        Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago
+    ).group_by(
+        Site.id
+    ).order_by(
+        func.count(Ticket.id).desc()
+    ).limit(5).all()
+
+    top_sites_data = {
+        'site_ids': [site.site_id for site in top_sites],
+        'site_names': [site.name for site in top_sites],
+        'ticket_counts': [site.ticket_count for site in top_sites]
+    }
+
     # Get trend data for the last 7 days
     trend_data = []
     trend_labels = []
@@ -138,6 +169,8 @@ def index():
                        resolved_tickets=resolved_tickets,
                        total_30_days=total_30_days,
                        status_30_days=status_30_days,
+                       assignee_distribution=assignee_distribution,
+                       top_sites_data=top_sites_data,
                        category_distribution=category_distribution,
                        avg_resolution_time=round(avg_resolution_time, 1),
                        trend_data=trend_data,
@@ -152,6 +185,10 @@ def list_tickets():
     search_query = request.args.get('search')
     category_filter = request.args.get('category')
     site_filter = request.args.get('site')
+    
+    # Get page number from request args, default to 1
+    page = request.args.get('page', 1, type=int)
+    per_page = 30  # Number of items per page
     
     # Start with base query
     query = Ticket.query
@@ -170,10 +207,17 @@ def list_tickets():
             Ticket.description.ilike(f'%{search_query}%')
         ))
     
-    tickets = query.order_by(Ticket.created_at.desc()).all()
+    # Order and paginate the query
+    pagination = query.order_by(Ticket.created_at.desc()).paginate(
+        page=page, 
+        per_page=per_page,
+        error_out=False
+    )
+    
     sites = Site.query.all()
     return render_template('tickets.html', 
-                         tickets=tickets, 
+                         pagination=pagination,
+                         tickets=pagination.items, 
                          sites=sites,
                          categories=ProblemCategory,
                          statuses=TicketStatus)

@@ -69,21 +69,22 @@
     <!-- Additional Charts Section -->
     <div class="row mt-4">
         <div class="col-md-6">
-            <div class="chart-container">
-                <h4 class="text-center mb-4">Problem Category Distribution</h4>
-                <div class="chart-wrapper">
-                    <canvas id="categoryChart"></canvas>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Ticket Distribution by ENOM Assignee (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="assigneeChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="chart-container">
-                <h4 class="text-center mb-4">Average Resolution Time</h4>
-                <div class="chart-wrapper">
-                    <div class="text-center pt-4">
-                        <h2 class="display-4">{{ avg_resolution_time }}</h2>
-                        <p class="text-muted">Hours</p>
-                    </div>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Top 5 Sites by Ticket Count (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="topSitesChart"></canvas>
                 </div>
             </div>
         </div>
@@ -180,40 +181,53 @@
         }
     );
 
-    // Problem Category Distribution Chart
-    const categoryChart = new Chart(
-        document.getElementById('categoryChart'),
-        {
-            type: 'bar',
-            data: {
-                labels: {{ category_distribution.keys() | list | tojson }},
-                datasets: [{
-                    label: 'Number of Tickets',
-                    data: {{ category_distribution.values() | list | tojson }},
-                    backgroundColor: '#36a2eb',
-                    borderColor: '#2693e6',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
+    // Assignee Distribution Chart
+    var assigneeCtx = document.getElementById('assigneeChart').getContext('2d');
+    var assigneeData = {{ assignee_distribution | tojson }};
+    new Chart(assigneeCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(assigneeData),
+            datasets: [{
+                label: 'Number of Tickets',
+                data: Object.values(assigneeData),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
                 }
             }
         }
-    );
+    });
+
+    // Top 5 Sites Chart
+    var topSitesCtx = document.getElementById('topSitesChart').getContext('2d');
+    var topSitesData = {{ top_sites_data | tojson }};
+    new Chart(topSitesCtx, {
+        type: 'bar',
+        data: {
+            labels: topSitesData.site_ids.map((id, index) => `${id} - ${topSitesData.site_names[index]}`),
+            datasets: [{
+                label: 'Number of Tickets',
+                data: topSitesData.ticket_counts,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 
     // Initialize the map
     const map = L.map('siteMap').setView([-2.5489, 118.0149], 5); // Center on Indonesia
