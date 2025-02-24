@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request, current_app
+from flask import Blueprint, jsonify, render_template, request, current_app, redirect, url_for
 from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee
 from app import db
 from datetime import datetime, timedelta
@@ -161,7 +161,9 @@ def list_tickets():
 def create_ticket():
     if request.method == 'POST':
         try:
+            # Make sure we're using timezone-aware datetime
             current_time = datetime.now(jakarta_tz)
+            
             new_ticket = Ticket(
                 ticket_number=f"TKT-{current_time.strftime('%Y%m%d%H%M%S')}",
                 site_id=request.form['site_id'],
@@ -169,13 +171,20 @@ def create_ticket():
                 description=request.form['description'],
                 created_by=request.form['created_by'],
                 assigned_to_enom=request.form.get('assigned_to_enom'),
-                created_at=current_time
+                created_at=current_time  # This will now be timezone-aware
             )
             db.session.add(new_ticket)
             db.session.commit()
-            return render_template('create_ticket.html', tickets=Ticket.query.all(), message="Ticket created successfully", message_category="success")
+            
+            # Redirect to the tickets list instead of rendering template
+            return redirect(url_for('main.list_tickets'))
         except Exception as e:
-            return render_template('create_ticket.html', tickets=Ticket.query.all(), message="Ticket creation failed", message_category="danger")
+            return render_template('create_ticket.html', 
+                                sites=Site.query.all(), 
+                                categories=ProblemCategory,
+                                enom_assignees=EnomAssignee,
+                                message="Ticket creation failed", 
+                                message_category="danger")
 
     sites = Site.query.all()
     return render_template('create_ticket.html', 

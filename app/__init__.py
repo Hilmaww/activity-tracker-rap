@@ -26,6 +26,11 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = '/var/www/uploads/enom_tracker'
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'connect_args': {
+            'options': '-c timezone=UTC'
+        }
+    }
 
     # Initialize extensions
     db.init_app(app)

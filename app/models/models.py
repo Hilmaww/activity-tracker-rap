@@ -1,6 +1,7 @@
 from app import db
 from datetime import datetime
 from enum import Enum
+import pytz
 
 class TicketStatus(str, Enum):
     OPEN = "OPEN"
@@ -55,6 +56,20 @@ class Ticket(db.Model):
     # Relationships
     actions = db.relationship('TicketAction', backref='ticket', lazy=True)
 
+    @property
+    def created_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        if self.created_at:
+            return self.created_at.astimezone(jakarta_tz)
+        return None
+
+    @property
+    def closed_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        if self.closed_at:
+            return self.closed_at.astimezone(jakarta_tz)
+        return None
+
 class TicketAction(db.Model):
     __tablename__ = 'ticket_actions'
 
@@ -64,3 +79,10 @@ class TicketAction(db.Model):
     photo_path = db.Column(db.String(255))  # Path to stored photo
     created_by = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def created_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        if self.created_at:
+            return self.created_at.astimezone(jakarta_tz)
+        return None
