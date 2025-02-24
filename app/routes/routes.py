@@ -80,11 +80,13 @@ def index():
     
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
-        # Query using Jakarta timezone and date trunc
+        # Convert the comparison date to a timezone-aware datetime at start of day in Jakarta
+        jakarta_date = datetime.combine(date, datetime.min.time(), tzinfo=jakarta_tz)
+        
+        # Query using Jakarta timezone and compare full day
         count = Ticket.query.filter(
-            func.date_trunc('day', 
-                func.timezone('Asia/Jakarta', Ticket.created_at)
-            ) == date
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= jakarta_date,
+            func.timezone('Asia/Jakarta', Ticket.created_at) < jakarta_date + timedelta(days=1)
         ).count()
         
         trend_data.append(count)
