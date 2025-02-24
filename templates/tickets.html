@@ -96,7 +96,7 @@
                     <td>{{ ticket.site.site_id }} - {{ ticket.site.name }}</td>
                     <td>{{ ticket.problem_category.name }}</td>
                     <td>
-                        <span class="badge bg-{{ ticket.status.value }}">
+                        <span class="badge bg-{{ ticket.status.name.lower() }}">
                             {{ ticket.status.name }}
                         </span>
                     </td>
