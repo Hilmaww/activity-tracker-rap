@@ -2,16 +2,20 @@ from flask import Blueprint, jsonify, render_template, request, current_app
 from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee
 from app import db
 from datetime import datetime, timedelta
+import pytz
 from werkzeug.utils import secure_filename
 import os
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 main_bp = Blueprint('main', __name__, template_folder='../../templates')
 
+# Get Jakarta timezone
+jakarta_tz = pytz.timezone('Asia/Jakarta')
+
 @main_bp.route('/')
 def index():
-    # Get current date and 30 days ago date
-    current_date = datetime.now().date()
+    # Get current date and 30 days ago date in Jakarta time
+    current_date = datetime.now(jakarta_tz).date()
     thirty_days_ago = current_date - timedelta(days=30)
     
     # Current status counts (existing)
@@ -20,27 +24,27 @@ def index():
     pending_tickets = Ticket.query.filter_by(status=TicketStatus.PENDING).count()
     resolved_tickets = Ticket.query.filter_by(status=TicketStatus.RESOLVED).count()
 
-    # Total tickets in last 30 days
+    # Total tickets in last 30 days (using timezone aware query)
     total_30_days = Ticket.query.filter(
-        db.func.date(Ticket.created_at) >= thirty_days_ago
+        func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago
     ).count()
 
     # Status distribution for last 30 days
     status_30_days = {
         'OPEN': Ticket.query.filter(
-            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
             Ticket.status == TicketStatus.OPEN
         ).count(),
         'IN_PROGRESS': Ticket.query.filter(
-            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
             Ticket.status == TicketStatus.IN_PROGRESS
         ).count(),
         'PENDING': Ticket.query.filter(
-            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
             Ticket.status == TicketStatus.PENDING
         ).count(),
         'RESOLVED': Ticket.query.filter(
-            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
             Ticket.status == TicketStatus.RESOLVED
         ).count()
     }
@@ -49,20 +53,23 @@ def index():
     category_distribution = {}
     for category in ProblemCategory:
         count = Ticket.query.filter(
-            db.func.date(Ticket.created_at) >= thirty_days_ago,
+            func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
             Ticket.problem_category == category
         ).count()
         category_distribution[category.name] = count
 
     # Average resolution time in the last 30 days
     resolved_tickets_30_days = Ticket.query.filter(
-        db.func.date(Ticket.created_at) >= thirty_days_ago,
+        func.timezone('Asia/Jakarta', Ticket.created_at) >= thirty_days_ago,
         Ticket.closed_at.isnot(None)
     ).all()
     
     resolution_times = []
     for ticket in resolved_tickets_30_days:
-        resolution_time = ticket.closed_at - ticket.created_at
+        # Convert timestamps to Jakarta time
+        created_at_jkt = ticket.created_at.astimezone(jakarta_tz)
+        closed_at_jkt = ticket.closed_at.astimezone(jakarta_tz)
+        resolution_time = closed_at_jkt - created_at_jkt
         resolution_times.append(resolution_time.total_seconds() / 3600)  # Convert to hours
     
     avg_resolution_time = sum(resolution_times) / len(resolution_times) if resolution_times else 0
@@ -73,8 +80,9 @@ def index():
     
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
+        # Query using Jakarta timezone
         count = Ticket.query.filter(
-            db.func.date(Ticket.created_at) == date
+            func.date(func.timezone('Asia/Jakarta', Ticket.created_at)) == date
         ).count()
         
         trend_data.append(count)
@@ -130,13 +138,15 @@ def list_tickets():
 def create_ticket():
     if request.method == 'POST':
         try:
+            current_time = datetime.now(jakarta_tz)
             new_ticket = Ticket(
-                ticket_number=f"TKT-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                ticket_number=f"TKT-{current_time.strftime('%Y%m%d%H%M%S')}",
                 site_id=request.form['site_id'],
                 problem_category=request.form['problem_category'],
                 description=request.form['description'],
                 created_by=request.form['created_by'],
-                assigned_to_enom=request.form.get('assigned_to_enom')
+                assigned_to_enom=request.form.get('assigned_to_enom'),
+                created_at=current_time
             )
             db.session.add(new_ticket)
             db.session.commit()
@@ -154,14 +164,13 @@ def create_ticket():
 def add_action(ticket_id):
     try:
         ticket = Ticket.query.get_or_404(ticket_id)
+        current_time = datetime.now(jakarta_tz)
 
         photo = request.files.get('photo')
         photo_path = None
         if photo:
             filename = secure_filename(photo.filename)
-            # Store relative path in database
             photo_path = f'uploads/{filename}'
-            # Save to external uploads directory
             full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             photo.save(full_path)
 
@@ -169,7 +178,8 @@ def add_action(ticket_id):
             ticket_id=ticket_id,
             action_text=request.form['action_text'],
             photo_path=photo_path,
-            created_by=request.form['created_by']
+            created_by=request.form['created_by'],
+            created_at=current_time
         )
 
         db.session.add(action)
@@ -194,23 +204,21 @@ def update_ticket_status(ticket_id):
     try:
         ticket = Ticket.query.get_or_404(ticket_id)
         new_status = request.form.get('status')
+        current_time = datetime.now(jakarta_tz)
         
-        # Add an action to record the status change
         action_text = f"Status updated from {ticket.status.name} to {new_status}"
         action = TicketAction(
             ticket_id=ticket_id,
             action_text=action_text,
-            created_by=request.form.get('created_by', 'system')
+            created_by=request.form.get('created_by', 'system'),
+            created_at=current_time
         )
         
-        # Update the ticket status
         ticket.status = TicketStatus[new_status]
         
-        # Set closed_at timestamp when status is RESOLVED
         if new_status == 'RESOLVED':
-            ticket.closed_at = datetime.utcnow()
+            ticket.closed_at = current_time
         elif ticket.closed_at is not None:
-            # Clear closed_at if status is changed from RESOLVED to something else
             ticket.closed_at = None
         
         db.session.add(action)
