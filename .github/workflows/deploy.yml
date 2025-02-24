@@ -14,13 +14,13 @@ jobs:
 
       - name: Set up SSH key
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /home/muhammadfaw/.ssh/id_rsa
-          chmod 600 /home/muhammadfaw/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /home/muhammadfaw/.ssh/${{ secrets.RSA_FILE }}
+          chmod 600 /home/muhammadfaw/.ssh/${{ secrets.RSA_FILE }}
           ssh-keyscan -H ${{ secrets.VM_IP }} >> /home/muhammadfaw/.ssh/known_hosts
 
       - name: Deploy and Restart Service
         run: |
-          ssh -i /home/muhammadfaw/.ssh/id_rsa ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
+          ssh -i /home/muhammadfaw/.ssh/${{ secrets.RSA_FILE }} ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
           cd /home/muhammadfaw/tsel_enom_tracker
           git pull
           sudo systemctl restart enom_activity_tracker_service
