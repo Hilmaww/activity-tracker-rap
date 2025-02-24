@@ -28,25 +28,27 @@ def index():
 
     # Total tickets in last 30 days (using timezone aware query)
     total_30_days = Ticket.query.filter(
-        func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30)
+        Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= 
+        datetime.combine(current_date - timedelta(days=30), datetime.min.time()).astimezone(jakarta_tz)
     ).count()
 
     # Status distribution for last 30 days
+    thirty_days_ago = datetime.combine(current_date - timedelta(days=30), datetime.min.time()).astimezone(jakarta_tz)
     status_30_days = {
         'OPEN': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago,
             Ticket.status == TicketStatus.OPEN
         ).count(),
         'IN_PROGRESS': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago,
             Ticket.status == TicketStatus.IN_PROGRESS
         ).count(),
         'PENDING': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago,
             Ticket.status == TicketStatus.PENDING
         ).count(),
         'RESOLVED': Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago,
             Ticket.status == TicketStatus.RESOLVED
         ).count()
     }
@@ -55,14 +57,14 @@ def index():
     category_distribution = {}
     for category in ProblemCategory:
         count = Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago,
             Ticket.problem_category == category
         ).count()
         category_distribution[category.name] = count
 
     # Average resolution time in the last 30 days
     resolved_tickets_30_days = Ticket.query.filter(
-        func.timezone('Asia/Jakarta', Ticket.created_at) >= current_date - timedelta(days=30),
+        Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= thirty_days_ago,
         Ticket.closed_at.isnot(None)
     ).all()
     
