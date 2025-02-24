@@ -13,8 +13,6 @@ class TicketStatus(str, Enum):
 class ProblemCategory(str, Enum):
     TECHNICAL = "TECHNICAL"
     ENVIRONMENTAL = "NON TECHNICAL"
-    ADMINISTRATIVE = "ADMINISTRATIVE"  # Keep this temporarily
-    OTHERS = "OTHERS"  # Keep this temporarily
 
 class EnomAssignee(str, Enum):
     RIZKI = "RIZKI"
