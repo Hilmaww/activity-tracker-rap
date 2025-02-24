@@ -40,6 +40,16 @@
             transform: translateY(-5px);
             box-shadow: 0 4px 8px rgba(0,0,0,.1);
         }
+        
+        .clickable {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .clickable:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,.2);
+        }
     </style>
 </head>
 <body>
@@ -68,7 +78,7 @@
         <!-- Dashboard Overview -->
         <div class="row ticket-stats">
             <div class="col-md-3">
-                <div class="card text-center">
+                <div class="card text-center clickable" data-status="OPEN">
                     <div class="card-body">
                         <h5 class="card-title">Open Tickets</h5>
                         <p class="card-text h3">{{ open_tickets }}</p>
@@ -76,7 +86,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center">
+                <div class="card text-center clickable" data-status="IN_PROGRESS">
                     <div class="card-body">
                         <h5 class="card-title">In Progress</h5>
                         <p class="card-text h3">{{ in_progress_tickets }}</p>
@@ -84,7 +94,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center">
+                <div class="card text-center clickable" data-status="PENDING">
                     <div class="card-body">
                         <h5 class="card-title">Pending</h5>
                         <p class="card-text h3">{{ pending_tickets }}</p>
@@ -92,7 +102,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center">
+                <div class="card text-center clickable" data-status="RESOLVED">
                     <div class="card-body">
                         <h5 class="card-title">Resolved</h5>
                         <p class="card-text h3">{{ resolved_tickets }}</p>
@@ -127,6 +137,13 @@
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            document.querySelectorAll('.clickable').forEach(card => {
+                card.addEventListener('click', function() {
+                    const status = this.dataset.status;
+                    window.location.href = "{{ url_for('main.list_tickets') }}?status=" + status;
+                });
             });
         });
     </script>
