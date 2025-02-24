@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import os
 import logging
 
@@ -12,6 +13,8 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__, template_folder='../templates/')
     
+    migrate = Migrate(app, db)
+
     # Configuration
     username = os.getenv('DB_USERNAME')
     password = os.getenv('DB_PASSWORD')
