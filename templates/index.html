@@ -1,151 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ENOM Activity Tracker - Manage and track ENOM Activities">
-    <title>ENOM Activity Tracker</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <style>
-        .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
-        }
-        
-        .ticket-stats {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        
-        .action-buttons {
-            margin: 20px 0;
-        }
-        
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.9em;
-        }
-        
-        .card {
-            transition: transform 0.2s;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 8px rgba(0,0,0,.1);
-        }
-        
-        .clickable {
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .clickable:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 8px rgba(223, 211, 211, 0.2);
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/tickets">View Tickets</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/tickets/new">Create Ticket</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <!-- Main Content -->
-    <div class="container mt-4">
-        <!-- Dashboard Overview -->
-        <div class="row ticket-stats">
-            <div class="col-md-3">
-                <div class="card text-center clickable" data-status="OPEN">
-                    <div class="card-body">
-                        <h5 class="card-title">Open Tickets</h5>
-                        <p class="card-text h3">{{ open_tickets }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center clickable" data-status="IN_PROGRESS">
-                    <div class="card-body">
-                        <h5 class="card-title">In Progress</h5>
-                        <p class="card-text h3">{{ in_progress_tickets }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center clickable" data-status="PENDING">
-                    <div class="card-body">
-                        <h5 class="card-title">Pending</h5>
-                        <p class="card-text h3">{{ pending_tickets }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center clickable" data-status="RESOLVED">
-                    <div class="card-body">
-                        <h5 class="card-title">Resolved</h5>
-                        <p class="card-text h3">{{ resolved_tickets }}</p>
-                    </div>
+{% block content %}
+    <!-- Dashboard Overview -->
+    <div class="row ticket-stats">
+        <div class="col-md-3">
+            <div class="card text-center clickable" data-status="OPEN">
+                <div class="card-body">
+                    <h5 class="card-title">Open Tickets</h5>
+                    <p class="card-text h3">{{ open_tickets }}</p>
                 </div>
             </div>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
-            <a href="/tickets" class="btn btn-secondary">View All Tickets</a>
+        <div class="col-md-3">
+            <div class="card text-center clickable" data-status="IN_PROGRESS">
+                <div class="card-body">
+                    <h5 class="card-title">In Progress</h5>
+                    <p class="card-text h3">{{ in_progress_tickets }}</p>
+                </div>
+            </div>
         </div>
-
-        <!-- Content Block -->
-        {% block content %}{% endblock %}
+        <div class="col-md-3">
+            <div class="card text-center clickable" data-status="PENDING">
+                <div class="card-body">
+                    <h5 class="card-title">Pending</h5>
+                    <p class="card-text h3">{{ pending_tickets }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center clickable" data-status="RESOLVED">
+                <div class="card-body">
+                    <h5 class="card-title">Resolved</h5>
+                    <p class="card-text h3">{{ resolved_tickets }}</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-light text-center text-muted py-4 mt-5">
-        <p>Technical Team Activity Tracker © 2024</p>
-    </footer>
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
+        <a href="/tickets" class="btn btn-secondary">View All Tickets</a>
+    </div>
+{% endblock %}
 
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Custom JavaScript -->
-    <script>
-        // Add any custom JavaScript here
-        document.addEventListener('DOMContentLoaded', function() {
-            // Enable Bootstrap tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            });
-
-            document.querySelectorAll('.clickable').forEach(card => {
-                card.addEventListener('click', function() {
-                    const status = this.dataset.status;
-                    window.location.href = "{{ url_for('main.list_tickets') }}?status=" + status;
-                });
-            });
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.clickable').forEach(card => {
+        card.addEventListener('click', function() {
+            const status = this.dataset.status;
+            window.location.href = "{{ url_for('main.list_tickets') }}?status=" + status;
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}
 
