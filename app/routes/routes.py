@@ -83,16 +83,19 @@ def index():
     current_app.logger.info("\nDebug 7-day trend data:")
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
-        start_of_day = datetime.combine(date, datetime.min.time(), tzinfo=jakarta_tz)
-        end_of_day = datetime.combine(date, datetime.max.time(), tzinfo=jakarta_tz)
+        
+        # Create start and end timestamps for Jakarta date
+        start_of_day = datetime.combine(date, datetime.min.time()).astimezone(jakarta_tz)
+        end_of_day = datetime.combine(date, datetime.max.time()).astimezone(jakarta_tz)
         
         current_app.logger.info(f"\nDate bucket: {date}")
         current_app.logger.info(f"Start of day: {start_of_day}")
         current_app.logger.info(f"End of day: {end_of_day}")
         
+        # Query using AT TIME ZONE to convert timestamps to Jakarta time before comparison
         tickets = Ticket.query.filter(
-            func.timezone('Asia/Jakarta', Ticket.created_at) >= start_of_day,
-            func.timezone('Asia/Jakarta', Ticket.created_at) <= end_of_day
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
+            Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1)
         ).all()
         
         current_app.logger.info(f"Tickets found for {date}:")
