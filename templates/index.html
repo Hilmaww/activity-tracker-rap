@@ -37,6 +37,26 @@
         </div>
     </div>
 
+    <!-- Charts Section -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h4 class="text-center mb-4">Ticket Status Distribution</h4>
+                <div class="chart-wrapper">
+                    <canvas id="statusPieChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h4 class="text-center mb-4">Tickets Trend (Last 7 Days)</h4>
+                <div class="chart-wrapper">
+                    <canvas id="trendLineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="action-buttons">
         <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
@@ -52,6 +72,75 @@
             window.location.href = "{{ url_for('main.list_tickets') }}?status=" + status;
         });
     });
+
+    // Chart configurations
+    const statusPieChart = new Chart(
+        document.getElementById('statusPieChart'),
+        {
+            type: 'doughnut',
+            data: {
+                labels: ['Open', 'In Progress', 'Pending', 'Resolved'],
+                datasets: [{
+                    data: [
+                        {{ open_tickets }},
+                        {{ in_progress_tickets }},
+                        {{ pending_tickets }},
+                        {{ resolved_tickets }}
+                    ],
+                    backgroundColor: [
+                        '#ff6384',
+                        '#36a2eb',
+                        '#ffce56',
+                        '#4bc0c0'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        }
+    );
+
+    // Assuming you pass trend_data from your Flask route
+    const trendLineChart = new Chart(
+        document.getElementById('trendLineChart'),
+        {
+            type: 'line',
+            data: {
+                labels: {{ trend_labels | tojson }},
+                datasets: [{
+                    label: 'New Tickets',
+                    data: {{ trend_data | tojson }},
+                    borderColor: '#36a2eb',
+                    tension: 0.1,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        }
+    );
 </script>
 {% endblock %}
 

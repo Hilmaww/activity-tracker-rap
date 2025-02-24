@@ -10,6 +10,9 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Custom CSS -->
     <style>
         .navbar {
@@ -51,6 +54,19 @@
             transform: translateY(-5px);
             box-shadow: 0 4px 8px rgba(223, 211, 211, 0.2);
         }
+        
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.05);
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            min-height: 300px;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -58,6 +74,8 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
+            <a class="navbar-brand" href="/">ENOM Activity Tracker</a>
+            
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

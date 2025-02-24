@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, render_template, request, current_app
 from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee
 from app import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import os
 from sqlalchemy import or_
@@ -15,10 +15,25 @@ def index():
     pending_tickets = Ticket.query.filter_by(status=TicketStatus.PENDING).count()
     resolved_tickets = Ticket.query.filter_by(status=TicketStatus.RESOLVED).count()
 
+    # Get trend data for the last 7 days
+    trend_data = []
+    trend_labels = []
+    
+    for i in range(6, -1, -1):
+        date = datetime.now().date() - timedelta(days=i)
+        count = Ticket.query.filter(
+            db.func.date(Ticket.created_at) == date
+        ).count()
+        
+        trend_data.append(count)
+        trend_labels.append(date.strftime('%Y-%m-%d'))
+
     return render_template('index.html', open_tickets=open_tickets,
                        in_progress_tickets=in_progress_tickets,
                        pending_tickets=pending_tickets,
                        resolved_tickets=resolved_tickets,
+                       trend_data=trend_data,
+                       trend_labels=trend_labels,
                        statuses=TicketStatus)
 
 @main_bp.route('/tickets', methods=['GET'])
