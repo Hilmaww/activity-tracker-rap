@@ -87,10 +87,10 @@ def add_action(ticket_id):
         photo_path = None
         if photo:
             filename = secure_filename(photo.filename)
-            # Save to static/uploads instead
-            photo_path = f'uploads/{filename}'  # Store relative path in database
-            full_path = os.path.join(current_app.root_path, 'static', 'uploads', filename)
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            # Store relative path in database
+            photo_path = f'uploads/{filename}'
+            # Save to external uploads directory
+            full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             photo.save(full_path)
 
         action = TicketAction(
@@ -103,11 +103,9 @@ def add_action(ticket_id):
         db.session.add(action)
         db.session.commit()
 
-        actions = TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all()
-
         return render_template('view_ticket.html', 
-                            ticket=ticket,  # Pass the ticket object, not the actions
-                            actions=actions,
+                            ticket=ticket,
+                            actions=TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all(),
                             message="Action added successfully",
                             message_category="success")
     except Exception as e:
