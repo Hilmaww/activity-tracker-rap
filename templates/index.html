@@ -252,8 +252,36 @@
         }
     });
 
-    // Initialize the map centered on Medan
-    const map = L.map('siteMap').setView([3.5952, 98.6722], 7);  // Changed coordinates and zoom level
+    // Initialize the map with loading state
+    const mapContainer = document.getElementById('siteMap');
+    const mapLoading = mapContainer.querySelector('.map-loading');
+    
+    // Create a marker cluster group
+    const markers = L.markerClusterGroup();
+    
+    // Define marker colors for different statuses
+    const statusColors = {
+        'OPEN': '#ff6384',      // Red
+        'IN_PROGRESS': '#36a2eb', // Blue
+        'PENDING': '#ffce56',    // Yellow
+        'RESOLVED': '#4bc0c0'    // Green
+    };
+
+    // Custom marker icon function - Define this BEFORE using it
+    function createCustomMarker(status, count) {
+        const color = statusColors[status] || '#4bc0c0';
+        return L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);">
+                    ${count}
+                   </div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+    }
+
+    // Initialize the map
+    const map = L.map('siteMap').setView([3.5952, 98.6722], 7);
 
     // Add Mapbox tiles with token from backend
     const mapboxToken = '{{ mapbox_token }}';
