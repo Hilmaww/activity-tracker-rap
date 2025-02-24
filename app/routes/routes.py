@@ -105,10 +105,10 @@ def index():
         'site_id': site.Site.site_id,
         'name': site.Site.name,
         'kabupaten': site.Site.kabupaten,
-        'latitude': float(site.Site.latitude),
-        'longitude': float(site.Site.longitude),
+        'lat': float(site.Site.lat),
+        'long': float(site.Site.long),
         'ticket_count': site.ticket_count
-    } for site in sites_with_tickets if site.Site.latitude and site.Site.longitude]
+    } for site in sites_with_tickets if site.Site.lat and site.Site.long]
 
     return render_template('index.html',
                        open_tickets=open_tickets,

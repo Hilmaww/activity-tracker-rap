@@ -229,7 +229,7 @@
     // Add markers for sites with tickets
     const sites = {{ site_markers | tojson }};
     sites.forEach(site => {
-        const marker = L.marker([site.latitude, site.longitude]);
+        const marker = L.marker([site.lat, site.long]);
         
         // Create popup content
         const popupContent = `
