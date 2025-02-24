@@ -17,7 +17,7 @@ class ProblemCategory(str, Enum):
 class EnomAssignee(str, Enum):
     RIZKI = "RIZKI"
     DOLLI = "DOLLI"
-    ATUN = "ATUN"
+    JAYA = "JAYA"
     PARLIN = "PARLIN"
 
 class Site(db.Model):

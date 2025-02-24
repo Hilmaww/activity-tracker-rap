@@ -134,6 +134,13 @@ def update_ticket_status(ticket_id):
         # Update the ticket status
         ticket.status = TicketStatus[new_status]
         
+        # Set closed_at timestamp when status is RESOLVED
+        if new_status == 'RESOLVED':
+            ticket.closed_at = datetime.utcnow()
+        elif ticket.closed_at is not None:
+            # Clear closed_at if status is changed from RESOLVED to something else
+            ticket.closed_at = None
+        
         db.session.add(action)
         db.session.commit()
         
