@@ -20,7 +20,7 @@ def create_app():
     
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{username}:{password}@{host}/{db_name}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['UPLOAD_FOLDER'] = '/home/muhammadfaw/tsel_enom_tracker/uploads'
+    app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'uploads')
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 

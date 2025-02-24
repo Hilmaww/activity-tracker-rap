@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, render_template, request, current_app
-from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus
+from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee
 from app import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -63,7 +63,8 @@ def create_ticket():
                 site_id=request.form['site_id'],
                 problem_category=request.form['problem_category'],
                 description=request.form['description'],
-                created_by=request.form['created_by']
+                created_by=request.form['created_by'],
+                assigned_to_enom=request.form.get('assigned_to_enom')
             )
             db.session.add(new_ticket)
             db.session.commit()
@@ -72,7 +73,10 @@ def create_ticket():
             return render_template('create_ticket.html', tickets=Ticket.query.all(), message="Ticket creation failed", message_category="danger")
 
     sites = Site.query.all()
-    return render_template('create_ticket.html', sites=sites, categories=ProblemCategory)
+    return render_template('create_ticket.html', 
+                         sites=sites, 
+                         categories=ProblemCategory,
+                         enom_assignees=EnomAssignee)
 
 @main_bp.route('/tickets/<int:ticket_id>/actions', methods=['POST'])
 def add_action(ticket_id):
@@ -83,8 +87,11 @@ def add_action(ticket_id):
         photo_path = None
         if photo:
             filename = secure_filename(photo.filename)
-            photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            photo.save(photo_path)
+            # Save to static/uploads instead
+            photo_path = f'uploads/{filename}'  # Store relative path in database
+            full_path = os.path.join(current_app.root_path, 'static', 'uploads', filename)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            photo.save(full_path)
 
         action = TicketAction(
             ticket_id=ticket_id,
@@ -96,7 +103,13 @@ def add_action(ticket_id):
         db.session.add(action)
         db.session.commit()
 
-        return render_template('view_ticket.html', ticket=TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all(), message="Action added successfully", message_category="success")
+        actions = TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all()
+
+        return render_template('view_ticket.html', 
+                            ticket=ticket,  # Pass the ticket object, not the actions
+                            actions=actions,
+                            message="Action added successfully",
+                            message_category="success")
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 

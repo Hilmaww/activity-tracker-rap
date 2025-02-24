@@ -2,6 +2,12 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Create New Ticket</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Tickets</h2>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+        <i class="fas fa-home"></i> Home
+    </a>
+</div>
 <form method="POST" class="needs-validation" novalidate>
     <div class="mb-3">
         <label for="site_id" class="form-label">Site</label>
@@ -24,13 +30,23 @@
     </div>
 
     <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
+        <label for="description" class="form-label">Deskripsi Pekerjaan</label>
         <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
     </div>
 
     <div class="mb-3">
         <label for="created_by" class="form-label">Created By</label>
         <input type="text" class="form-control" id="created_by" name="created_by" required>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="assigned_to_enom">ENOM Assignee:</label>
+        <select class="form-select" id="assigned_to_enom" name="assigned_to_enom" required>
+            <option value="">Select ENOM Assignee</option>
+            {% for assignee in enom_assignees %}
+            <option value="{{ assignee.name }}">{{ assignee.name }}</option>
+            {% endfor %}
+        </select>
     </div>
 
     <button type="submit" class="btn btn-primary">Create Ticket</button>
