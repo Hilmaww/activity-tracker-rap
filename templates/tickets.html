@@ -179,4 +179,44 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- Add this JavaScript before the closing body tag -->
+<script>
+function showEditForm(ticketId) {
+    document.getElementById(`description-${ticketId}`).style.display = 'none';
+    document.getElementById(`edit-form-${ticketId}`).style.display = 'block';
+    document.getElementById(`edit-description-${ticketId}`).value = 
+        document.getElementById(`description-${ticketId}`).textContent.trim();
+}
+
+function cancelEdit(ticketId) {
+    document.getElementById(`description-${ticketId}`).style.display = 'block';
+    document.getElementById(`edit-form-${ticketId}`).style.display = 'none';
+}
+
+async function updateDescription(event, ticketId) {
+    event.preventDefault();
+    const newDescription = document.getElementById(`edit-description-${ticketId}`).value;
+    
+    try {
+        const response = await fetch(`/update_ticket/${ticketId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ description: newDescription })
+        });
+        
+        if (response.ok) {
+            document.getElementById(`description-${ticketId}`).textContent = newDescription;
+            cancelEdit(ticketId);
+        } else {
+            alert('Failed to update ticket description');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to update ticket description');
+    }
+}
+</script>
 {% endblock %}
