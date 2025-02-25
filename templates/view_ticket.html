@@ -97,7 +97,7 @@
     <!-- Actions Section -->
     <div class="card mt-4">
         <div class="card-header">
-            <h4>Ticket Actions</h4>
+            <h4>Ticket Updates</h4>
         </div>
         <div class="card-body">
             <!-- Add New Action Form -->
@@ -111,15 +111,15 @@
                     <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
                 </div>
                 <input type="hidden" name="created_by" value="current_user">
-                <button type="submit" class="btn btn-primary mt-3" id="submitActionBtn">Add Action</button>
+                <button type="submit" class="btn btn-primary mt-3" id="submitActionBtn">Submit Updates</button>
                 <div id="submitReminder" class="alert alert-info mt-2" style="display: none;">
-                    Don't forget to submit your action! 
+                    Don't forget to submit your updates! 
                     <button type="button" class="btn btn-primary btn-sm ms-2">Click here to submit</button>
                 </div>
             </form>
 
             <!-- Action History -->
-            <h5>Action History</h5>
+            <h5>Update History</h5>
             {% if actions %}
                 {% for action in actions %}
                 <div class="card mb-3">

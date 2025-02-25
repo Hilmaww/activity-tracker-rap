@@ -13,8 +13,9 @@ class TicketStatus(str, Enum):
     CLOSED = "CLOSED"
 
 class ProblemCategory(str, Enum):
-    TECHNICAL = "TECHNICAL"
-    NON_TECHNICAL = "NON_TECHNICAL"
+    CORRECTIVE = "CORRECTIVE"
+    PREVENTIVE = "PREVENTIVE"
+    SUPPORT = "SUPPORT"
 
 class EnomAssignee(str, Enum):
     RIZKI = "RIZKI"
