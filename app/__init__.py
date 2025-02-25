@@ -2,29 +2,47 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import os
 import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
-# Initialize extensions outside of create_app
+# Initialize extensions
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
+csrf = CSRFProtect()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["100 per hour"]
+)
 
-# Setup logging
+# Setup logging with sensitive data masking
+class SensitiveDataFilter(logging.Filter):
+    def filter(self, record):
+        sensitive_fields = ['password', 'token', 'secret', 'key']
+        for field in sensitive_fields:
+            if hasattr(record, 'msg') and field in str(record.msg).lower():
+                record.msg = str(record.msg).replace(getattr(record, field), '***')
+        return True
+
 logger = logging.getLogger('enom_tracker')
 logger.setLevel(logging.INFO)
+logger.addFilter(SensitiveDataFilter())
 
-# Create handlers
+# Create handlers with secure permissions
+if not os.path.exists('/var/log/enom_tracker'):
+    os.makedirs('/var/log/enom_tracker', mode=0o750)
+
 handler = logging.handlers.SysLogHandler(address='/dev/log')
+file_handler = logging.FileHandler('/var/log/enom_tracker/app.log', mode='a')
 formatter = logging.Formatter('%(name)s[%(process)d]: %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# Also log to a file for easier debugging
-file_handler = logging.FileHandler('/var/log/enom_tracker/app.log')
 file_handler.setFormatter(formatter)
+logger.addHandler(handler)
 logger.addHandler(file_handler)
 
 load_dotenv()
@@ -32,27 +50,33 @@ load_dotenv()
 def create_app(config=None):
     app = Flask(__name__)
     
-    # Configure app
     if config is None:
         app.config.from_object('config.Config')
     else:
         app.config.from_object(config)
 
-    # Initialize extensions with app
+    # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)
+    limiter.init_app(app)
     
+    # Configure login manager
     login_manager.login_view = 'auth.login'
     login_manager.login_message = "Please log in to access this page."
     login_manager.login_message_category = "warning"
+    login_manager.session_protection = "strong"
 
-    # Ensure upload directory exists
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    # Ensure upload directory exists with secure permissions
+    os.makedirs(app.config['UPLOAD_FOLDER'], mode=0o750, exist_ok=True)
 
-    # Setup logging
-    app.logger.addHandler(handler)
-    app.logger.setLevel(logging.INFO)
+    # Add security headers
+    @app.after_request
+    def add_security_headers(response):
+        for header, value in app.config['SECURITY_HEADERS'].items():
+            response.headers[header] = value
+        return response
 
     # Register blueprints
     from app.routes.main import bp as main_bp
@@ -60,6 +84,7 @@ def create_app(config=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
 
+    # Error handlers
     @app.errorhandler(401)
     def unauthorized(error):
         logger.error(f"401 error: {str(error)}")
@@ -75,8 +100,8 @@ def create_app(config=None):
         logger.error(f"500 error: {str(error)}")
         return render_template('errors/500.html'), 500
 
-    # Import models and create tables
-    from app.models import User  # Move this import here
+    # Import models
+    from app.models import User
     
     @login_manager.user_loader
     def load_user(user_id):
@@ -84,9 +109,6 @@ def create_app(config=None):
 
     with app.app_context():
         db.create_all()
-
-    # Make sure log directory exists
-    os.makedirs('/var/log/enom_tracker', exist_ok=True)
 
     return app
 

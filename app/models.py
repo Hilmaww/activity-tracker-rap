@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import Enum
 import pytz
 from flask_login import UserMixin
+from werkzeug.security import generate_password_hash
+import re
 
 class TicketStatus(str, Enum):
     OPEN = "OPEN"
@@ -32,9 +34,28 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False)  # 'tsel' or 'enom'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    login_attempts = db.Column(db.Integer, default=0)
+    last_failed_login = db.Column(db.DateTime)
+    password_changed_at = db.Column(db.DateTime)
+    
     # Add relationships to tickets created and assigned
     tickets_created = db.relationship('Ticket', foreign_keys='Ticket.created_by_id', backref='creator', lazy=True)
     tickets_assigned = db.relationship('Ticket', foreign_keys='Ticket.assigned_to_id', backref='assignee', lazy=True)
+
+    def set_password(self, password):
+        if len(password) < 12:
+            raise ValueError("Password must be at least 12 characters long")
+        if not re.search(r"[A-Z]", password):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", password):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", password):
+            raise ValueError("Password must contain at least one number")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+            raise ValueError("Password must contain at least one special character")
+            
+        self.password_hash = generate_password_hash(password)
+        self.password_changed_at = datetime.utcnow()
 
 class Site(db.Model):
     __tablename__ = 'sites'
