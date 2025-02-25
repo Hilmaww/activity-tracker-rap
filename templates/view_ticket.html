@@ -48,6 +48,7 @@
                     <p><strong>Description:</strong></p>
                     <div class="mb-3">
                         <form id="editDescriptionForm" method="POST" action="{{ url_for('main.edit_ticket_description', ticket_id=ticket.id) }}" style="display: none;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="form-group">
                                 <textarea class="form-control" name="description" rows="4">{{ ticket.description }}</textarea>
                             </div>
@@ -74,6 +75,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="{{ url_for('main.update_ticket_status', ticket_id=ticket.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="modal-body">
                         <div class="form-group">
                             <label for="status">New Status:</label>
@@ -106,6 +108,7 @@
         <div class="card-body">
             <!-- Add New Action Form -->
             <form action="{{ url_for('main.add_action', ticket_id=ticket.id) }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="form-group">
                     <label for="action_text">Deskripsikan kegiatan yang telah dilakukan:</label>
                     <textarea class="form-control" id="action_text" name="action_text" rows="2" required></textarea>
@@ -144,12 +147,14 @@
 
             {% if current_user.role == 'enom' and ticket.assigned_to_id == current_user.id and ticket.status not in ['resolved', 'closed'] %}
             <form action="{{ url_for('main.resolve_ticket', ticket_id=ticket.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn btn-success">Mark as Resolved</button>
             </form>
             {% endif %}
             
             {% if current_user.role == 'tsel' and ticket.status == 'resolved' %}
             <form action="{{ url_for('main.close_ticket', ticket_id=ticket.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn btn-primary">Close Ticket</button>
             </form>
             {% endif %}

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="ENOM Activity Tracker - Manage and track ENOM Activities">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}ENOM Activity Tracker{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -234,5 +235,17 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     {% block extra_js %}{% endblock %}
+
+    <!-- Add this in the JavaScript section before closing </body> -->
+    <script>
+        // Setup CSRF token for AJAX requests
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                }
+            }
+        });
+    </script>
 </body>
 </html>
