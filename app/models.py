@@ -55,7 +55,6 @@ class User(UserMixin, db.Model):
             raise ValueError("Password must contain at least one special character")
             
         self.password_hash = generate_password_hash(password)
-        self.password_changed_at = datetime.utcnow()
 
 class Site(db.Model):
     __tablename__ = 'sites'

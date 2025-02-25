@@ -30,11 +30,17 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if not user or not check_password_hash(user.password_hash, password):
+            # Handle failed login (commented out for now)
+            if user and hasattr(user, 'login_attempts') and user.login_attempts is not None:
+                user.login_attempts = (user.login_attempts or 0) + 1
+                user.last_failed_login = datetime.utcnow()
+                db.session.commit()
+            
             flash('Invalid username or password.', 'danger')
             return redirect(url_for('auth.login'))
         
         # Check if account is locked
-        if user.login_attempts >= 5 and user.last_failed_login:
+        if hasattr(user, 'login_attempts') and user.login_attempts is not None and user.login_attempts >= 5 and user.last_failed_login:
             lockout_time = user.last_failed_login + timedelta(minutes=15)
             if datetime.utcnow() < lockout_time:
                 flash('Account is temporarily locked. Please try again later.', 'danger')
@@ -47,9 +53,12 @@ def login():
         
         # Successful login
         login_user(user)
-        user.login_attempts = 0
-        user.last_failed_login = None
-        db.session.commit()
+        
+        # Reset login attempts
+        if hasattr(user, 'login_attempts') and user.login_attempts is not None:
+            user.login_attempts = 0
+            user.last_failed_login = None
+            db.session.commit()
         
         # Redirect to requested page if safe
         next_page = request.args.get('next')
