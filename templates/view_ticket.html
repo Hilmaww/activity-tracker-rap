@@ -35,7 +35,20 @@
                 </div>
                 <div class="col-md-6">
                     <p><strong>Description:</strong></p>
-                    <p class="border p-3 bg-light">{{ ticket.description }}</p>
+                    <div class="mb-3">
+                        <form id="editDescriptionForm" method="POST" action="{{ url_for('edit_ticket_description', ticket_id=ticket.id) }}" style="display: none;">
+                            <div class="form-group">
+                                <textarea class="form-control" name="description" rows="4">{{ ticket.description }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-2">Save</button>
+                            <button type="button" class="btn btn-secondary mt-2" onclick="toggleEditDescription()">Cancel</button>
+                        </form>
+                        
+                        <div id="descriptionDisplay">
+                            <p class="card-text">{{ ticket.description }}</p>
+                            <button class="btn btn-sm btn-outline-primary" onclick="toggleEditDescription()">Edit Description</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -113,4 +126,19 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleEditDescription() {
+    const form = document.getElementById('editDescriptionForm');
+    const display = document.getElementById('descriptionDisplay');
+    
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        display.style.display = 'none';
+    } else {
+        form.style.display = 'none';
+        display.style.display = 'block';
+    }
+}
+</script>
 {% endblock %} 

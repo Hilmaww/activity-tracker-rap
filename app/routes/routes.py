@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request, current_app, redirect, url_for
+from flask import Blueprint, jsonify, render_template, request, current_app, redirect, url_for, flash
 from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee
 from app import db, logger
 from datetime import datetime, timedelta
@@ -346,6 +346,21 @@ def update_ticket_status(ticket_id):
                              message="Failed to update status",
                              message_category="danger")
 
+@main_bp.route('/ticket/<int:ticket_id>/edit-description', methods=['POST'])
+def edit_ticket_description(ticket_id):
+    ticket = Ticket.query.get_or_404(ticket_id)
+    
+    description = request.form.get('description')
+    if description is not None:
+        ticket.description = description
+        ticket.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash('Ticket description updated successfully!', 'success')
+    else:
+        flash('No description provided!', 'error')
+    
+    return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
+
 # Add a test route
 @main_bp.route('/test')
 def test():
@@ -379,26 +394,3 @@ def search_sites():
             'more': False
         }
     })
-
-@main_bp.route('/update_ticket/<int:ticket_id>', methods=['POST'])
-def update_ticket(ticket_id):
-    try:
-        data = request.get_json()
-        new_description = data.get('description')
-        
-        if not new_description:
-            return jsonify({'error': 'Description is required'}), 400
-            
-        # Update the ticket in the database
-        cursor = mysql.connection.cursor()
-        cursor.execute(
-            "UPDATE tickets SET description = %s WHERE id = %s",
-            (new_description, ticket_id)
-        )
-        mysql.connection.commit()
-        cursor.close()
-        
-        return jsonify({'message': 'Ticket updated successfully'}), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
