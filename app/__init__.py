@@ -51,6 +51,7 @@ def create_app():
         }
     }
     app.config['MAPBOX_TOKEN'] = os.getenv('MAPBOX_TOKEN')
+    app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key')
 
     # Initialize extensions
     db.init_app(app)
