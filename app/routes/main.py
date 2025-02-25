@@ -242,7 +242,7 @@ def list_tickets():
                          categories=ProblemCategory,
                          statuses=TicketStatus)
 
-@bp.route('/ticket/new', methods=['GET', 'POST'])
+@bp.route('/tickets/new', methods=['GET', 'POST'])
 @login_required
 def create_ticket():
     if current_user.role != 'tsel':
@@ -456,7 +456,3 @@ def close_ticket(ticket_id):
 def profile():
     return render_template('profile.html', name=current_user.name)
 
-@bp.route('/dashboard')
-@login_required
-def dashboard():
-    return render_template('dashboard.html')
