@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import User
 from app import db
 
-bp = Blueprint('auth', __name__)
+bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -14,7 +14,7 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         
-        if not user or not check_password_hash(user.password, password):
+        if not user or not check_password_hash(user.password_hash, password):
             flash('Please check your login details and try again.')
             return redirect(url_for('auth.login'))
         
