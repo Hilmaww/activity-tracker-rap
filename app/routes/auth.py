@@ -5,7 +5,6 @@ from app.models import User
 from app import db, limiter
 import re
 from datetime import datetime, timedelta
-from flask_wtf.csrf import csrf_exempt
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -15,7 +14,6 @@ def is_safe_url(target):
     return not bool(re.search(r'[^/\w\s-]', test_url))
 
 @bp.route('/login', methods=['GET', 'POST'])
-# @csrf_exempt  # Uncomment this only for debugging if needed
 @limiter.limit("5 per minute")
 def login():
     if current_user.is_authenticated:
