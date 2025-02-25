@@ -35,7 +35,7 @@
                     {% endif %}
                     <div class="d-flex align-items-center">
                         <p class="mb-0 me-3"><strong>Status:</strong> 
-                            <span class="badge {% if ticket.status.name == 'OPEN' %}bg-danger{% elif ticket.status.name == 'IN_PROGRESS' %}bg-warning{% elif ticket.status.name == 'PENDING' %}bg-info{% elif ticket.status.name == 'RESOLVED' %}bg-success{% elif ticket.status.name == 'CLOSED' %}bg-secondary{% endif %}">
+                            <span class="badge {% if ticket.status.name == 'OPEN' %}bg-danger{% elif ticket.status.name == 'IN_PROGRESS' %}bg-warning{% elif ticket.status.name == 'PENDING' %}bg-dark{% elif ticket.status.name == 'RESOLVED' %}bg-info{% elif ticket.status.name == 'CLOSED' %}bg-success{% endif %}">
                                 {{ ticket.status.name }}
                             </span>
                         </p>

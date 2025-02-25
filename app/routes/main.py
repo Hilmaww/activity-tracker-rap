@@ -208,7 +208,7 @@ def list_tickets():
     
     # Get page number from request args, default to 1
     page = request.args.get('page', 1, type=int)
-    per_page = 30  # Number of items per page
+    per_page = 10  # Number of items per page
     
     # Start with base query
     query = Ticket.query
