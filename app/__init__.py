@@ -55,9 +55,10 @@ def create_app(config=None):
     app.logger.setLevel(logging.INFO)
 
     # Register blueprints
-    from app.routes import main, auth
-    app.register_blueprint(main.bp)
-    app.register_blueprint(auth.bp)
+    from app.routes.main import bp as main_bp
+    from app.routes.auth import bp as auth_bp
+    app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
 
     # Import models and create tables
     from app.models import User  # Move this import here
