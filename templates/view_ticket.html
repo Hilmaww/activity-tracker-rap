@@ -34,7 +34,11 @@
                     <p><strong>Closed at:</strong> {{ ticket.closed_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
                     {% endif %}
                     <div class="d-flex align-items-center">
-                        <p class="mb-0 me-3"><strong>Status:</strong> {{ ticket.status.name }}</p>
+                        <p class="mb-0 me-3"><strong>Status:</strong> 
+                            <span class="badge {% if ticket.status.name == 'OPEN' %}bg-danger{% elif ticket.status.name == 'IN_PROGRESS' %}bg-warning{% elif ticket.status.name == 'PENDING' %}bg-info{% elif ticket.status.name == 'RESOLVED' %}bg-success{% elif ticket.status.name == 'CLOSED' %}bg-secondary{% endif %}">
+                                {{ ticket.status.name }}
+                            </span>
+                        </p>
                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
                             Update Status
                         </button>
