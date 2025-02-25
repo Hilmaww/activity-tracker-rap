@@ -35,7 +35,7 @@ class Config:
     # Flask security configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
-    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = False
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     

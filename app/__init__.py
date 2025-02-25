@@ -107,6 +107,11 @@ def create_app(config=None):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    @app.before_request
+    def log_request_info():
+        app.logger.debug('Headers: %s', request.headers)
+        app.logger.debug('Body: %s', request.get_data())
+
     with app.app_context():
         db.create_all()
 
