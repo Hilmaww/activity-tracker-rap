@@ -117,22 +117,27 @@
         
         /* Status Badge Colors */
         .badge.bg-open {
-            background-color: #ff6384 !important;  /* Red */
+            background-color: var(--bs-danger) !important;
             color: white;
         }
         
         .badge.bg-in-progress {
-            background-color: #36a2eb !important;  /* Blue */
-            color: white;
-        }
-        
-        .badge.bg-pending {
-            background-color: #ffce56 !important;  /* Yellow */
+            background-color: var(--bs-warning) !important;
             color: black;
         }
         
+        .badge.bg-pending {
+            background-color: var(--bs-dark) !important;
+            color: white;
+        }
+        
         .badge.bg-resolved {
-            background-color: #4bc0c0 !important;  /* Green */
+            background-color: var(--bs-info) !important;
+            color: white;
+        }
+
+        .badge.bg-closed {
+            background-color: var(--bs-success) !important;
             color: white;
         }
 
