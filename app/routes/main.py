@@ -1,6 +1,5 @@
-from flask import Blueprint
 from flask import Blueprint, jsonify, render_template, request, current_app, redirect, url_for, flash
-from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User
+from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User
 from app import db, logger
 from datetime import datetime, timedelta
 import pytz
@@ -10,14 +9,14 @@ from sqlalchemy import or_, func
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
 
-main_bp = Blueprint('main', __name__, template_folder='../../templates')
+bp = Blueprint('main', __name__, template_folder='../../templates')
 
 load_dotenv()  # Add this near the top of the file
 
 # Get Jakarta timezone
 jakarta_tz = pytz.timezone('Asia/Jakarta')
 
-@main_bp.route('/')
+@bp.route('/')
 @login_required
 def index():
     # Get current date and 30 days ago date in Jakarta time
@@ -194,7 +193,7 @@ def index():
                        site_markers=site_markers,
                        mapbox_token=os.getenv('MAPBOX_TOKEN'))
 
-@main_bp.route('/tickets', methods=['GET'])
+@bp.route('/tickets', methods=['GET'])
 def list_tickets():
     # Get filter parameters
     status_filter = request.args.get('status')
@@ -238,7 +237,7 @@ def list_tickets():
                          categories=ProblemCategory,
                          statuses=TicketStatus)
 
-@main_bp.route('/ticket/new', methods=['GET', 'POST'])
+@bp.route('/ticket/new', methods=['GET', 'POST'])
 @login_required
 def create_ticket():
     if current_user.role != 'tsel':
@@ -290,7 +289,7 @@ def create_ticket():
                          categories=ProblemCategory,
                          enom_assignees=EnomAssignee)
 
-@main_bp.route('/tickets/<int:ticket_id>/actions', methods=['POST'])
+@bp.route('/tickets/<int:ticket_id>/actions', methods=['POST'])
 def add_action(ticket_id):
     try:
         ticket = Ticket.query.get_or_404(ticket_id)
@@ -323,13 +322,13 @@ def add_action(ticket_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@main_bp.route('/tickets/<int:ticket_id>', methods=['GET'])
+@bp.route('/tickets/<int:ticket_id>', methods=['GET'])
 def view_ticket(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
     actions = TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all()
     return render_template('view_ticket.html', ticket=ticket, actions=actions)
 
-@main_bp.route('/tickets/<int:ticket_id>/update_status', methods=['POST'])
+@bp.route('/tickets/<int:ticket_id>/update_status', methods=['POST'])
 def update_ticket_status(ticket_id):
     try:
         ticket = Ticket.query.get_or_404(ticket_id)
@@ -366,7 +365,7 @@ def update_ticket_status(ticket_id):
                              message="Failed to update status",
                              message_category="danger")
 
-@main_bp.route('/ticket/<int:ticket_id>/edit-description', methods=['POST'])
+@bp.route('/ticket/<int:ticket_id>/edit-description', methods=['POST'])
 def edit_ticket_description(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
     
@@ -382,11 +381,11 @@ def edit_ticket_description(ticket_id):
     return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
 
 # Add a test route
-@main_bp.route('/test')
+@bp.route('/test')
 def test():
     return jsonify({"status": "ok"})
 
-@main_bp.route('/api/sites/search', methods=['GET'])
+@bp.route('/api/sites/search', methods=['GET'])
 def search_sites():
     search_term = request.args.get('term', '')
     
@@ -415,7 +414,7 @@ def search_sites():
         }
     })
 
-@main_bp.route('/ticket/<int:ticket_id>/resolve', methods=['POST'])
+@bp.route('/ticket/<int:ticket_id>/resolve', methods=['POST'])
 @login_required
 def resolve_ticket(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
@@ -429,7 +428,7 @@ def resolve_ticket(ticket_id):
     db.session.commit()
     return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
 
-@main_bp.route('/ticket/<int:ticket_id>/close', methods=['POST'])
+@bp.route('/ticket/<int:ticket_id>/close', methods=['POST'])
 @login_required
 def close_ticket(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
