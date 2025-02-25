@@ -6,7 +6,11 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
-from app.models import User
+
+# Initialize extensions outside of create_app
+db = SQLAlchemy()
+login_manager = LoginManager()
+migrate = Migrate()
 
 # Setup logging
 logger = logging.getLogger('enom_tracker')
@@ -23,42 +27,22 @@ file_handler = logging.FileHandler('/var/log/enom_tracker/app.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-db = SQLAlchemy()
-login_manager = LoginManager()
-
 load_dotenv()
 
-def create_app():
+def create_app(config=None):
     app = Flask(__name__, template_folder='../templates/')
     
-    migrate = Migrate(app, db)
+    # Configure app
+    if config is None:
+        app.config.from_object('config.Config')
+    else:
+        app.config.from_object(config)
 
-    # Setup logging
-    app.logger.addHandler(handler)
-    app.logger.setLevel(logging.INFO)
-
-    # Configuration
-    username = os.getenv('DB_USERNAME')
-    password = os.getenv('DB_PASSWORD')
-    host = os.getenv('DB_HOST')
-    db_name = os.getenv('DB_NAME')
-    
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{username}:{password}@{host}/{db_name}'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['UPLOAD_FOLDER'] = '/var/www/uploads/enom_tracker'
-    app.config['TEMPLATES_AUTO_RELOAD'] = True
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'connect_args': {
-            'options': '-c timezone=UTC'
-        }
-    }
-    app.config['MAPBOX_TOKEN'] = os.getenv('MAPBOX_TOKEN')
-    app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key')
-
-    # Initialize extensions
+    # Initialize extensions with app
     db.init_app(app)
     login_manager.init_app(app)
+    migrate.init_app(app, db)
+    
     login_manager.login_view = 'auth.login'
     login_manager.login_message = "Please log in to access this page."
     login_manager.login_message_category = "warning"
@@ -66,13 +50,22 @@ def create_app():
     # Ensure upload directory exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    # Register blueprints
-    from app.routes.auth import bp as auth_bp
-    from app.routes.main import bp as main_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(main_bp)
+    # Setup logging
+    app.logger.addHandler(handler)
+    app.logger.setLevel(logging.INFO)
 
-    # Create tables
+    # Register blueprints
+    from app.routes import main, auth
+    app.register_blueprint(main.bp)
+    app.register_blueprint(auth.bp)
+
+    # Import models and create tables
+    from app.models import User  # Move this import here
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
     with app.app_context():
         db.create_all()
 
@@ -80,8 +73,4 @@ def create_app():
     os.makedirs('/var/log/enom_tracker', exist_ok=True)
 
     return app
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
 
