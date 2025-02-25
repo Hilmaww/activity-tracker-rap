@@ -5,6 +5,8 @@
 <div class="container mt-4">
     <h2>Create New Ticket</h2>
     <form method="POST" class="mt-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
         <div class="mb-3">
             <label for="site_id" class="form-label">Site</label>
             <select class="form-select" id="site_id" name="site_id" required>
