@@ -30,7 +30,7 @@ logger.addHandler(file_handler)
 load_dotenv()
 
 def create_app(config=None):
-    app = Flask(__name__, template_folder='../templates/')
+    app = Flask(__name__)
     
     # Configure app
     if config is None:
