@@ -445,3 +445,25 @@ def close_ticket(ticket_id):
     ticket.closed_at = datetime.utcnow()
     db.session.commit()
     return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
+
+@bp.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html', name=current_user.name)
+
+@bp.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html')
+
+@bp.app_errorhandler(401)
+def unauthorized(error):
+    return render_template('errors/401.html'), 401
+
+@bp.app_errorhandler(404)
+def page_not_found(error):
+    return render_template('errors/404.html'), 404
+
+@bp.app_errorhandler(500)
+def internal_server_error(error):
+    return render_template('errors/500.html'), 500
