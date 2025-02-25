@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
@@ -30,7 +30,7 @@ logger.addHandler(file_handler)
 load_dotenv()
 
 def create_app(config=None):
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder='../templates/')
     
     # Configure app
     if config is None:
@@ -59,6 +59,21 @@ def create_app(config=None):
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
+
+    @app.errorhandler(401)
+    def unauthorized(error):
+        logger.error(f"401 error: {str(error)}")
+        return render_template('errors/401.html'), 401
+    
+    @app.errorhandler(404)
+    def page_not_found(error):
+        logger.error(f"404 error: {str(error)}")
+        return render_template('errors/404.html'), 404
+    
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        logger.error(f"500 error: {str(error)}")
+        return render_template('errors/500.html'), 500
 
     # Import models and create tables
     from app.models import User  # Move this import here
