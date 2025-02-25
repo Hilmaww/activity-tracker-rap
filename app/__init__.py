@@ -6,6 +6,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
+from app.models import User
 
 # Setup logging
 logger = logging.getLogger('enom_tracker')
@@ -59,14 +60,17 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
+    login_manager.login_message = "Please log in to access this page."
+    login_manager.login_message_category = "warning"
 
     # Ensure upload directory exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     # Register blueprints
-    from app.routes import main, auth
-    app.register_blueprint(main)
-    app.register_blueprint(auth)
+    from app.routes.auth import bp as auth_bp
+    from app.routes.main import bp as main_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(main_bp)
 
     # Create tables
     with app.app_context():
@@ -79,6 +83,5 @@ def create_app():
 
 @login_manager.user_loader
 def load_user(user_id):
-    from app.models import User
     return User.query.get(int(user_id))
 

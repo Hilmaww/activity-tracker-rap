@@ -17,8 +17,12 @@ load_dotenv()  # Add this near the top of the file
 jakarta_tz = pytz.timezone('Asia/Jakarta')
 
 @bp.route('/')
-@login_required
 def index():
+    # Check if user is authenticated first
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+        
+    # Then proceed with all your existing code
     # Get current date and 30 days ago date in Jakarta time
     current_datetime = datetime.now(jakarta_tz)
     current_date = current_datetime.date()
@@ -194,6 +198,7 @@ def index():
                        mapbox_token=os.getenv('MAPBOX_TOKEN'))
 
 @bp.route('/tickets', methods=['GET'])
+@login_required
 def list_tickets():
     # Get filter parameters
     status_filter = request.args.get('status')
