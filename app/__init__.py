@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 from flask_migrate import Migrate
 import os
 import logging
@@ -22,6 +23,7 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 db = SQLAlchemy()
+login_manager = LoginManager()
 
 load_dotenv()
 
@@ -55,13 +57,16 @@ def create_app():
 
     # Initialize extensions
     db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
 
     # Ensure upload directory exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     # Register blueprints
-    from app.routes.routes import main_bp
-    app.register_blueprint(main_bp)
+    from app.routes import main, auth
+    app.register_blueprint(main.bp)
+    app.register_blueprint(auth.bp)
 
     # Create tables
     with app.app_context():
@@ -71,4 +76,9 @@ def create_app():
     os.makedirs('/var/log/enom_tracker', exist_ok=True)
 
     return app
+
+@login_manager.user_loader
+def load_user(user_id):
+    from app.models import User
+    return User.query.get(int(user_id))
 

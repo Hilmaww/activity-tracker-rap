@@ -24,8 +24,15 @@
                 <div class="col-md-6">
                     <p><strong>Site:</strong> {{ ticket.site.name }}</p>
                     <p><strong>Problem Category:</strong> {{ ticket.problem_category.name }}</p>
-                    <p><strong>Created By:</strong> {{ ticket.created_by }}</p>
-                    <p><strong>Created At:</strong> {{ ticket.created_at_jakarta.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    <p><strong>Created By:</strong> {{ ticket.created_by.username }}</p>
+                    <p><strong>Assigned to:</strong> {{ ticket.assigned_to.username if ticket.assigned_to else 'Unassigned' }}</p>
+                    <p><strong>Created At:</strong> {{ ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    {% if ticket.resolved_at %}
+                    <p><strong>Resolved at:</strong> {{ ticket.resolved_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    {% endif %}
+                    {% if ticket.closed_at %}
+                    <p><strong>Closed at:</strong> {{ ticket.closed_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    {% endif %}
                     <div class="d-flex align-items-center">
                         <p class="mb-0 me-3"><strong>Status:</strong> {{ ticket.status.name }}</p>
                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
@@ -115,13 +122,25 @@
                         <img src="/{{ action.photo_path }}" class="img-fluid mt-2" style="max-width: 300px;">
                         {% endif %}
                         <small class="text-muted">
-                            Added by {{ action.created_by }} on {{ action.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            Added by {{ action.created_by.username }} on {{ action.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                         </small>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
                 <p class="text-muted">No actions recorded yet.</p>
+            {% endif %}
+
+            {% if current_user.role == 'enom' and ticket.assigned_to_id == current_user.id and ticket.status not in ['resolved', 'closed'] %}
+            <form action="{{ url_for('main.resolve_ticket', ticket_id=ticket.id) }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-success">Mark as Resolved</button>
+            </form>
+            {% endif %}
+            
+            {% if current_user.role == 'tsel' and ticket.status == 'resolved' %}
+            <form action="{{ url_for('main.close_ticket', ticket_id=ticket.id) }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-primary">Close Ticket</button>
+            </form>
             {% endif %}
         </div>
     </div>

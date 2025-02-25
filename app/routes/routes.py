@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, render_template, request, current_app, redirect, url_for, flash
-from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee
+from app.models.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User
 from app import db, logger
 from datetime import datetime, timedelta
 import pytz
@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 import os
 from sqlalchemy import or_, func
 from dotenv import load_dotenv
+from flask_login import login_required, current_user
 
 main_bp = Blueprint('main', __name__, template_folder='../../templates')
 
@@ -16,6 +17,7 @@ load_dotenv()  # Add this near the top of the file
 jakarta_tz = pytz.timezone('Asia/Jakarta')
 
 @main_bp.route('/')
+@login_required
 def index():
     # Get current date and 30 days ago date in Jakarta time
     current_datetime = datetime.now(jakarta_tz)
@@ -235,11 +237,15 @@ def list_tickets():
                          categories=ProblemCategory,
                          statuses=TicketStatus)
 
-@main_bp.route('/tickets/new', methods=['GET', 'POST'])
+@main_bp.route('/ticket/new', methods=['GET', 'POST'])
+@login_required
 def create_ticket():
+    if current_user.role != 'tsel':
+        flash('Only Tsel users can create tickets')
+        return redirect(url_for('main.index'))
+    
     if request.method == 'POST':
         try:
-            # Make sure we're using timezone-aware datetime
             current_time = datetime.now(jakarta_tz)
             
             new_ticket = Ticket(
@@ -247,16 +253,29 @@ def create_ticket():
                 site_id=request.form['site_id'],
                 problem_category=request.form['problem_category'],
                 description=request.form['description'],
-                created_by=request.form['created_by'],
+                created_by=current_user.username,
                 assigned_to_enom=request.form.get('assigned_to_enom'),
-                created_at=current_time  # This will now be timezone-aware
+                created_at=current_time,
+                status=TicketStatus.OPEN
             )
             db.session.add(new_ticket)
             db.session.commit()
             
-            # Redirect to the tickets list instead of rendering template
+            # Add initial ticket action for creation
+            action = TicketAction(
+                ticket_id=new_ticket.id,
+                action_text="Ticket created",
+                created_by=current_user.username,
+                created_at=current_time
+            )
+            db.session.add(action)
+            db.session.commit()
+            
+            flash('Ticket created successfully', 'success')
             return redirect(url_for('main.list_tickets'))
         except Exception as e:
+            logger.error(f"Error creating ticket: {str(e)}")
+            flash("Ticket creation failed", "danger")
             return render_template('create_ticket.html', 
                                 sites=Site.query.all(), 
                                 categories=ProblemCategory,
@@ -394,3 +413,35 @@ def search_sites():
             'more': False
         }
     })
+
+@main_bp.route('/ticket/<int:ticket_id>/resolve', methods=['POST'])
+@login_required
+def resolve_ticket(ticket_id):
+    ticket = Ticket.query.get_or_404(ticket_id)
+    
+    if current_user.role != 'enom' or ticket.assigned_to_id != current_user.id:
+        flash('Only assigned ENOM users can resolve tickets')
+        return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
+    
+    ticket.status = 'resolved'
+    ticket.resolved_at = datetime.utcnow()
+    db.session.commit()
+    return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
+
+@main_bp.route('/ticket/<int:ticket_id>/close', methods=['POST'])
+@login_required
+def close_ticket(ticket_id):
+    ticket = Ticket.query.get_or_404(ticket_id)
+    
+    if current_user.role != 'tsel':
+        flash('Only Tsel users can close tickets')
+        return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
+    
+    if ticket.status != 'resolved':
+        flash('Ticket must be resolved before closing')
+        return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
+    
+    ticket.status = 'closed'
+    ticket.closed_at = datetime.utcnow()
+    db.session.commit()
+    return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
