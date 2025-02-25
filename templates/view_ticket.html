@@ -36,7 +36,7 @@
                 <div class="col-md-6">
                     <p><strong>Description:</strong></p>
                     <div class="mb-3">
-                        <form id="editDescriptionForm" method="POST" action="{{ url_for('edit_ticket_description', ticket_id=ticket.id) }}" style="display: none;">
+                        <form id="editDescriptionForm" method="POST" action="{{ url_for('main.edit_ticket_description', ticket_id=ticket.id) }}" style="display: none;">
                             <div class="form-group">
                                 <textarea class="form-control" name="description" rows="4">{{ ticket.description }}</textarea>
                             </div>

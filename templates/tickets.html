@@ -90,7 +90,7 @@
                 {% for ticket in tickets %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">View</a>
+                        <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">View</a>
                     </td>
                     <td>{{ ticket.ticket_number }}</td>
                     <td>{{ ticket.site.site_id }} - {{ ticket.site.name }}</td>
