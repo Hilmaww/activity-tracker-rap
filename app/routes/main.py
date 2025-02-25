@@ -451,8 +451,4 @@ def close_ticket(ticket_id):
     db.session.commit()
     return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
 
-@bp.route('/profile')
-@login_required
-def profile():
-    return render_template('profile.html', name=current_user.name)
 
