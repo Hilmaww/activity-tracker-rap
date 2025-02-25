@@ -78,6 +78,9 @@
                                 <option value="IN_PROGRESS" {% if ticket.status.name == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
                                 <option value="PENDING" {% if ticket.status.name == 'PENDING' %}selected{% endif %}>Pending</option>
                                 <option value="RESOLVED" {% if ticket.status.name == 'RESOLVED' %}selected{% endif %}>Resolved</option>
+                                {% if current_user.role == 'tsel' %}
+                                    <option value="CLOSED" {% if ticket.status.name == 'CLOSED' %}selected{% endif %}>Closed</option>
+                                {% endif %}
                             </select>
                         </div>
                         <input type="hidden" name="created_by" value="current_user">

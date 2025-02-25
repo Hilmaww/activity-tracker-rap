@@ -71,7 +71,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title">Ticket Distribution by ENOM Assignee (Last 30 Days)</h5>
+                    <h5 class="card-title">Ticket Distribution by ENOM (In The Last 30 Days)</h5>
                 </div>
                 <div class="card-body">
                     <canvas id="assigneeChart"></canvas>
@@ -81,9 +81,16 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title">Top 5 Sites by Ticket Count (Last 30 Days)</h5>
+                    <h5 class="card-title">Top 5 Sites with Most Ticket (Last 30 Days)</h5>
                 </div>
                 <div class="card-body">
+                    {% if top_sites_data['site_ids'] %}
+                        <p class="text-muted mb-3">
+                            Site {{ top_sites_data['site_ids'][0] }} - {{ top_sites_data['site_names'][0] }} has the highest number of tickets ({{ top_sites_data['ticket_counts'][0] }}) in the last 30 days.
+                        </p>
+                    {% else %}
+                        <p class="text-muted mb-3">No ticket data available for the last 30 days.</p>
+                    {% endif %}
                     <canvas id="topSitesChart"></canvas>
                 </div>
             </div>

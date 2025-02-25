@@ -334,6 +334,7 @@ def view_ticket(ticket_id):
     return render_template('view_ticket.html', ticket=ticket, actions=actions)
 
 @bp.route('/tickets/<int:ticket_id>/update_status', methods=['POST'])
+@login_required
 def update_ticket_status(ticket_id):
     try:
         ticket = Ticket.query.get_or_404(ticket_id)
@@ -351,9 +352,11 @@ def update_ticket_status(ticket_id):
         ticket.status = TicketStatus[new_status]
         
         if new_status == 'RESOLVED':
+            ticket.resolved_at = current_time
+        elif new_status == 'CLOSED':
             ticket.closed_at = current_time
-        elif ticket.closed_at is not None:
-            ticket.closed_at = None
+        elif ticket.resolved_at is not None:
+            ticket.resolved_at = None
         
         db.session.add(action)
         db.session.commit()
