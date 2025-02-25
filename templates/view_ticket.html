@@ -103,15 +103,19 @@
             <!-- Add New Action Form -->
             <form action="{{ url_for('main.add_action', ticket_id=ticket.id) }}" method="POST" enctype="multipart/form-data" class="mb-4">
                 <div class="form-group">
-                    <label for="action_text">Add New Action:</label>
+                    <label for="action_text">Deskripsikan kegiatan yang telah dilakukan:</label>
                     <textarea class="form-control" id="action_text" name="action_text" rows="2" required></textarea>
                 </div>
                 <div class="form-group mt-2">
-                    <label for="photo">Attach Photo (optional):</label>
+                    <label for="photo">Attach Photo (opsional):</label>
                     <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
                 </div>
                 <input type="hidden" name="created_by" value="current_user">
-                <button type="submit" class="btn btn-primary mt-3">Add Action</button>
+                <button type="submit" class="btn btn-primary mt-3" id="submitActionBtn">Add Action</button>
+                <div id="submitReminder" class="alert alert-info mt-2" style="display: none;">
+                    Don't forget to submit your action! 
+                    <button type="button" class="btn btn-primary btn-sm ms-2">Click here to submit</button>
+                </div>
             </form>
 
             <!-- Action History -->
@@ -162,5 +166,42 @@ function toggleEditDescription() {
         display.style.display = 'block';
     }
 }
+
+// Add this new code for the action form interaction
+document.addEventListener('DOMContentLoaded', function() {
+    const actionText = document.getElementById('action_text');
+    const photoInput = document.getElementById('photo');
+    const submitReminder = document.getElementById('submitReminder');
+    const submitBtn = document.getElementById('submitActionBtn');
+    let reminderTimeout;
+
+    function showSubmitReminder() {
+        clearTimeout(reminderTimeout);
+        reminderTimeout = setTimeout(() => {
+            submitReminder.style.display = 'block';
+            submitReminder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 2000); // Show reminder 2 seconds after user stops typing
+    }
+
+    actionText.addEventListener('input', showSubmitReminder);
+    photoInput.addEventListener('change', showSubmitReminder);
+
+    // Hide reminder when form is submitted
+    submitBtn.closest('form').addEventListener('submit', () => {
+        submitReminder.style.display = 'none';
+    });
+
+    // Make the reminder clickable to trigger form submission
+    submitReminder.querySelector('button').addEventListener('click', () => {
+        submitBtn.click();
+    });
+
+    // Hide reminder when clicking outside the form
+    document.addEventListener('click', (e) => {
+        if (!submitBtn.closest('form').contains(e.target)) {
+            submitReminder.style.display = 'none';
+        }
+    });
+});
 </script>
 {% endblock %} 
