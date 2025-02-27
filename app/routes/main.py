@@ -8,8 +8,10 @@ import os
 from sqlalchemy import or_, func
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
+from app.models.daily_plan import DailyPlan, PlannedSite, PlanComment, PlanStatus
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
+bp_plans = Blueprint('plans', __name__)
 
 load_dotenv()  # Add this near the top of the file
 
@@ -454,4 +456,157 @@ def close_ticket(ticket_id):
     db.session.commit()
     return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
 
+@bp_plans.route('/plans', methods=['GET'])
+@login_required
+def list_plans():
+    # Get filter parameters
+    date_filter = request.args.get('date')
+    status_filter = request.args.get('status')
+    
+    query = DailyPlan.query
+    
+    # Apply filters based on role
+    if current_user.role == 'enom':
+        query = query.filter_by(enom_user_id=current_user.id)
+    elif current_user.role != 'tsel_admin':
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('main.index'))
+    
+    if date_filter:
+        query = query.filter_by(plan_date=datetime.strptime(date_filter, '%Y-%m-%d').date())
+    if status_filter:
+        query = query.filter_by(status=PlanStatus[status_filter])
+    
+    plans = query.order_by(DailyPlan.plan_date.desc()).all()
+    return render_template('plans/list.html', plans=plans, statuses=PlanStatus)
 
+@bp.route('/plans/new', methods=['GET', 'POST'])
+@login_required
+def create_plan():
+    if current_user.role != 'enom':
+        flash('Only ENOM users can create plans', 'danger')
+        return redirect(url_for('plans.list_plans'))
+        
+    if request.method == 'POST':
+        try:
+            plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
+            
+            # Check if plan already exists for this date
+            existing_plan = DailyPlan.query.filter_by(
+                enom_user_id=current_user.id,
+                plan_date=plan_date
+            ).first()
+            
+            if existing_plan:
+                flash('A plan already exists for this date', 'warning')
+                return redirect(url_for('plans.edit_plan', plan_id=existing_plan.id))
+            
+            new_plan = DailyPlan(
+                enom_user_id=current_user.id,
+                plan_date=plan_date,
+                status=PlanStatus.DRAFT
+            )
+            db.session.add(new_plan)
+            db.session.commit()
+            
+            # Add planned sites
+            site_ids = request.form.getlist('site_id[]')
+            actions = request.form.getlist('planned_actions[]')
+            durations = request.form.getlist('duration[]')
+            
+            for i, site_id in enumerate(site_ids):
+                planned_site = PlannedSite(
+                    daily_plan_id=new_plan.id,
+                    site_id=site_id,
+                    planned_actions=actions[i],
+                    visit_order=i+1,
+                    estimated_duration=durations[i]
+                )
+                db.session.add(planned_site)
+            
+            db.session.commit()
+            flash('Plan created successfully', 'success')
+            return redirect(url_for('plans.view_plan', plan_id=new_plan.id))
+            
+        except Exception as e:
+            logger.error(f"Error creating plan: {str(e)}")
+            flash('Failed to create plan', 'danger')
+            return render_template('plans/create.html', sites=Site.query.all())
+
+@bp.route('/plans/<int:plan_id>/submit', methods=['POST'])
+@login_required
+def submit_plan(plan_id):
+    plan = DailyPlan.query.get_or_404(plan_id)
+    if plan.enom_user_id != current_user.id:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('plans.list_plans'))
+        
+    plan.status = PlanStatus.SUBMITTED
+    db.session.commit()
+    
+    flash('Plan submitted for review', 'success')
+    return redirect(url_for('plans.view_plan', plan_id=plan_id))
+
+@bp.route('/plans/<int:plan_id>/approve', methods=['POST'])
+@login_required
+def approve_plan(plan_id):
+    if current_user.role != 'tsel_admin':
+        flash('Only TSEL admin can approve plans', 'danger')
+        return redirect(url_for('plans.list_plans'))
+        
+    plan = DailyPlan.query.get_or_404(plan_id)
+    plan.status = PlanStatus.APPROVED
+    db.session.commit()
+    
+    flash('Plan approved', 'success')
+    return redirect(url_for('plans.view_plan', plan_id=plan_id))
+
+@bp_plans.route('/plans/<int:plan_id>/add_comment', methods=['POST'])
+@login_required
+def add_comment(plan_id):
+    plan = DailyPlan.query.get_or_404(plan_id)
+    comment_text = request.form.get('comment')
+    
+    if not comment_text:
+        flash('Comment cannot be empty', 'danger')
+        return redirect(url_for('plans.view_plan', plan_id=plan_id))
+    
+    new_comment = PlanComment(
+        daily_plan_id=plan.id,
+        user_id=current_user.id,
+        comment=comment_text
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+    
+    flash('Comment added successfully', 'success')
+    return redirect(url_for('plans.view_plan', plan_id=plan_id))
+
+@bp_plans.route('/plans/<int:plan_id>/reject', methods=['POST'])
+@login_required
+def reject_plan(plan_id):
+    if current_user.role != 'tsel_admin':
+        flash('Only TSEL admin can reject plans', 'danger')
+        return redirect(url_for('plans.list_plans'))
+        
+    plan = DailyPlan.query.get_or_404(plan_id)
+    reason = request.form.get('reason')
+    
+    if not reason:
+        flash('Reason for rejection is required', 'danger')
+        return redirect(url_for('plans.view_plan', plan_id=plan_id))
+    
+    plan.status = PlanStatus.REJECTED
+    db.session.commit()
+    
+    # Optionally, you can add a comment for the rejection
+    comment = PlanComment(
+        daily_plan_id=plan.id,
+        user_id=current_user.id,
+        comment=f'Rejected: {reason}'
+    )
+    db.session.add(comment)
+    db.session.commit()
+    
+    flash('Plan rejected', 'success')
+    return redirect(url_for('plans.view_plan', plan_id=plan_id))

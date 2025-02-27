@@ -153,6 +153,7 @@
     {% block extra_css %}{% endblock %}
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation -->
@@ -170,11 +171,27 @@
                     </li>
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="/tickets">View Tickets</a>
+                            <a class="nav-link" href="{{ url_for('main.list_tickets') }}">View Tickets</a>
                         </li>
                         {% if current_user.role == 'tsel' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="/tickets/new">Create Ticket</a>
+                                <a class="nav-link" href="{{ url_for('main.create_ticket') }}">Create Ticket</a>
+                            </li>
+                        {% endif %}
+                        {% if current_user.role == 'enom' %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="planDropdown" role="button" data-bs-toggle="dropdown">
+                                    Daily Plans
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ url_for('plans.list_plans') }}">My Plans</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('plans.create_plan') }}">Create Plan</a></li>
+                                </ul>
+                            </li>
+                        {% endif %}
+                        {% if current_user.role == 'tsel_admin' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('plans.list_plans') }}">Review Plans</a>
                             </li>
                         {% endif %}
                         <li class="nav-item">
@@ -247,5 +264,10 @@
             }
         });
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/plans.js') }}"></script>
 </body>
 </html>

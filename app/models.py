@@ -141,3 +141,47 @@ class TicketAction(db.Model):
         if self.created_at:
             return self.created_at.astimezone(jakarta_tz)
         return None
+
+class PlanStatus(str, Enum):
+    DRAFT = "DRAFT"
+    SUBMITTED = "SUBMITTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+class DailyPlan(db.Model):
+    __tablename__ = 'daily_plans'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    enom_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    plan_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.Enum(PlanStatus), default=PlanStatus.DRAFT)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    planned_sites = db.relationship('PlannedSite', backref='daily_plan', lazy=True)
+    comments = db.relationship('PlanComment', backref='daily_plan', lazy=True)
+    
+    @property
+    def created_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        return self.created_at.astimezone(jakarta_tz) if self.created_at else None
+
+class PlannedSite(db.Model):
+    __tablename__ = 'planned_sites'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    daily_plan_id = db.Column(db.Integer, db.ForeignKey('daily_plans.id'), nullable=False)
+    site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
+    planned_actions = db.Column(db.Text, nullable=False)
+    visit_order = db.Column(db.Integer, nullable=False)
+    estimated_duration = db.Column(db.Integer)  # in minutes
+    
+class PlanComment(db.Model):
+    __tablename__ = 'plan_comments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    daily_plan_id = db.Column(db.Integer, db.ForeignKey('daily_plans.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    comment = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

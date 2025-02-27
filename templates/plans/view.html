@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}View Plan - {{ plan.plan_date.strftime('%Y-%m-%d') }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Daily Plan Details</h2>
+        <div class="btn-group">
+            {% if current_user.role == 'tsel_admin' and plan.status.name == 'SUBMITTED' %}
+                <button type="button" class="btn btn-success" 
+                        onclick="handlePlanAction({{ plan.id }}, 'approve')">
+                    Approve Plan
+                </button>
+                <button type="button" class="btn btn-danger" 
+                        onclick="handlePlanAction({{ plan.id }}, 'reject')">
+                    Reject Plan
+                </button>
+            {% endif %}
+            {% if current_user.id == plan.enom_user_id and plan.status.name == 'DRAFT' %}
+                <a href="{{ url_for('plans.edit_plan', plan_id=plan.id) }}" 
+                   class="btn btn-primary">Edit Plan</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Plan details display -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Date:</strong> {{ plan.plan_date.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-{{ plan.status.name|lower }}">
+                            {{ plan.status.name }}
+                        </span>
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Created by:</strong> {{ plan.enom_user.username }}</p>
+                    <p><strong>Created at:</strong> {{ plan.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Planned sites list -->
+    <h4>Planned Site Visits</h4>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Site</th>
+                    <th>Planned Actions</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in plan.planned_sites|sort(attribute='visit_order') %}
+                <tr>
+                    <td>{{ site.visit_order }}</td>
+                    <td>{{ site.site.site_id }} - {{ site.site.name }}</td>
+                    <td>{{ site.planned_actions }}</td>
+                    <td>{{ site.estimated_duration }} minutes</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Comments section -->
+    <div class="mt-4">
+        <h4>Comments</h4>
+        <div class="card">
+            <div class="card-body">
+                {% for comment in plan.comments|sort(attribute='created_at') %}
+                <div class="comment mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ comment.user.username }}</strong>
+                        <small class="text-muted">
+                            {{ comment.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                    </div>
+                    <p class="mb-0">{{ comment.comment }}</p>
+                </div>
+                {% if not loop.last %}
+                    <hr>
+                {% endif %}
+                {% endfor %}
+                
+                <!-- Comment form -->
+                <form method="POST" action="{{ url_for('plans.add_comment', plan_id=plan.id) }}" 
+                      class="mt-3">
+                    <div class="form-group">
+                        <textarea class="form-control" name="comment" rows="2" 
+                                placeholder="Add a comment..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-2">Add Comment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
