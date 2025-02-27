@@ -1,4 +1,4 @@
-
+from flask import Blueprint
 from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User, DailyPlan, PlannedSite, PlanComment, PlanStatus
 from app import db, logger
 from datetime import datetime, timedelta
@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 from flask_login import login_required, current_user
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
-bp_plans = Blueprint('plans', __name__)
 
 load_dotenv()  # Add this near the top of the file
 
@@ -389,7 +388,6 @@ def edit_ticket_description(ticket_id):
     
     return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
 
-# Add a test route
 @bp.route('/test')
 def test():
     return jsonify({"status": "ok"})
@@ -455,7 +453,7 @@ def close_ticket(ticket_id):
     db.session.commit()
     return redirect(url_for('main.view_ticket', ticket_id=ticket_id))
 
-@bp_plans.route('/plans', methods=['GET'])
+@bp.route('/plans', methods=['GET'])
 @login_required
 def list_plans():
     # Get filter parameters
@@ -560,7 +558,7 @@ def approve_plan(plan_id):
     flash('Plan approved', 'success')
     return redirect(url_for('plans.view_plan', plan_id=plan_id))
 
-@bp_plans.route('/plans/<int:plan_id>/add_comment', methods=['POST'])
+@bp.route('/plans/<int:plan_id>/add_comment', methods=['POST'])
 @login_required
 def add_comment(plan_id):
     plan = DailyPlan.query.get_or_404(plan_id)
@@ -581,7 +579,7 @@ def add_comment(plan_id):
     flash('Comment added successfully', 'success')
     return redirect(url_for('plans.view_plan', plan_id=plan_id))
 
-@bp_plans.route('/plans/<int:plan_id>/reject', methods=['POST'])
+@bp.route('/plans/<int:plan_id>/reject', methods=['POST'])
 @login_required
 def reject_plan(plan_id):
     if current_user.role != 'tsel_admin':
