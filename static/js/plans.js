@@ -86,8 +86,7 @@ class PlanManager {
 
     addNewSiteRow() {
         const siteCount = $('.planned-site').length;
-        const template = this.getSiteRowTemplate(siteCount + 1);
-        $('#planned-sites').append(template);
+        $('#planned-sites').append(this.getSiteRowTemplate(siteCount + 1));
         
         // Initialize Select2 for new row
         const newSelect = $('#planned-sites .planned-site:last-child .site-select');
@@ -268,6 +267,14 @@ class PlanManager {
                 <div class="visit-order">${siteCount}</div>
             </div>
         `;
+    }
+
+    setupFormValidation() {
+        // Validate duration inputs on change
+        $(document).on('change', 'input[name="duration[]"]', (e) => this.validateDuration(e));
+
+        // Validate form on submit
+        $('#plan-form').on('submit', (e) => this.validateForm(e));
     }
 }
 
