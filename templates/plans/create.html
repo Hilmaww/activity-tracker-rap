@@ -68,11 +68,23 @@ $(document).ready(function() {
 
     // Ensure the click event is bound only once
     $('#add-site').off('click').on('click', function() {
+        // Log the current number of planned-site divs
+        console.log('Current number of planned-site divs before adding:', $('.planned-site').length);
+
+        // Clone the first planned site
         const newSite = $('.planned-site:first').clone(); // Clone the first planned site
         newSite.find('input, textarea').val(''); // Clear input values
         newSite.find('.select2').remove(); // Remove previous Select2 instance
         newSite.find('select').val(''); // Reset select value
-        $('#planned-sites').append(newSite); // Append the new site
+        
+        // Remove the mb-3 class from the cloned element
+        newSite.removeClass('mb-3'); // Remove the mb-3 class
+
+        // Append the new site
+        $('#planned-sites').append(newSite); 
+
+        // Log the new number of planned-site divs after adding
+        console.log('New number of planned-site divs after adding:', $('.planned-site').length);
 
         // Reinitialize Select2 for the new site
         newSite.find('.site-select').select2({
@@ -84,6 +96,8 @@ $(document).ready(function() {
     $(document).on('click', '.remove-site', function() {
         if ($('.planned-site').length > 1) {
             $(this).closest('.planned-site').remove();
+            // Log the number of planned-site divs after removal
+            console.log('Number of planned-site divs after removal:', $('.planned-site').length);
         }
     });
 });
