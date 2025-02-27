@@ -19,11 +19,8 @@ jakarta_tz = pytz.timezone('Asia/Jakarta')
 @bp.after_request
 def add_csp_headers(response):
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "  # Allow everything from your own domain
-        "script-src 'self' https://code.jquery.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
-        "style-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
-        "img-src 'self' data:; "  # Allow images from self and data URIs
-        "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com;"
     )
     return response
 
