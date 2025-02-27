@@ -16,16 +16,6 @@ load_dotenv()  # Add this near the top of the file
 # Get Jakarta timezone
 jakarta_tz = pytz.timezone('Asia/Jakarta')
 
-@bp.after_request
-def add_csp_headers(response):
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://code.jquery.com; "
-        "font-src 'self' https://cdnjs.cloudflare.com;"
-    )
-    return response
-
 @bp.route('/')
 def index():
     # Check if user is authenticated first
