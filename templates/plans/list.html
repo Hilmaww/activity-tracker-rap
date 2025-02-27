@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Daily Plans</h2>
         {% if current_user.role == 'enom' %}
-        <a href="{{ url_for('plans.create_plan') }}" class="btn btn-primary">Create New Plan</a>
+        <a href="{{ url_for('main.create_plan') }}" class="btn btn-primary">Create New Plan</a>
         {% endif %}
     </div>
 
@@ -62,7 +62,7 @@
                     </td>
                     <td>{{ plan.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>
-                        <a href="{{ url_for('plans.view_plan', plan_id=plan.id) }}" 
+                        <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
                            class="btn btn-sm btn-primary">View</a>
                         {% if current_user.role == 'tsel_admin' and plan.status.name == 'SUBMITTED' %}
                         <button type="button" class="btn btn-sm btn-success" 

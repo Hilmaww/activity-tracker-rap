@@ -482,7 +482,7 @@ def list_plans():
 def create_plan():
     if current_user.role != 'enom':
         flash('Only ENOM users can create plans', 'danger')
-        return redirect(url_for('plans.list_plans'))
+        return redirect(url_for('main.list_plans'))
         
     if request.method == 'POST':
         try:
@@ -496,7 +496,7 @@ def create_plan():
             
             if existing_plan:
                 flash('A plan already exists for this date', 'warning')
-                return redirect(url_for('plans.edit_plan', plan_id=existing_plan.id))
+                return redirect(url_for('main.edit_plan', plan_id=existing_plan.id))
             
             new_plan = DailyPlan(
                 enom_user_id=current_user.id,
@@ -523,7 +523,7 @@ def create_plan():
             
             db.session.commit()
             flash('Plan created successfully', 'success')
-            return redirect(url_for('plans.view_plan', plan_id=new_plan.id))
+            return redirect(url_for('main.view_plan', plan_id=new_plan.id))
             
         except Exception as e:
             logger.error(f"Error creating plan: {str(e)}")
@@ -536,27 +536,27 @@ def submit_plan(plan_id):
     plan = DailyPlan.query.get_or_404(plan_id)
     if plan.enom_user_id != current_user.id:
         flash('Unauthorized access', 'danger')
-        return redirect(url_for('plans.list_plans'))
+        return redirect(url_for('main.list_plans'))
         
     plan.status = PlanStatus.SUBMITTED
     db.session.commit()
     
     flash('Plan submitted for review', 'success')
-    return redirect(url_for('plans.view_plan', plan_id=plan_id))
+    return redirect(url_for('main.view_plan', plan_id=plan_id))
 
 @bp.route('/plans/<int:plan_id>/approve', methods=['POST'])
 @login_required
 def approve_plan(plan_id):
     if current_user.role != 'tsel_admin':
         flash('Only TSEL admin can approve plans', 'danger')
-        return redirect(url_for('plans.list_plans'))
+        return redirect(url_for('main.list_plans'))
         
     plan = DailyPlan.query.get_or_404(plan_id)
     plan.status = PlanStatus.APPROVED
     db.session.commit()
     
     flash('Plan approved', 'success')
-    return redirect(url_for('plans.view_plan', plan_id=plan_id))
+    return redirect(url_for('main.view_plan', plan_id=plan_id))
 
 @bp.route('/plans/<int:plan_id>/add_comment', methods=['POST'])
 @login_required
@@ -566,7 +566,7 @@ def add_comment(plan_id):
     
     if not comment_text:
         flash('Comment cannot be empty', 'danger')
-        return redirect(url_for('plans.view_plan', plan_id=plan_id))
+        return redirect(url_for('main.view_plan', plan_id=plan_id))
     
     new_comment = PlanComment(
         daily_plan_id=plan.id,
@@ -577,21 +577,21 @@ def add_comment(plan_id):
     db.session.commit()
     
     flash('Comment added successfully', 'success')
-    return redirect(url_for('plans.view_plan', plan_id=plan_id))
+    return redirect(url_for('main.view_plan', plan_id=plan_id))
 
 @bp.route('/plans/<int:plan_id>/reject', methods=['POST'])
 @login_required
 def reject_plan(plan_id):
     if current_user.role != 'tsel_admin':
         flash('Only TSEL admin can reject plans', 'danger')
-        return redirect(url_for('plans.list_plans'))
+        return redirect(url_for('main.list_plans'))
         
     plan = DailyPlan.query.get_or_404(plan_id)
     reason = request.form.get('reason')
     
     if not reason:
         flash('Reason for rejection is required', 'danger')
-        return redirect(url_for('plans.view_plan', plan_id=plan_id))
+        return redirect(url_for('main.view_plan', plan_id=plan_id))
     
     plan.status = PlanStatus.REJECTED
     db.session.commit()
@@ -606,4 +606,4 @@ def reject_plan(plan_id):
     db.session.commit()
     
     flash('Plan rejected', 'success')
-    return redirect(url_for('plans.view_plan', plan_id=plan_id))
+    return redirect(url_for('main.view_plan', plan_id=plan_id))

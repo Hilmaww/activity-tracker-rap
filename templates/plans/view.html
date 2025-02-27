@@ -18,7 +18,7 @@
                 </button>
             {% endif %}
             {% if current_user.id == plan.enom_user_id and plan.status.name == 'DRAFT' %}
-                <a href="{{ url_for('plans.edit_plan', plan_id=plan.id) }}" 
+                <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
                    class="btn btn-primary">Edit Plan</a>
             {% endif %}
         </div>
@@ -90,7 +90,7 @@
                 {% endfor %}
                 
                 <!-- Comment form -->
-                <form method="POST" action="{{ url_for('plans.add_comment', plan_id=plan.id) }}" 
+                <form method="POST" action="{{ url_for('main.add_comment', plan_id=plan.id) }}" 
                       class="mt-3">
                     <div class="form-group">
                         <textarea class="form-control" name="comment" rows="2" 
