@@ -126,6 +126,10 @@ class PlanManager {
         }
     }
 
+    handleAjaxError(xhr) {
+        toastr.error(xhr.responseJSON?.message || 'Action failed');
+    }
+
     autosaveDraft() {
         const formData = new FormData($('#plan-form')[0]);
         formData.append('auto_save', 'true');
@@ -141,20 +145,21 @@ class PlanManager {
                     toastr.success('Draft saved');
                 }
             },
-            error: () => {
-                toastr.error('Failed to save draft');
-            }
+            error: this.handleAjaxError
         });
     }
 
     validateForm(event) {
-        if (!this.isFormValid()) {
+        const isValid = this.isFormValid();
+        const totalDuration = this.getTotalDuration();
+
+        if (!isValid) {
             event.preventDefault();
             toastr.error('Please fill in all required fields');
             return false;
         }
         
-        if (this.getTotalDuration() > 480) {
+        if (totalDuration > 480) {
             event.preventDefault();
             toastr.error('Total duration cannot exceed 8 hours');
             return false;
@@ -210,6 +215,59 @@ class PlanManager {
         $('.planned-site').each((index, element) => {
             $(element).find('.visit-order').text(index + 1);
         });
+    }
+
+    initializeSelect2ForElement(element) {
+        $(element).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for a site...',
+            ajax: {
+                url: '/api/sites/search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        term: params.term || '',
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.sites.map(site => ({
+                            id: site.id,
+                            text: `${site.site_id} - ${site.name}`,
+                            location: site.location
+                        })),
+                        pagination: data.pagination
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            templateResult: this.formatSiteResult
+        });
+    }
+
+    getSiteRowTemplate(siteCount) {
+        return `
+            <div class="planned-site">
+                <div class="form-group">
+                    <label for="site-select-${siteCount}">Site</label>
+                    <select class="site-select" id="site-select-${siteCount}" name="site_id[]"></select>
+                </div>
+                <div class="form-group">
+                    <label for="planned_actions_${siteCount}">Planned Actions</label>
+                    <textarea name="planned_actions[]" class="form-control" id="planned_actions_${siteCount}"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="duration_${siteCount}">Duration (minutes)</label>
+                    <input type="number" name="duration[]" class="form-control" id="duration_${siteCount}" min="15" max="480" value="15">
+                </div>
+                <button type="button" class="remove-site btn btn-danger">Remove</button>
+                <div class="drag-handle">Drag</div>
+                <div class="visit-order">${siteCount}</div>
+            </div>
+        `;
     }
 }
 
@@ -270,8 +328,6 @@ function submitPlanAction(url, data = {}) {
             toastr.success(response.message);
             setTimeout(() => window.location.reload(), 1500);
         },
-        error: function(xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Action failed');
-        }
+        error: this.handleAjaxError
     });
 } 
