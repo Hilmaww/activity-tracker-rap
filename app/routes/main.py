@@ -1,5 +1,5 @@
-from flask import Blueprint, jsonify, render_template, request, current_app, redirect, url_for, flash
-from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User
+
+from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User, DailyPlan, PlannedSite, PlanComment, PlanStatus
 from app import db, logger
 from datetime import datetime, timedelta
 import pytz
@@ -8,7 +8,6 @@ import os
 from sqlalchemy import or_, func
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
-from app.models.daily_plan import DailyPlan, PlannedSite, PlanComment, PlanStatus
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
 bp_plans = Blueprint('plans', __name__)
