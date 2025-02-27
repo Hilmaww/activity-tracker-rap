@@ -283,6 +283,32 @@ $(document).ready(() => {
     if ($('#plan-form').length) {
         window.planManager = new PlanManager();
     }
+
+    // Initialize Select2 for site selection
+    $('.site-select').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for a site...'
+    });
+
+    $('#add-site').off('click').on('click', function() {
+        const newSite = $('.planned-site:first').clone();
+        newSite.find('input, textarea').val(''); // Clear input values
+        newSite.find('.select2').remove(); // Remove previous Select2 instance
+        newSite.find('select').val(''); // Reset select value
+        $('#planned-sites').append(newSite); // Append the new site
+
+        // Reinitialize Select2 for the new site
+        newSite.find('.site-select').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for a site...'
+        });
+    });
+
+    $(document).on('click', '.remove-site', function() {
+        if ($('.planned-site').length > 1) {
+            $(this).closest('.planned-site').remove();
+        }
+    });
 });
 
 // Handle plan approval/rejection
