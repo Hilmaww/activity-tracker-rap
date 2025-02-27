@@ -529,6 +529,8 @@ def create_plan():
             logger.error(f"Error creating plan: {str(e)}")
             flash('Failed to create plan', 'danger')
             return render_template('plans/create.html', sites=Site.query.all())
+    else:
+        return render_template('plans/create.html', sites=Site.query.all())
 
 @bp.route('/plans/<int:plan_id>/submit', methods=['POST'])
 @login_required
