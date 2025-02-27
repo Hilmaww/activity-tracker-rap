@@ -78,7 +78,7 @@ $(document).ready(function() {
         newSite.removeClass('mb-3'); // Remove the mb-3 class
 
         // Append the new site
-        this.addNewSiteRow()
+        $('#planned-sites').append(newSite); // Append the new site to the planned sites container
     });
 
     $(document).on('click', '.remove-site', function() {
