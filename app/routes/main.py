@@ -731,7 +731,7 @@ def delete_plan(plan_id):
         flash('Plan deleted successfully', 'success')
     except Exception as e:
         logger.error(f"Error deleting plan: {str(e)}")
-        flash('Failed to delete plan', 'danger')
+        flash(f'Failed to delete plan: {str(e)}', 'danger')
     
     return redirect(url_for('main.list_plans'))
 
