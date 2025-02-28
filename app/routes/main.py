@@ -460,9 +460,10 @@ def list_plans():
     date_filter = request.args.get('date')
     status_filter = request.args.get('status')
     
-    query = DailyPlan.query
+    # Use joinedload to eagerly load the enom_user relationship
+    query = DailyPlan.query.options(db.joinedload(DailyPlan.enom_user))
     
-    # Apply filters based on role
+    # Rest of your code remains the same
     if current_user.role == 'enom':
         query = query.filter_by(enom_user_id=current_user.id)
     elif current_user.role != 'tsel_admin':
