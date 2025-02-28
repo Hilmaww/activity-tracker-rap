@@ -46,6 +46,20 @@
         </div>
     </div>
 
+    <!-- Add this after the status cards section -->
+    {% if current_user.role == 'enom' %}
+        {% set has_plan_today = current_user.daily_plans|selectattr('plan_date', 'equalto', today)|first %}
+        {% if not has_plan_today %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <h4 class="alert-heading"><i class="fas fa-calendar-plus"></i> Plan Your Day!</h4>
+                <p>You haven't submitted your daily plan for today. Planning helps organize your site visits effectively.</p>
+                <hr>
+                <a href="{{ url_for('main.create_plan') }}" class="btn btn-primary">Create Today's Plan</a>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endif %}
+    {% endif %}
+
     <!-- Charts Section -->
     <div class="row mt-4">
         <div class="col-md-6">

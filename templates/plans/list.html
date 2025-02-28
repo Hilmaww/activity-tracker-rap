@@ -14,11 +14,11 @@
     <div class="card mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Date</label>
                     <input type="date" class="form-control" name="date" value="{{ request.args.get('date', '') }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Status</label>
                     <select class="form-select" name="status">
                         <option value="">All Statuses</option>
@@ -29,9 +29,22 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                {% if current_user.role == 'tsel_admin' %}
+                <div class="col-md-3">
+                    <label class="form-label">ENOM User</label>
+                    <select class="form-select" name="enom_user">
+                        <option value="">All Users</option>
+                        {% for user in enom_users %}
+                        <option value="{{ user.id }}" {% if request.args.get('enom_user')|int == user.id %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-3">
                     <label class="form-label">&nbsp;</label>
-                    <button type="submit" class="btn btn-primary d-block">Filter</button>
+                    <button type="submit" class="btn btn-primary d-block w-100">Filter</button>
                 </div>
             </form>
         </div>
@@ -44,6 +57,7 @@
                     <th>Date</th>
                     <th>ENOM User</th>
                     <th>Sites</th>
+                    <th>Total Duration</th>
                     <th>Status</th>
                     <th>Created At</th>
                     <th>Actions</th>
@@ -51,10 +65,16 @@
             </thead>
             <tbody>
                 {% for plan in plans %}
-                <tr>
+                <tr class="{% if plan.plan_date == today %}table-info{% endif %}">
                     <td>{{ plan.plan_date.strftime('%Y-%m-%d') }}</td>
                     <td>{{ plan.enom_user.username }}</td>
-                    <td>{{ plan.planned_sites|length }} sites</td>
+                    <td>
+                        {{ plan.planned_sites|length }} sites
+                        <small class="text-muted d-block">
+                            {{ plan.planned_sites|map(attribute='site.name')|join(', ') }}
+                        </small>
+                    </td>
+                    <td>{{ plan.planned_sites|sum(attribute='estimated_duration') }} minutes</td>
                     <td>
                         <span class="badge bg-{{ plan.status.name|lower }}">
                             {{ plan.status.name }}
@@ -62,12 +82,14 @@
                     </td>
                     <td>{{ plan.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>
-                        <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
-                           class="btn btn-sm btn-primary">View</a>
-                        {% if current_user.role == 'tsel_admin' and plan.status.name == 'SUBMITTED' %}
-                        <button type="button" class="btn btn-sm btn-success" 
-                                onclick="approvePlan({{ plan.id }})">Approve</button>
-                        {% endif %}
+                        <div class="btn-group">
+                            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
+                               class="btn btn-sm btn-primary">View</a>
+                            {% if current_user.id == plan.enom_user_id and plan.status.name == 'DRAFT' %}
+                                <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
+                                   class="btn btn-sm btn-warning">Edit</a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

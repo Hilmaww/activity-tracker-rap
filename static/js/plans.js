@@ -275,6 +275,21 @@ class PlanManager {
 
         // Validate form on submit
         $('#plan-form').on('submit', (e) => this.validateForm(e));
+
+        // Add date change validation
+        $('#plan_date').on('change', (e) => this.validatePlanDate(e));
+    }
+
+    validatePlanDate(event) {
+        const planDate = $('#plan_date').val();
+        
+        $.get(`/api/plans/check_date?date=${planDate}`, (response) => {
+            if (response.exists) {
+                $('#plan_date').addClass('is-invalid');
+                toastr.warning('A plan already exists for this date');
+                event.preventDefault();
+            }
+        });
     }
 }
 

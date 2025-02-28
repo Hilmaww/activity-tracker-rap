@@ -8,6 +8,7 @@ import os
 from sqlalchemy import or_, func
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
+from flask import jsonify
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
 
@@ -180,6 +181,9 @@ def index():
         ) if site.ticket_count > 0 else 'NONE'
     } for site in sites_with_tickets if site.Site.lat and site.Site.long]
 
+    # Add today's date for ENOM plan check
+    today = datetime.now(jakarta_tz).date()
+
     return render_template('index.html',
                        open_tickets=open_tickets,
                        in_progress_tickets=in_progress_tickets,
@@ -195,7 +199,8 @@ def index():
                        trend_labels=trend_labels,
                        statuses=TicketStatus,
                        site_markers=site_markers,
-                       mapbox_token=os.getenv('MAPBOX_TOKEN'))
+                       mapbox_token=os.getenv('MAPBOX_TOKEN'),
+                       today=today)
 
 @bp.route('/tickets', methods=['GET'])
 @login_required
@@ -459,9 +464,13 @@ def list_plans():
     # Get filter parameters
     date_filter = request.args.get('date')
     status_filter = request.args.get('status')
+    enom_user_filter = request.args.get('enom_user')
     
-    # Use joinedload to eagerly load the enom_user relationship
-    query = DailyPlan.query.options(db.joinedload(DailyPlan.enom_user))
+    # Base query with eager loading
+    query = DailyPlan.query.options(
+        db.joinedload(DailyPlan.enom_user),
+        db.joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site)
+    )
     
     # Rest of your code remains the same
     if current_user.role == 'enom':
@@ -474,9 +483,22 @@ def list_plans():
         query = query.filter_by(plan_date=datetime.strptime(date_filter, '%Y-%m-%d').date())
     if status_filter:
         query = query.filter_by(status=PlanStatus[status_filter])
+    if enom_user_filter and current_user.role == 'tsel_admin':
+        query = query.filter_by(enom_user_id=int(enom_user_filter))
+    
+    # Get ENOM users for filter dropdown
+    enom_users = None
+    if current_user.role == 'tsel_admin':
+        enom_users = User.query.filter_by(role='enom').all()
     
     plans = query.order_by(DailyPlan.plan_date.desc()).all()
-    return render_template('plans/list.html', plans=plans, statuses=PlanStatus)
+    today = datetime.now(jakarta_tz).date()
+    
+    return render_template('plans/list.html', 
+                         plans=plans,
+                         statuses=PlanStatus,
+                         enom_users=enom_users,
+                         today=today)
 
 @bp.route('/plans/new', methods=['GET', 'POST'])
 @login_required
@@ -669,6 +691,21 @@ def edit_plan(plan_id):
 
     # Render the edit plan form
     return render_template('plans/edit.html', plan=plan)
+
+@bp.route('/api/plans/check_date')
+@login_required
+def check_plan_date():
+    date_str = request.args.get('date')
+    if not date_str:
+        return jsonify({'error': 'No date provided'}), 400
+        
+    plan_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    existing_plan = DailyPlan.query.filter_by(
+        enom_user_id=current_user.id,
+        plan_date=plan_date
+    ).first()
+    
+    return jsonify({'exists': existing_plan is not None})
 
 @bp.after_request
 def add_header(response):
