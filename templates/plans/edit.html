@@ -60,48 +60,88 @@
             </div>
             <div class="card-body">
                 <div id="planned-sites">
-                    {% for site in plan.planned_sites %}
-                    <div class="planned-site mb-4">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label for="site-select-{{ loop.index }}">Site</label>
-                                <select class="site-select form-control" 
-                                        id="site-select-{{ loop.index }}" 
-                                        name="site_id[]" 
-                                        required
-                                        data-selected-id="{{ site.site.id }}"
-                                        data-selected-text="{{ site.site.site_id }} - {{ site.site.name }}">
-                                    <option value="{{ site.site.id }}" selected>
-                                        {{ site.site.site_id }} - {{ site.site.name }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Planned Actions</label>
-                                <textarea class="form-control" 
-                                          name="planned_actions[]" 
-                                          rows="2" 
-                                          required>{{ site.planned_actions }}</textarea>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="duration_{{ loop.index }}">Duration (minutes)</label>
-                                <input type="number" 
-                                       name="duration[]" 
-                                       class="form-control" 
-                                       id="duration_{{ loop.index }}" 
-                                       min="15" 
-                                       max="480" 
-                                       value="{{ site.estimated_duration }}">
-                            </div>
-                            <div class="col-md-1">
-                                <label class="form-label">&nbsp;</label>
-                                <button type="button" class="btn btn-danger remove-site">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                    {% if plan.planned_sites %}
+                        {% for site in plan.planned_sites %}
+                        <div class="planned-site mb-4">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="site-select-{{ loop.index }}">Site</label>
+                                    <select class="site-select form-control" 
+                                            id="site-select-{{ loop.index }}" 
+                                            name="site_id[]" 
+                                            required
+                                            data-selected-id="{{ site.site.id }}"
+                                            data-selected-text="{{ site.site.site_id }} - {{ site.site.name }}">
+                                        <option value="{{ site.site.id }}" selected>
+                                            {{ site.site.site_id }} - {{ site.site.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Planned Actions</label>
+                                    <textarea class="form-control" 
+                                              name="planned_actions[]" 
+                                              rows="2" 
+                                              required>{{ site.planned_actions }}</textarea>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="duration_{{ loop.index }}">Duration (minutes)</label>
+                                    <input type="number" 
+                                           name="duration[]" 
+                                           class="form-control" 
+                                           id="duration_{{ loop.index }}" 
+                                           min="15" 
+                                           max="480" 
+                                           value="{{ site.estimated_duration }}">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-danger remove-site">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="planned-site mb-4">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="site-select-1">Site</label>
+                                    <select class="site-select form-control" 
+                                            id="site-select-1" 
+                                            name="site_id[]" 
+                                            required>
+                                        <option value="">Select Site</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Planned Actions</label>
+                                    <textarea class="form-control" 
+                                              name="planned_actions[]" 
+                                              rows="2" 
+                                              required 
+                                              placeholder="Enter planned actions..."></textarea>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="duration_1">Duration (minutes)</label>
+                                    <input type="number" 
+                                           name="duration[]" 
+                                           class="form-control" 
+                                           id="duration_1" 
+                                           min="15" 
+                                           max="480" 
+                                           value="15">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-danger remove-site">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <button type="button" class="btn btn-secondary" id="add-site">

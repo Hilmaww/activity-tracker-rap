@@ -540,16 +540,6 @@ def create_plan():
         try:
             plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
             
-            # Check if plan already exists for this date
-            existing_plan = DailyPlan.query.filter_by(
-                enom_user_id=current_user.id,
-                plan_date=plan_date
-            ).first()
-            
-            if existing_plan:
-                flash('A plan already exists for this date', 'warning')
-                return redirect(url_for('main.edit_plan', plan_id=existing_plan.id))
-            
             new_plan = DailyPlan(
                 enom_user_id=current_user.id,
                 plan_date=plan_date,
@@ -720,21 +710,6 @@ def edit_plan(plan_id):
 
     # Render the edit plan form
     return render_template('plans/edit.html', plan=plan)
-
-@bp.route('/api/plans/check_date')
-@login_required
-def check_plan_date():
-    date_str = request.args.get('date')
-    if not date_str:
-        return jsonify({'error': 'No date provided'}), 400
-        
-    plan_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    existing_plan = DailyPlan.query.filter_by(
-        enom_user_id=current_user.id,
-        plan_date=plan_date
-    ).first()
-    
-    return jsonify({'exists': existing_plan is not None})
 
 @bp.route('/plans/<int:plan_id>/delete', methods=['POST'])
 @login_required

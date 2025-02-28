@@ -66,7 +66,14 @@
             <tbody>
                 {% for plan in plans %}
                 <tr class="{% if plan.plan_date == today %}table-info{% endif %}">
-                    <td>{{ plan.plan_date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {{ plan.plan_date.strftime('%d-%m-%Y') }}
+                        {% if plan.created_at_jakarta %}
+                        <small class="text-muted d-block">
+                            Created: {{ plan.created_at_jakarta.strftime('%H:%M') }}
+                        </small>
+                        {% endif %}
+                    </td>
                     <td>{{ plan.enom_user.username }}</td>
                     <td>
                         {{ plan.planned_sites|length }} sites
@@ -80,7 +87,7 @@
                             {{ plan.status.name }}
                         </span>
                     </td>
-                    <td>{{ plan.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ plan.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}</td>
                     <td>
                         <div class="btn-group">
                             <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
