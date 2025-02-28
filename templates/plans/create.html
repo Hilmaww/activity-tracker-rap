@@ -69,21 +69,17 @@ $(document).ready(function() {
                 delay: 250,
                 data: function(params) {
                     return {
-                        term: params.term || '',
-                        page: params.page || 1
+                        term: params.term || ''
                     };
                 },
                 processResults: function(data) {
-                    return {
-                        results: data.results,
-                        pagination: data.pagination
-                    };
+                    return data;
                 },
                 cache: true
             },
-            minimumInputLength: 2,
             templateResult: formatSiteResult,
-            templateSelection: formatSiteSelection
+            templateSelection: formatSiteSelection,
+            minimumInputLength: 2
         });
     }
 

@@ -408,33 +408,30 @@ def edit_ticket_description(ticket_id):
 def test():
     return jsonify({"status": "ok"})
 
-@bp.route('/api/sites/search', methods=['GET'])
+@bp.route('/api/sites/search')
+@login_required
 def search_sites():
-    search_term = request.args.get('term', '')
+    term = request.args.get('term', '')
     
-    # Query sites with search term
+    # Search sites by ID or name
     sites = Site.query.filter(
         or_(
-            Site.name.ilike(f'%{search_term}%'),
-            Site.site_id.ilike(f'%{search_term}%'),
-            Site.kabupaten.ilike(f'%{search_term}%')
+            Site.site_id.ilike(f'%{term}%'),
+            Site.name.ilike(f'%{term}%'),
+            Site.kabupaten.ilike(f'%{term}%')
         )
-    ).limit(50).all()  # Limit results for performance
+    ).limit(10).all()
     
-    # Format results for Select2
     results = [{
         'id': site.id,
-        'text': f'{site.site_id} - {site.name}',  # This is what Select2 uses for display
         'site_id': site.site_id,
         'name': site.name,
-        'kabupaten': site.kabupaten
+        'kabupaten': site.kabupaten,
+        'text': f'{site.site_id} - {site.name}'  # This is what Select2 uses as display text
     } for site in sites]
     
     return jsonify({
         'results': results,
-        'pagination': {
-            'more': False
-        }
     })
 
 @bp.route('/ticket/<int:ticket_id>/resolve', methods=['POST'])
