@@ -169,8 +169,6 @@
 <script>
 $(document).ready(function() {
     // Initialize Select2 for all site selects
-    initializeSelect2();
-
     function initializeSelect2(element = '#site-select-1') {
         $(element).each(function() {
             const $select = $(this);
@@ -225,6 +223,7 @@ $(document).ready(function() {
             });
         });
     }
+    initializeSelect2();
 
     function formatSiteResult(site) {
         if (!site.id) return site.text;
