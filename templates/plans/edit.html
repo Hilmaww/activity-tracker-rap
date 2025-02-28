@@ -71,6 +71,29 @@
             function removeSite(button) {
                 button.parentNode.remove();
             }
+
+            // Initialize select2 for site selection
+            $(document).ready(function() {
+                $('.site-select').select2({
+                    placeholder: "Select a site",
+                    ajax: {
+                        url: "/api/sites/search",
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                term: params.term
+                            };
+                        },
+                        processResults: function (data) {
+                            return {
+                                results: data.results
+                            };
+                        },
+                        cache: true
+                    }
+                });
+            });
         </script>
         <button type="submit" class="btn btn-success mt-3">Update Plan</button>
     </form>
