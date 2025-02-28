@@ -188,3 +188,5 @@ class PlanComment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     comment = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user =  db.relationship('User', backref='plan_comment', lazy=True)
