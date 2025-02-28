@@ -6,6 +6,7 @@
 <div class="container mt-4">
     <h2>Create Daily Plan</h2>
     <form method="POST" id="plan-form" class="needs-validation" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="mb-3">
             <label for="plan_date" class="form-label">Plan Date</label>
             <input type="date" class="form-control" id="plan_date" name="plan_date" 
