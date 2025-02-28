@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Daily Plan Details</h2>
         <div class="btn-group">
-            {% if current_user.role == 'tsel_admin' and plan.status.name == 'SUBMITTED' %}
+            {% if current_user.role == 'tsel' and plan.status.name == 'SUBMITTED' %}
                 <button type="button" class="btn btn-success" 
                         onclick="handlePlanAction({{ plan.id }}, 'approve')">
                     Approve Plan

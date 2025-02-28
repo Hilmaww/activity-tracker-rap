@@ -186,7 +186,7 @@ def index():
 
     # Add today's plans for TSEL users
     todays_plans = None
-    if current_user.is_authenticated and current_user.role == 'tsel_admin':
+    if current_user.is_authenticated and current_user.role == 'tsel':
         todays_plans = DailyPlan.query.filter(
             DailyPlan.plan_date == today
         ).options(
@@ -494,12 +494,12 @@ def list_plans():
         query = query.filter_by(plan_date=datetime.strptime(date_filter, '%Y-%m-%d').date())
     if status_filter:
         query = query.filter_by(status=PlanStatus[status_filter])
-    if enom_user_filter and current_user.role == 'tsel_admin':
+    if enom_user_filter and current_user.role == 'tsel':
         query = query.filter_by(enom_user_id=int(enom_user_filter))
     
     # Get ENOM users for filter dropdown
     enom_users = None
-    if current_user.role == 'tsel_admin':
+    if current_user.role == 'tsel':
         enom_users = User.query.filter_by(role='enom').all()
     
     plans = query.order_by(DailyPlan.plan_date.desc()).all()

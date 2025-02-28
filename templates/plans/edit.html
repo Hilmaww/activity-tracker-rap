@@ -43,7 +43,7 @@
                                 {% if current_user.role == 'enom' %}
                                     <option value="DRAFT" {% if plan.status.name == 'DRAFT' %}selected{% endif %}>Draft</option>
                                     <option value="SUBMITTED" {% if plan.status.name == 'SUBMITTED' %}selected{% endif %}>Submit for Review</option>
-                                {% elif current_user.role == 'tsel_admin' %}
+                                {% elif current_user.role == 'tsel' %}
                                     <option value="APPROVED" {% if plan.status.name == 'APPROVED' %}selected{% endif %}>Approve</option>
                                     <option value="REJECTED" {% if plan.status.name == 'REJECTED' %}selected{% endif %}>Reject</option>
                                 {% endif %}
