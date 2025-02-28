@@ -628,6 +628,48 @@ def view_plan(plan_id):
     
     return render_template('plans/view.html', plan=plan, planned_sites=planned_sites, comments=comments)
 
+@bp.route('/plans/<int:plan_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_plan(plan_id):
+    # Retrieve the plan by ID
+    plan = DailyPlan.query.get_or_404(plan_id)
+
+    # Check if the user has permission to edit the plan
+    if current_user.role != 'tsel_admin' and plan.enom_user_id != current_user.id:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('main.list_plans'))
+
+    if request.method == 'POST':
+        # Update plan details
+        plan.plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
+        plan.status = PlanStatus[request.form['status']]
+
+        # Clear existing planned sites and comments if necessary
+        # (Optional: You can choose to keep them or update them)
+        # plan.planned_sites.clear()  # Uncomment if you want to clear existing sites
+
+        # Add new planned sites
+        site_ids = request.form.getlist('site_id[]')
+        actions = request.form.getlist('planned_actions[]')
+        durations = request.form.getlist('duration[]')
+
+        for i, site_id in enumerate(site_ids):
+            planned_site = PlannedSite(
+                daily_plan_id=plan.id,
+                site_id=site_id,
+                planned_actions=actions[i],
+                visit_order=i + 1,
+                estimated_duration=durations[i]
+            )
+            db.session.add(planned_site)
+
+        db.session.commit()
+        flash('Plan updated successfully', 'success')
+        return redirect(url_for('main.view_plan', plan_id=plan.id))
+
+    # Render the edit plan form
+    return render_template('plans/edit.html', plan=plan)
+
 @bp.after_request
 def add_header(response):
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
