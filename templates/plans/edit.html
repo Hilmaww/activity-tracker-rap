@@ -168,9 +168,13 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Initialize Select2 for all site selects
-    function initializeSelect2(element = '.site-select') {
-        $(element).select2({
+    // Initialize Select2 for all existing site selects
+    $('.site-select').each(function() {
+        initializeSelect2($(this));
+    });
+
+    function initializeSelect2($element) {
+        $element.select2({
             theme: 'bootstrap-5',
             placeholder: 'Search for a site...',
             allowClear: true,
@@ -185,11 +189,18 @@ $(document).ready(function() {
                         page: params.page || 1
                     };
                 },
-                processResults: function(data) {
+                processResults: function(data, params) {
+                    params.page = params.page || 1;
                     return {
-                        results: data.results,
+                        results: data.results.map(site => ({
+                            id: site.id,
+                            text: `${site.site_id} - ${site.name}`,
+                            site_id: site.site_id,
+                            name: site.name,
+                            kabupaten: site.kabupaten
+                        })),
                         pagination: {
-                            more: data.pagination && data.pagination.more
+                            more: (params.page * 10) < data.total_count
                         }
                     };
                 },
@@ -205,18 +216,19 @@ $(document).ready(function() {
         if (!site.id) return site.text;
         return $(`
             <div class="site-result">
-                <div class="site-name">${site.site_id ? site.site_id + ' - ' : ''}${site.name}</div>
+                <div class="site-name">${site.text}</div>
                 ${site.kabupaten ? `
-                <small class="text-muted">
-                    <i class="fas fa-map-marker-alt"></i> ${site.kabupaten}
-                </small>` : ''}
+                    <small class="text-muted">
+                        <i class="fas fa-map-marker-alt"></i> ${site.kabupaten}
+                    </small>
+                ` : ''}
             </div>
         `);
     }
 
     function formatSiteSelection(site) {
         if (!site.id) return site.text;
-        return site.site_id ? `${site.site_id} - ${site.name}` : site.text;
+        return site.text;
     }
 
     // Format date input to dd-mm-yyyy
@@ -245,11 +257,21 @@ $(document).ready(function() {
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Planned Actions</label>
-                        <textarea class="form-control" name="planned_actions[]" rows="2" required placeholder="Enter planned actions..."></textarea>
+                        <textarea class="form-control" 
+                                name="planned_actions[]" 
+                                rows="2" 
+                                required 
+                                placeholder="Enter planned actions..."></textarea>
                     </div>
                     <div class="col-md-3">
                         <label for="duration_${siteCount}">Duration (minutes)</label>
-                        <input type="number" name="duration[]" class="form-control" id="duration_${siteCount}" min="15" max="480" value="15">
+                        <input type="number" 
+                               name="duration[]" 
+                               class="form-control" 
+                               id="duration_${siteCount}" 
+                               min="15" 
+                               max="480" 
+                               value="15">
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">&nbsp;</label>
@@ -264,7 +286,7 @@ $(document).ready(function() {
         $('#planned-sites').append(newSite);
         
         // Initialize Select2 for the new select
-        initializeSelect2(`#site-select-${siteCount}`);
+        initializeSelect2($(`#site-select-${siteCount}`));
     });
 
     // Remove site button handler
@@ -298,6 +320,10 @@ $(document).ready(function() {
 
 .select2-container {
     width: 100% !important;
+}
+
+.select2-dropdown {
+    z-index: 9999;
 }
 
 .planned-site {
