@@ -179,7 +179,6 @@ class PlannedSite(db.Model):
     estimated_duration = db.Column(db.Integer)  # in minutes
 
     site =  db.relationship('Site', backref='planned_sites', lazy=True)
-    daily_plan = db.relationship('DailyPlan', backref='planned_sites', lazy=True)
     
 class PlanComment(db.Model):
     __tablename__ = 'plan_comments'
