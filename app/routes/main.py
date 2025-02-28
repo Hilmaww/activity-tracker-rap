@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, current_app, redirect, url_for, flash
+from flask import Blueprint, render_template, request, current_app, redirect, url_for, flash, Flask, Response
 from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User, DailyPlan, PlannedSite, PlanComment, PlanStatus
 from app import db, logger
 from datetime import datetime, timedelta
@@ -609,3 +609,8 @@ def reject_plan(plan_id):
     
     flash('Plan rejected', 'success')
     return redirect(url_for('main.view_plan', plan_id=plan_id))
+
+@bp.after_request
+def add_header(response):
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response

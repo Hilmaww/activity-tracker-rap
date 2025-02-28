@@ -62,4 +62,21 @@
     background-color: #fff3cd;
     border: 1px solid #ffeeba;
     color: #856404;
+}
+
+/* Add vendor prefixes for compatibility */
+.user-select {
+    user-select: none; /* Non-prefixed version */
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+}
+
+.text-size-adjust {
+    text-size-adjust: 100%; /* Non-prefixed version */
+    -webkit-text-size-adjust: 100%; /* Safari */
+}
+
+.text-align {
+    text-align: match-parent; /* Non-prefixed version */
+    -webkit-text-align: match-parent; /* Safari */
 } 
