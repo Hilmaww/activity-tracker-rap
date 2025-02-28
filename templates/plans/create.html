@@ -20,8 +20,13 @@
                 <div class="row">
                     <div class="col-md-4">
                         <label for="site-select-1">Site</label>
-                        <select class="site-select form-control" id="site-select-1" name="site_id[]" required>
+                        <select class="site-select form-select" id="site-select-1" name="site_id[]" required>
                             <option value="">Select Site</option>
+                            {% for site in sites %}
+                            <option value="{{ site.id }}" data-name="{{ site.name }}" data-location="{{ site.location }}">
+                                {{ site.name }} - {{ site.location }}
+                            </option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -56,7 +61,7 @@
 <script>
 $(document).ready(function() {
     // Initialize Select2 for site selection
-    $('.site-select').select2({
+    $('#site-select-1').select2({
         theme: 'bootstrap-5',
         placeholder: 'Search for a site...',
         allowClear: true,
