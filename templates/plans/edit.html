@@ -113,6 +113,11 @@
                                             name="site_id[]" 
                                             required>
                                         <option value="">Select Site</option>
+                                        {% for site in sites %}
+                                        <option value="{{ site.id }}" data-name="{{ site.name }}" data-location="{{ site.location }}">
+                                            {{ site.name }} - {{ site.location }}
+                                        </option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                                 <div class="col-md-4">
