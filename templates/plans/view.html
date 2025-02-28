@@ -60,7 +60,7 @@
                 {% for site in plan.planned_sites|sort(attribute='visit_order') %}
                 <tr>
                     <td>{{ site.visit_order }}</td>
-                    <td>{{ site.site_id }} - {{ site.name }}</td>
+                    <td>{{ site.site.site_id }} - {{ site.site.name }}</td>
                     <td>{{ site.planned_actions }}</td>
                     <td>{{ site.estimated_duration }} minutes</td>
                 </tr>
