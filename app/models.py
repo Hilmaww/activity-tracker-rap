@@ -190,3 +190,7 @@ class PlanComment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user =  db.relationship('User', backref='plan_comment', lazy=True)
+    @property
+    def created_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        return self.created_at.astimezone(jakarta_tz) if self.created_at else None
