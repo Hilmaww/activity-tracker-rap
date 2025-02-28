@@ -184,6 +184,16 @@ def index():
     # Add today's date for ENOM plan check
     today = datetime.now(jakarta_tz).date()
 
+    # Add today's plans for TSEL users
+    todays_plans = None
+    if current_user.is_authenticated and current_user.role == 'tsel_admin':
+        todays_plans = DailyPlan.query.filter(
+            DailyPlan.plan_date == today
+        ).options(
+            db.joinedload(DailyPlan.enom_user),
+            db.joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site)
+        ).all()
+
     return render_template('index.html',
                        open_tickets=open_tickets,
                        in_progress_tickets=in_progress_tickets,
@@ -200,7 +210,8 @@ def index():
                        statuses=TicketStatus,
                        site_markers=site_markers,
                        mapbox_token=os.getenv('MAPBOX_TOKEN'),
-                       today=today)
+                       today=today,
+                       todays_plans=todays_plans)
 
 @bp.route('/tickets', methods=['GET'])
 @login_required
@@ -706,6 +717,30 @@ def check_plan_date():
     ).first()
     
     return jsonify({'exists': existing_plan is not None})
+
+@bp.route('/plans/<int:plan_id>/delete', methods=['POST'])
+@login_required
+def delete_plan(plan_id):
+    plan = DailyPlan.query.get_or_404(plan_id)
+    
+    # Check permissions
+    if current_user.role != 'tsel_admin' and (
+        current_user.role != 'enom' or 
+        plan.enom_user_id != current_user.id or 
+        plan.status.name != 'DRAFT'
+    ):
+        flash('You do not have permission to delete this plan', 'danger')
+        return redirect(url_for('main.list_plans'))
+    
+    try:
+        db.session.delete(plan)
+        db.session.commit()
+        flash('Plan deleted successfully', 'success')
+    except Exception as e:
+        logger.error(f"Error deleting plan: {str(e)}")
+        flash('Failed to delete plan', 'danger')
+    
+    return redirect(url_for('main.list_plans'))
 
 @bp.after_request
 def add_header(response):
