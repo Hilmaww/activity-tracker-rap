@@ -19,12 +19,107 @@
             <div class="planned-site mb-3">
                 <div class="row">
                     <div class="col-md-4">
-                        <label for="site-select-${siteCount}">Site</label>
-                        <select class="site-select" id="site-select-${siteCount}" name="site_id[]" required>
+                        <label for="site-select-1">Site</label>
+                        <select class="site-select form-control" id="site-select-1" name="site_id[]" required>
                             <option value="">Select Site</option>
-                            {% for site in sites %}
-                            <option value="{{ site.id }}">{{ site.site_id }} - {{ site.name }}</option>
-                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Planned Actions</label>
+                        <textarea class="form-control" name="planned_actions[]" rows="2" required placeholder="Enter planned actions..."></textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="duration_1">Duration (minutes)</label>
+                        <input type="number" name="duration[]" class="form-control" id="duration_1" min="15" max="480" value="15">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-danger remove-site" aria-label="Remove site">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-secondary mb-3" id="add-site">Add Another Site</button>
+        
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary" name="action" value="draft">Save as Draft</button>
+            <button type="submit" class="btn btn-success" name="action" value="submit">Submit for Review</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2 for all site selects
+    initializeSelect2();
+
+    function initializeSelect2(element = '.site-select') {
+        $(element).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for a site...',
+            allowClear: true,
+            ajax: {
+                url: '/api/sites/search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        term: params.term || '',
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results,
+                        pagination: data.pagination
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            templateResult: formatSiteResult,
+            templateSelection: formatSiteSelection
+        });
+    }
+
+    function formatSiteResult(site) {
+        if (!site.id) return site.text;
+        return $(`
+            <div class="site-result">
+                <div class="site-name">${site.site_id} - ${site.name}</div>
+                <small class="text-muted">
+                    <i class="fas fa-map-marker-alt"></i> ${site.kabupaten}
+                </small>
+            </div>
+        `);
+    }
+
+    function formatSiteSelection(site) {
+        return site.id ? `${site.site_id} - ${site.name}` : site.text;
+    }
+
+    // Format date input to dd-mm-yyyy
+    $('#plan_date').on('change', function() {
+        const date = new Date(this.value);
+        const formatted = date.toLocaleDateString('en-GB'); // dd/mm/yyyy format
+        $(this).attr('data-date', formatted);
+    });
+
+    // Add site button handler
+    $('#add-site').on('click', function() {
+        const siteCount = $('.planned-site').length + 1;
+        const newSite = `
+            <div class="planned-site mb-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="site-select-${siteCount}">Site</label>
+                        <select class="site-select form-control" id="site-select-${siteCount}" name="site_id[]" required>
+                            <option value="">Select Site</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -37,56 +132,40 @@
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">&nbsp;</label>
-                        <button type="button" class="btn btn-danger remove-site" aria-label="Remove site">Remove Site</button>
+                        <button type="button" class="btn btn-danger remove-site" aria-label="Remove site">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <button type="button" class="btn btn-secondary mb-3" id="add-site">Add Another Site</button>
+        `;
         
-        <div class="mt-4">
-            <button type="submit" class="btn btn-primary">Save as Draft</button>
-            <button type="submit" class="btn btn-success" name="submit" value="true">Submit for Review</button>
-        </div>
-    </form>
-</div>
-
-{% endblock %}
-
-{% block extra_js %}
-<script>
-$(document).ready(function() {
-    if ($('#plan-form').length) {
-        window.planManager = new PlanManager();
-    }
-
-    // Initialize Select2 for site selection
-    $('.site-select').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for a site...'
+        $('#planned-sites').append(newSite);
+        initializeSelect2(`#site-select-${siteCount}`);
     });
 
-    // Ensure the click event is bound only once
-    $('#add-site').off('click').on('click', function() {
-        // Clone the first planned site
-        const newSite = $('.planned-site:first').clone(); // Clone the first planned site
-        newSite.find('input, textarea').val(''); // Clear input values
-        newSite.find('.select2').remove(); // Remove previous Select2 instance
-        newSite.find('select').val(''); // Reset select value
-        
-        // Remove the mb-3 class from the cloned element
-        newSite.removeClass('mb-3'); // Remove the mb-3 class
-
-        // Append the new site
-        $('#planned-sites').append(newSite); // Append the new site to the planned sites container
-    });
-
+    // Remove site button handler
     $(document).on('click', '.remove-site', function() {
         if ($('.planned-site').length > 1) {
             $(this).closest('.planned-site').remove();
+        } else {
+            toastr.warning('At least one site is required');
         }
     });
 });
 </script>
+
+<style>
+.site-result {
+    padding: 8px;
+}
+
+.site-name {
+    font-weight: 500;
+}
+
+.select2-container {
+    width: 100% !important;
+}
+</style>
 {% endblock %} 

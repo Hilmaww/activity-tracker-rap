@@ -1,101 +1,258 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Plan - {{ plan.plan_date.strftime('%Y-%m-%d') }}{% endblock %}
+{% block title %}Edit Plan - {{ plan.plan_date.strftime('%d-%m-%Y') }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Edit Plan</h2>
-    <form method="POST" id="edit-plan-form">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Edit Plan</h2>
+        <div class="btn-group">
+            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Plan
+            </a>
+        </div>
+    </div>
+
+    {% if plan.status.name != 'DRAFT' %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            This plan can't be edited because it's already {{ plan.status.name.lower() }}.
+        </div>
+    {% else %}
+    <form method="POST" id="plan-form" class="needs-validation" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <div class="mb-3">
-        <div class="mb-3">
-            <label for="plan_date" class="form-label">Plan Date</label>
-            <input type="date" class="form-control" id="plan_date" name="plan_date" value="{{ plan.plan_date.strftime('%Y-%m-%d') }}" required>
-        </div>
-        <div class="mb-3">
-            <label for="status" class="form-label">Status</label>
-            <select class="form-select" id="status" name="status" required>
-                <option value="DRAFT" {% if plan.status.name == 'DRAFT' %}selected{% endif %}>Draft</option>
-                <option value="SUBMITTED" {% if plan.status.name == 'SUBMITTED' %}selected{% endif %}>Submitted</option>
-                <option value="APPROVED" {% if plan.status.name == 'APPROVED' %}selected{% endif %}>Approved</option>
-                <option value="REJECTED" {% if plan.status.name == 'REJECTED' %}selected{% endif %}>Rejected</option>
-            </select>
-        </div>
-
-        <h4>Planned Sites</h4>
-        <div id="planned-sites">
-            {% for site in plan.planned_sites %}
-            <div class="planned-site">
-                <div class="form-group">
-                    <label for="site-select-{{ loop.index }}">Site</label>
-                    <select class="site-select" id="site-select-{{ loop.index }}" name="site_id[]"></select>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="plan_date" class="form-label">Plan Date</label>
+                            <input type="date" class="form-control" id="plan_date" name="plan_date" 
+                                   value="{{ plan.plan_date.strftime('%Y-%m-%d') }}" required>
+                            <div class="invalid-feedback">Please select a valid date.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status" required>
+                                {% if current_user.role == 'enom' %}
+                                    <option value="DRAFT" {% if plan.status.name == 'DRAFT' %}selected{% endif %}>Draft</option>
+                                    <option value="SUBMITTED" {% if plan.status.name == 'SUBMITTED' %}selected{% endif %}>Submit for Review</option>
+                                {% elif current_user.role == 'tsel_admin' %}
+                                    <option value="APPROVED" {% if plan.status.name == 'APPROVED' %}selected{% endif %}>Approve</option>
+                                    <option value="REJECTED" {% if plan.status.name == 'REJECTED' %}selected{% endif %}>Reject</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="planned_actions_{{ loop.index }}">Planned Actions</label>
-                    <textarea name="planned_actions[]" class="form-control" id="planned_actions_{{ loop.index }}">{{ site.planned_actions }}</textarea>
-                </div>
-                <div class="form-group">
-                    <label for="duration_{{ loop.index }}">Duration (minutes)</label>
-                    <input type="number" name="duration[]" class="form-control" id="duration_{{ loop.index }}" min="15" max="480" value="{{ site.estimated_duration }}">
-                </div>
-                <button type="button" class="remove-site btn btn-danger">Remove</button>
             </div>
-            {% endfor %}
         </div>
-        <button type="button" id="add-site" class="btn btn-primary mt-3" onclick="addSite()">Add Site</button>
-        <script>
-            let siteCounter = {{ plan.planned_sites|length }}; // Start counter based on existing sites
 
-            function addSite() {
-                var plannedSites = document.getElementById('planned-sites');
-                var newSite = document.createElement('div');
-                newSite.className = 'planned-site';
-                newSite.innerHTML = `
-                    <div class="form-group">
-                        <label for="site-select-${siteCounter}">Site</label>
-                        <select class="site-select" id="site-select-${siteCounter}" name="site_id[]"></select>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Planned Sites</h4>
+            </div>
+            <div class="card-body">
+                <div id="planned-sites">
+                    {% for site in plan.planned_sites %}
+                    <div class="planned-site mb-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="site-select-{{ loop.index }}">Site</label>
+                                <select class="site-select form-control" 
+                                        id="site-select-{{ loop.index }}" 
+                                        name="site_id[]" 
+                                        required
+                                        data-selected-id="{{ site.site.id }}"
+                                        data-selected-text="{{ site.site.site_id }} - {{ site.site.name }}">
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Planned Actions</label>
+                                <textarea class="form-control" 
+                                          name="planned_actions[]" 
+                                          rows="2" 
+                                          required>{{ site.planned_actions }}</textarea>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="duration_{{ loop.index }}">Duration (minutes)</label>
+                                <input type="number" 
+                                       name="duration[]" 
+                                       class="form-control" 
+                                       id="duration_{{ loop.index }}" 
+                                       min="15" 
+                                       max="480" 
+                                       value="{{ site.estimated_duration }}">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-danger remove-site">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="planned_actions_${siteCounter}">Planned Actions</label>
-                        <textarea name="planned_actions[]" class="form-control" id="planned_actions_${siteCounter}"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="duration_${siteCounter}">Duration (minutes)</label>
-                        <input type="number" name="duration[]" class="form-control" id="duration_${siteCounter}" min="15" max="480">
-                    </div>
-                    <button type="button" class="remove-site btn btn-danger" onclick="removeSite(this)">Remove</button>
-                `;
-                plannedSites.appendChild(newSite);
-                siteCounter++; // Increment the counter for the next site
-            }
-            function removeSite(button) {
-                button.parentNode.remove();
-            }
+                    {% endfor %}
+                </div>
+                
+                <button type="button" class="btn btn-secondary" id="add-site">
+                    <i class="fas fa-plus"></i> Add Site
+                </button>
+            </div>
+        </div>
 
-            // Initialize select2 for site selection
-            $(document).ready(function() {
-                $('.site-select').select2({
-                    placeholder: "Select a site",
-                    ajax: {
-                        url: "/api/sites/search",
-                        dataType: 'json',
-                        delay: 250,
-                        data: function (params) {
-                            return {
-                                term: params.term
-                            };
-                        },
-                        processResults: function (data) {
-                            return {
-                                results: data.results
-                            };
-                        },
-                        cache: true
-                    }
-                });
-            });
-        </script>
-        <button type="submit" class="btn btn-success mt-3">Update Plan</button>
+        <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-primary" name="action" value="save">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+            {% if current_user.role == 'enom' %}
+            <button type="submit" class="btn btn-success" name="action" value="submit">
+                <i class="fas fa-paper-plane"></i> Submit for Review
+            </button>
+            {% endif %}
+        </div>
     </form>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2 for all site selects
+    initializeSelect2();
+
+    function initializeSelect2(element = '.site-select') {
+        $(element).each(function() {
+            const $select = $(this);
+            const selectedId = $select.data('selected-id');
+            const selectedText = $select.data('selected-text');
+
+            $select.select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search for a site...',
+                allowClear: true,
+                ajax: {
+                    url: '/api/sites/search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            term: params.term || '',
+                            page: params.page || 1
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data.results,
+                            pagination: data.pagination
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 2,
+                templateResult: formatSiteResult,
+                templateSelection: formatSiteSelection
+            });
+
+            // Set initial value if exists
+            if (selectedId) {
+                const option = new Option(selectedText, selectedId, true, true);
+                $select.append(option).trigger('change');
+            }
+        });
+    }
+
+    function formatSiteResult(site) {
+        if (!site.id) return site.text;
+        return $(`
+            <div class="site-result">
+                <div class="site-name">${site.site_id} - ${site.name}</div>
+                <small class="text-muted">
+                    <i class="fas fa-map-marker-alt"></i> ${site.kabupaten}
+                </small>
+            </div>
+        `);
+    }
+
+    function formatSiteSelection(site) {
+        return site.id ? `${site.site_id} - ${site.name}` : site.text;
+    }
+
+    // Add site button handler
+    $('#add-site').on('click', function() {
+        const siteCount = $('.planned-site').length + 1;
+        const newSite = `
+            <div class="planned-site mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="site-select-${siteCount}">Site</label>
+                        <select class="site-select form-control" id="site-select-${siteCount}" name="site_id[]" required>
+                            <option value="">Select Site</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Planned Actions</label>
+                        <textarea class="form-control" name="planned_actions[]" rows="2" required placeholder="Enter planned actions..."></textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="duration_${siteCount}">Duration (minutes)</label>
+                        <input type="number" name="duration[]" class="form-control" id="duration_${siteCount}" min="15" max="480" value="15">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-danger remove-site">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('#planned-sites').append(newSite);
+        initializeSelect2(`#site-select-${siteCount}`);
+    });
+
+    // Remove site button handler
+    $(document).on('click', '.remove-site', function() {
+        if ($('.planned-site').length > 1) {
+            $(this).closest('.planned-site').remove();
+        } else {
+            toastr.warning('At least one site is required');
+        }
+    });
+
+    // Form validation
+    $('#plan-form').on('submit', function(e) {
+        if (!this.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        $(this).addClass('was-validated');
+    });
+});
+</script>
+
+<style>
+.site-result {
+    padding: 8px;
+}
+
+.site-name {
+    font-weight: 500;
+}
+
+.select2-container {
+    width: 100% !important;
+}
+
+.planned-site {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+</style>
 {% endblock %} 
