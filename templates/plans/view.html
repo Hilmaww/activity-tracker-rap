@@ -29,7 +29,7 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <p><strong>Date:</strong> {{ plan.plan_date.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Date:</strong> {{ plan.plan_date.strftime('%d-%m-%Y') }}</p>
                     <p><strong>Status:</strong> 
                         <span class="badge bg-{{ plan.status.name|lower }}">
                             {{ plan.status.name }}
@@ -38,7 +38,7 @@
                 </div>
                 <div class="col-md-6">
                     <p><strong>Created by:</strong> {{ plan.enom_user.username }}</p>
-                    <p><strong>Created at:</strong> {{ plan.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Created at:</strong> {{ plan.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}</p>
                 </div>
             </div>
         </div>
@@ -79,7 +79,7 @@
                     <div class="d-flex justify-content-between">
                         <strong>{{ comment.user.username }}</strong>
                         <small class="text-muted">
-                            {{ comment.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
+                            {{ comment.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}
                         </small>
                     </div>
                     <p class="mb-0">{{ comment.comment }}</p>

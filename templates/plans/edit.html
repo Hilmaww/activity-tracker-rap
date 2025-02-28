@@ -29,7 +29,7 @@
                         <div class="mb-3">
                             <label for="plan_date" class="form-label">Plan Date</label>
                             <input type="date" class="form-control" id="plan_date" name="plan_date" 
-                                   value="{{ plan.plan_date.strftime('%Y-%m-%d') }}" required>
+                                   value="{{ plan.plan_date.strftime('%d-%m-%Y') }}" required>
                             <div class="invalid-feedback">Please select a valid date.</div>
                             <small class="form-text text-muted formatted-date">
                                 {{ plan.plan_date.strftime('%d-%m-%Y') }}

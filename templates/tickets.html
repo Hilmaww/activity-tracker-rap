@@ -101,8 +101,8 @@
                         </span>
                     </td>
                     <td>{{ ticket.assigned_to_enom.name if ticket.assigned_to_enom else '-' }}</td>
-                    <td>{{ ticket.created_at_jakarta.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>{{ ticket.closed_at_jakarta.strftime('%Y-%m-%d %H:%M:%S') if ticket.closed_at else '-' }}</td>
+                    <td>{{ ticket.created_at_jakarta.strftime('%d-%m-%Y %H:%M:%S') }}</td>
+                    <td>{{ ticket.closed_at_jakarta.strftime('%d-%m-%Y %H:%M:%S') if ticket.closed_at else '-' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
