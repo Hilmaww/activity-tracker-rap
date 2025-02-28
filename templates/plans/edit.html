@@ -31,6 +31,9 @@
                             <input type="date" class="form-control" id="plan_date" name="plan_date" 
                                    value="{{ plan.plan_date.strftime('%Y-%m-%d') }}" required>
                             <div class="invalid-feedback">Please select a valid date.</div>
+                            <small class="form-text text-muted formatted-date">
+                                {{ plan.plan_date.strftime('%d-%m-%Y') }}
+                            </small>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -68,6 +71,9 @@
                                         required
                                         data-selected-id="{{ site.site.id }}"
                                         data-selected-text="{{ site.site.site_id }} - {{ site.site.name }}">
+                                    <option value="{{ site.site.id }}" selected>
+                                        {{ site.site.site_id }} - {{ site.site.name }}
+                                    </option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -128,9 +134,7 @@ $(document).ready(function() {
     function initializeSelect2(element = '.site-select') {
         $(element).each(function() {
             const $select = $(this);
-            const selectedId = $select.data('selected-id');
-            const selectedText = $select.data('selected-text');
-
+            
             $select.select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Search for a site...',
@@ -157,12 +161,6 @@ $(document).ready(function() {
                 templateResult: formatSiteResult,
                 templateSelection: formatSiteSelection
             });
-
-            // Set initial value if exists
-            if (selectedId) {
-                const option = new Option(selectedText, selectedId, true, true);
-                $select.append(option).trigger('change');
-            }
         });
     }
 
@@ -181,6 +179,16 @@ $(document).ready(function() {
     function formatSiteSelection(site) {
         return site.id ? `${site.site_id} - ${site.name}` : site.text;
     }
+
+    // Format date input to dd-mm-yyyy
+    function formatDate(date) {
+        return date.split('-').reverse().join('-');
+    }
+
+    $('#plan_date').on('change', function() {
+        const formattedDate = formatDate($(this).val());
+        $('.formatted-date').text(formattedDate);
+    });
 
     // Add site button handler
     $('#add-site').on('click', function() {
@@ -213,7 +221,10 @@ $(document).ready(function() {
         `;
         
         $('#planned-sites').append(newSite);
-        initializeSelect2(`#site-select-${siteCount}`);
+        
+        // Initialize Select2 for the new select
+        const $newSelect = $(`#site-select-${siteCount}`);
+        initializeSelect2($newSelect);
     });
 
     // Remove site button handler
@@ -253,6 +264,11 @@ $(document).ready(function() {
     background-color: #f8f9fa;
     padding: 15px;
     border-radius: 8px;
+}
+
+.formatted-date {
+    display: block;
+    margin-top: 5px;
 }
 </style>
 {% endblock %} 
