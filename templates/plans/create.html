@@ -55,9 +55,6 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Initialize Select2 for all site selects
-    initializeSelect2();
-
     function initializeSelect2(element = '.site-select') {
         $(element).select2({
             theme: 'bootstrap-5',
@@ -73,13 +70,25 @@ $(document).ready(function() {
                     };
                 },
                 processResults: function(data) {
-                    return data;
+                    console.log('Search results:', data); // Debug log
+                    return {
+                        results: data.results,
+                        pagination: data.pagination
+                    };
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Search error:', textStatus, errorThrown);
+                    toastr.error('Error searching sites');
                 },
                 cache: true
             },
+            minimumInputLength: 2,
             templateResult: formatSiteResult,
-            templateSelection: formatSiteSelection,
-            minimumInputLength: 2
+            templateSelection: formatSiteSelection
+        }).on('select2:open', function() {
+            console.log('Select2 opened'); // Debug log
+        }).on('select2:select', function(e) {
+            console.log('Selected:', e.params.data); // Debug log
         });
     }
 
@@ -96,8 +105,11 @@ $(document).ready(function() {
     }
 
     function formatSiteSelection(site) {
-        return site.id ? `${site.site_id} - ${site.name}` : site.text;
+        return site.text;
     }
+
+    // Initialize Select2 for initial site select
+    initializeSelect2();
 
     // Format date input to dd-mm-yyyy
     $('#plan_date').on('change', function() {

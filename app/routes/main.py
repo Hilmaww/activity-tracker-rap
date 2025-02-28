@@ -412,27 +412,39 @@ def test():
 @login_required
 def search_sites():
     term = request.args.get('term', '')
+    logger.debug(f"Searching sites with term: {term}")
     
-    # Search sites by ID or name
-    sites = Site.query.filter(
-        or_(
-            Site.site_id.ilike(f'%{term}%'),
-            Site.name.ilike(f'%{term}%'),
-            Site.kabupaten.ilike(f'%{term}%')
-        )
-    ).limit(10).all()
-    
-    results = [{
-        'id': site.id,
-        'site_id': site.site_id,
-        'name': site.name,
-        'kabupaten': site.kabupaten,
-        'text': f'{site.site_id} - {site.name}'  # This is what Select2 uses as display text
-    } for site in sites]
-    
-    return jsonify({
-        'results': results,
-    })
+    try:
+        # Search sites by ID or name
+        sites = Site.query.filter(
+            or_(
+                Site.site_id.ilike(f'%{term}%'),
+                Site.name.ilike(f'%{term}%'),
+                Site.kabupaten.ilike(f'%{term}%')
+            )
+        ).limit(10).all()
+        
+        results = [{
+            'id': site.id,
+            'text': f'{site.site_id} - {site.name}',  # Primary text for Select2
+            'site_id': site.site_id,
+            'name': site.name,
+            'kabupaten': site.kabupaten
+        } for site in sites]
+        
+        logger.debug(f"Found {len(results)} sites")
+        return jsonify({
+            'results': results,
+            'pagination': {'more': False}
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in site search: {str(e)}")
+        return jsonify({
+            'results': [],
+            'pagination': {'more': False},
+            'error': 'An error occurred while searching sites'
+        }), 500
 
 @bp.route('/ticket/<int:ticket_id>/resolve', methods=['POST'])
 @login_required
@@ -738,6 +750,12 @@ def delete_plan(plan_id):
         flash('Failed to delete plan', 'danger')
     
     return redirect(url_for('main.list_plans'))
+
+@bp.route('/api/sites/count')
+@login_required
+def get_sites_count():
+    count = Site.query.count()
+    return jsonify({'count': count})
 
 @bp.after_request
 def add_header(response):
