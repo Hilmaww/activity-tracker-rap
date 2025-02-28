@@ -486,7 +486,7 @@ def list_plans():
     # Rest of your code remains the same
     if current_user.role == 'enom':
         query = query.filter_by(enom_user_id=current_user.id)
-    elif current_user.role != 'tsel_admin':
+    elif current_user.role != 'tsel':
         flash('Unauthorized access', 'danger')
         return redirect(url_for('main.index'))
     
@@ -583,7 +583,7 @@ def submit_plan(plan_id):
 @bp.route('/plans/<int:plan_id>/approve', methods=['POST'])
 @login_required
 def approve_plan(plan_id):
-    if current_user.role != 'tsel_admin':
+    if current_user.role != 'tsel':
         flash('Only TSEL admin can approve plans', 'danger')
         return redirect(url_for('main.list_plans'))
         
@@ -618,7 +618,7 @@ def add_comment(plan_id):
 @bp.route('/plans/<int:plan_id>/reject', methods=['POST'])
 @login_required
 def reject_plan(plan_id):
-    if current_user.role != 'tsel_admin':
+    if current_user.role != 'tsel':
         flash('Only TSEL admin can reject plans', 'danger')
         return redirect(url_for('main.list_plans'))
         
@@ -651,7 +651,7 @@ def view_plan(plan_id):
     plan = DailyPlan.query.get_or_404(plan_id)
     
     # Check if the user has permission to view the plan
-    if current_user.role != 'tsel_admin' and plan.enom_user_id != current_user.id:
+    if current_user.role != 'tsel' and plan.enom_user_id != current_user.id:
         flash('Unauthorized access', 'danger')
         return redirect(url_for('main.list_plans'))
     
@@ -668,7 +668,7 @@ def edit_plan(plan_id):
     plan = DailyPlan.query.get_or_404(plan_id)
 
     # Check if the user has permission to edit the plan
-    if current_user.role != 'tsel_admin' and plan.enom_user_id != current_user.id:
+    if current_user.role != 'tsel' and plan.enom_user_id != current_user.id:
         flash('Unauthorized access', 'danger')
         return redirect(url_for('main.list_plans'))
 
@@ -724,7 +724,7 @@ def delete_plan(plan_id):
     plan = DailyPlan.query.get_or_404(plan_id)
     
     # Check permissions
-    if current_user.role != 'tsel_admin' and (
+    if current_user.role != 'tsel' and (
         current_user.role != 'enom' or 
         plan.enom_user_id != current_user.id or 
         plan.status.name != 'DRAFT'
