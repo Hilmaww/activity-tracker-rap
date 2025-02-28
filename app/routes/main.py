@@ -611,6 +611,23 @@ def reject_plan(plan_id):
     flash('Plan rejected', 'success')
     return redirect(url_for('main.view_plan', plan_id=plan_id))
 
+@bp.route('/plans/<int:plan_id>', methods=['GET'])
+@login_required
+def view_plan(plan_id):
+    # Retrieve the plan by ID
+    plan = DailyPlan.query.get_or_404(plan_id)
+    
+    # Check if the user has permission to view the plan
+    if current_user.role != 'tsel_admin' and plan.enom_user_id != current_user.id:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('main.list_plans'))
+    
+    # Retrieve planned sites and comments associated with the plan
+    planned_sites = plan.planned_sites
+    comments = plan.comments
+    
+    return render_template('plans/view.html', plan=plan, planned_sites=planned_sites, comments=comments)
+
 @bp.after_request
 def add_header(response):
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
