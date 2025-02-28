@@ -55,68 +55,47 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    function initializeSelect2(element = '.site-select') {
-        $(element).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for a site...',
-            allowClear: true,
-            ajax: {
-                url: '/api/sites/search',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return {
-                        term: params.term || ''
-                    };
-                },
-                processResults: function(data) {
-                    console.log('Search results:', data); // Debug log
-                    return {
-                        results: data.results,
-                        pagination: data.pagination
-                    };
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error('Search error:', textStatus, errorThrown);
-                    toastr.error('Error searching sites');
-                },
-                cache: true
+    // Initialize Select2 for site selection
+    $('.site-select').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Search for a site...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '/api/sites/search',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    term: params.term || '',
+                    page: params.page || 1
+                };
             },
-            minimumInputLength: 2,
-            templateResult: formatSiteResult,
-            templateSelection: formatSiteSelection
-        }).on('select2:open', function() {
-            console.log('Select2 opened'); // Debug log
-        }).on('select2:select', function(e) {
-            console.log('Selected:', e.params.data); // Debug log
-        });
-    }
-
-    function formatSiteResult(site) {
-        if (!site.id) return site.text;
-        return $(`
-            <div class="site-result">
-                <div class="site-name">${site.site_id} - ${site.name}</div>
-                <small class="text-muted">
-                    <i class="fas fa-map-marker-alt"></i> ${site.kabupaten}
-                </small>
-            </div>
-        `);
-    }
-
-    function formatSiteSelection(site) {
-        return site.text;
-    }
-
-    // Initialize Select2 for initial site select
-    initializeSelect2();
-
-    // Format date input to dd-mm-yyyy
-    $('#plan_date').on('change', function() {
-        const date = new Date(this.value);
-        const formatted = date.toLocaleDateString('en-GB'); // dd/mm/yyyy format
-        $(this).attr('data-date', formatted);
+            processResults: function(data) {
+                return {
+                    results: data.results,
+                    pagination: data.pagination
+                };
+            },
+            cache: true
+        },
+        minimumInputLength: 2,
+        templateResult: formatSite,
+        templateSelection: formatSite
     });
+    
+    // Custom formatting for site options
+    function formatSite(site) {
+        if (!site.id) {
+            return site.text;
+        }
+        
+        // For search results
+        return $('<div class="site-option">' +
+            '<div class="site-name">' + site.text + '</div>' +
+            (site.kabupaten ? '<small class="text-muted">Kabupaten: ' + site.kabupaten + '</small>' : '') +
+            '</div>');
+    }
 
     // Add site button handler
     $('#add-site').on('click', function() {
@@ -149,7 +128,34 @@ $(document).ready(function() {
         `;
         
         $('#planned-sites').append(newSite);
-        initializeSelect2(`#site-select-${siteCount}`);
+        // Initialize Select2 for the new select
+        $(`#site-select-${siteCount}`).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Search for a site...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '/api/sites/search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        term: params.term || '',
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results,
+                        pagination: data.pagination
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            templateResult: formatSite,
+            templateSelection: formatSite
+        });
     });
 
     // Remove site button handler
@@ -164,8 +170,8 @@ $(document).ready(function() {
 </script>
 
 <style>
-.site-result {
-    padding: 8px;
+.site-option {
+    padding: 4px;
 }
 
 .site-name {
@@ -174,6 +180,10 @@ $(document).ready(function() {
 
 .select2-container {
     width: 100% !important;
+}
+
+.select2-dropdown {
+    z-index: 9999;
 }
 </style>
 {% endblock %} 

@@ -412,7 +412,7 @@ def test():
 @login_required
 def search_sites():
     term = request.args.get('term', '')
-    logger.debug(f"Searching sites with term: {term}")
+    page = request.args.get('page', 1, type=int)
     
     try:
         # Search sites by ID or name
@@ -426,16 +426,17 @@ def search_sites():
         
         results = [{
             'id': site.id,
-            'text': f'{site.site_id} - {site.name}',  # Primary text for Select2
+            'text': f'{site.site_id} - {site.name}',
             'site_id': site.site_id,
             'name': site.name,
             'kabupaten': site.kabupaten
         } for site in sites]
         
-        logger.debug(f"Found {len(results)} sites")
         return jsonify({
             'results': results,
-            'pagination': {'more': False}
+            'pagination': {
+                'more': False
+            }
         })
         
     except Exception as e:
