@@ -161,7 +161,8 @@ class DailyPlan(db.Model):
     # Relationships
     planned_sites = db.relationship('PlannedSite', backref='daily_plan', lazy=True)
     comments = db.relationship('PlanComment', backref='daily_plan', lazy=True)
-    
+    enom_user = db.relationship('User', backref='daily_plans', lazy=True)
+
     @property
     def created_at_jakarta(self):
         jakarta_tz = pytz.timezone('Asia/Jakarta')
