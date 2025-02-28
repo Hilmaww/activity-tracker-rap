@@ -44,26 +44,29 @@
         </div>
         <button type="button" id="add-site" class="btn btn-primary mt-3" onclick="addSite()">Add Site</button>
         <script>
+            let siteCounter = {{ plan.planned_sites|length }}; // Start counter based on existing sites
+
             function addSite() {
                 var plannedSites = document.getElementById('planned-sites');
                 var newSite = document.createElement('div');
                 newSite.className = 'planned-site';
                 newSite.innerHTML = `
                     <div class="form-group">
-                        <label for="site-select-{{ loop.index }}">Site</label>
-                        <select class="site-select" id="site-select-{{ loop.index }}" name="site_id[]"></select>
+                        <label for="site-select-${siteCounter}">Site</label>
+                        <select class="site-select" id="site-select-${siteCounter}" name="site_id[]"></select>
                     </div>
                     <div class="form-group">
-                        <label for="planned_actions_{{ loop.index }}">Planned Actions</label>
-                        <textarea name="planned_actions[]" class="form-control" id="planned_actions_{{ loop.index }}"></textarea>
+                        <label for="planned_actions_${siteCounter}">Planned Actions</label>
+                        <textarea name="planned_actions[]" class="form-control" id="planned_actions_${siteCounter}"></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="duration_{{ loop.index }}">Duration (minutes)</label>
-                        <input type="number" name="duration[]" class="form-control" id="duration_{{ loop.index }}" min="15" max="480">
+                        <label for="duration_${siteCounter}">Duration (minutes)</label>
+                        <input type="number" name="duration[]" class="form-control" id="duration_${siteCounter}" min="15" max="480">
                     </div>
                     <button type="button" class="remove-site btn btn-danger" onclick="removeSite(this)">Remove</button>
                 `;
                 plannedSites.appendChild(newSite);
+                siteCounter++; // Increment the counter for the next site
             }
             function removeSite(button) {
                 button.parentNode.remove();
