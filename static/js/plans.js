@@ -276,8 +276,6 @@ class PlanManager {
         // Validate form on submit
         $('#plan-form').on('submit', (e) => this.validateForm(e));
 
-        // Add date change validation
-        $('#plan_date').on('change', (e) => this.validatePlanDate(e));
     }
 
 }

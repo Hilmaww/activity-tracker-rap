@@ -687,7 +687,7 @@ def edit_plan(plan_id):
 
         # Clear existing planned sites and comments if necessary
         # (Optional: You can choose to keep them or update them)
-        plan.planned_sites.clear()  # Uncomment if you want to clear existing sites
+        # plan.planned_sites.clear()  # Uncomment if you want to clear existing sites
 
         # Add new planned sites
         site_ids = request.form.getlist('site_id[]')
@@ -696,7 +696,7 @@ def edit_plan(plan_id):
 
         for i, site_id in enumerate(site_ids):
             planned_site = PlannedSite(
-                daily_plan_id=plan.id,
+                daily_plan_id=plan_id,
                 site_id=site_id,
                 planned_actions=actions[i],
                 visit_order=i + 1,
@@ -731,7 +731,7 @@ def delete_plan(plan_id):
         flash('Plan deleted successfully', 'success')
     except Exception as e:
         logger.error(f"Error deleting plan: {str(e)}")
-        flash(f'Failed to delete plan: {str(e)}', 'danger')
+        flash(f'Failed to delete plan', 'danger')
     
     return redirect(url_for('main.list_plans'))
 
