@@ -412,17 +412,23 @@ def test():
 @login_required
 def search_sites():
     term = request.args.get('term', '')
-    page = request.args.get('page', 1, type=int)
+    logger.debug(f"Search term received: {term}")
     
     try:
         # Search sites by ID or name
-        sites = Site.query.filter(
+        query = Site.query.filter(
             or_(
                 Site.site_id.ilike(f'%{term}%'),
                 Site.name.ilike(f'%{term}%'),
                 Site.kabupaten.ilike(f'%{term}%')
             )
-        ).limit(10).all()
+        )
+        
+        # Debug: Print the SQL query
+        logger.debug(f"SQL Query: {query}")
+        
+        sites = query.limit(10).all()
+        logger.debug(f"Found {len(sites)} sites")
         
         results = [{
             'id': site.id,
@@ -432,19 +438,21 @@ def search_sites():
             'kabupaten': site.kabupaten
         } for site in sites]
         
-        return jsonify({
+        response = {
             'results': results,
             'pagination': {
                 'more': False
             }
-        })
+        }
+        logger.debug(f"Returning response: {response}")
+        return jsonify(response)
         
     except Exception as e:
         logger.error(f"Error in site search: {str(e)}")
         return jsonify({
             'results': [],
             'pagination': {'more': False},
-            'error': 'An error occurred while searching sites'
+            'error': str(e)
         }), 500
 
 @bp.route('/ticket/<int:ticket_id>/resolve', methods=['POST'])

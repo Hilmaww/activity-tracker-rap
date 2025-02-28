@@ -66,18 +66,22 @@ $(document).ready(function() {
             dataType: 'json',
             delay: 250,
             data: function(params) {
+                console.log('Search params:', params); // Debug log
                 return {
-                    term: params.term || '',
-                    page: params.page || 1
+                    term: params.term || ''
                 };
             },
             processResults: function(data) {
+                console.log('Received data:', data); // Debug log
                 return {
                     results: data.results,
                     pagination: data.pagination
                 };
             },
-            cache: true
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('Select2 AJAX error:', textStatus, errorThrown);
+                toastr.error('Error searching sites');
+            }
         },
         minimumInputLength: 2,
         templateResult: formatSite,
@@ -89,8 +93,7 @@ $(document).ready(function() {
         if (!site.id) {
             return site.text;
         }
-        
-        // For search results
+        console.log('Formatting site:', site); // Debug log
         return $('<div class="site-option">' +
             '<div class="site-name">' + site.text + '</div>' +
             (site.kabupaten ? '<small class="text-muted">Kabupaten: ' + site.kabupaten + '</small>' : '') +
