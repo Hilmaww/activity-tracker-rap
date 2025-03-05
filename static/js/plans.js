@@ -100,10 +100,6 @@ class PlanManager {
             toastr.warning('Minimum duration is 15 minutes');
         }
         
-        if (value > 1440) {
-            input.val(1440);
-            toastr.warning('Maximum duration is 24 hours');
-        }
     }
 
     handleAjaxError(xhr) {
@@ -119,13 +115,7 @@ class PlanManager {
             toastr.error('Please fill in all required fields');
             return false;
         }
-        
-        if (totalDuration > 1440) {
-            event.preventDefault();
-            toastr.error('Total duration cannot exceed 24 hours');
-            return false;
-        }
-        
+
         return true;
     }
 

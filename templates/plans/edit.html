@@ -77,6 +77,14 @@
                                               rows="2" 
                                               required>{{ site.planned_actions }}</textarea>
                                 </div>
+                                <div class="col-md-3"></div>
+                                    <label for="updated_actions_{{ loop.index }}">Updated Actions</label>
+                                    <textarea class="form-control" 
+                                              name="updated_actions[]" 
+                                              rows="2"
+                                              {% if plan.status.name == 'DRAFT' %}disabled{% endif %}
+                                              >{{ site.updated_actions }}</textarea>
+                                </div>
                                 <div class="col-md-3">
                                     <label for="duration_{{ loop.index }}">Duration (minutes)</label>
                                     <input type="number" 
@@ -86,14 +94,6 @@
                                            min="15" 
                                            max="480" 
                                            value="{{ site.estimated_duration }}">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="updated_actions_{{ loop.index }}">Updated Actions</label>
-                                    <textarea class="form-control" 
-                                              name="updated_actions[]" 
-                                              rows="2"
-                                              {% if plan.status.name == 'DRAFT' %}disabled{% endif %}
-                                              >{{ site.updated_actions }}</textarea>
                                 </div>
                                 <div class="col-md-1">
                                     <label class="form-label">&nbsp;</label>
@@ -163,7 +163,7 @@
             <button type="submit" class="btn btn-primary" name="action" value="save">
                 <i class="fas fa-save"></i> Save Changes
             </button>
-            {% if current_user.role == 'enom' %}
+            {% if current_user.role == 'enom' and plan.status.name == 'DRAFT' %}
             <button type="submit" class="btn btn-success" name="action" value="submit">
                 <i class="fas fa-paper-plane"></i> Submit for Review
             </button>

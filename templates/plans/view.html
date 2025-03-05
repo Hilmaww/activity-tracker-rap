@@ -53,8 +53,8 @@
                     <th>Order</th>
                     <th>Site</th>
                     <th>Planned Actions</th>
-                    <th>Duration</th>
                     <th>Updated Actions</th>
+                    <th>Duration</th>
                 </tr>
             </thead>
             <tbody>
@@ -63,7 +63,6 @@
                     <td>{{ site.visit_order }}</td>
                     <td>{{ site.site.site_id }} - {{ site.site.name }}</td>
                     <td>{{ site.planned_actions }}</td>
-                    <td>{{ site.estimated_duration }} minutes</td>
                     <td>
                         {% if plan.status.name in ['SUBMITTED', 'APPROVED', 'REJECTED'] %}
                             {{ site.updated_actions }}
@@ -71,6 +70,7 @@
                             <span class="text-muted">Not available in draft</span>
                         {% endif %}
                     </td>
+                    <td>{{ site.estimated_duration }} minutes</td>
                 </tr>
                 {% endfor %}
             </tbody>

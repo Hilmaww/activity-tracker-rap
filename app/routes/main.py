@@ -537,17 +537,27 @@ def create_plan():
         return redirect(url_for('main.list_plans'))
         
     if request.method == 'POST':
+        action = request.form.get('action')
         try:
             plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
-            
-            new_plan = DailyPlan(
-                enom_user_id=current_user.id,
-                plan_date=plan_date,
-                status=PlanStatus.DRAFT
-            )
-            db.session.add(new_plan)
-            db.session.commit()
-            
+            if action == 'draft':
+
+                new_plan = DailyPlan(
+                    enom_user_id=current_user.id,
+                    plan_date=plan_date,
+                    status=PlanStatus.DRAFT
+                )
+                db.session.add(new_plan)
+                db.session.commit()
+            elif action == 'submit':
+                new_plan = DailyPlan(
+                    enom_user_id=current_user.id,
+                    plan_date=plan_date,
+                    status=PlanStatus.SUBMITTED
+                )
+                db.session.add(new_plan)
+                db.session.commit()
+
             # Add planned sites
             site_ids = request.form.getlist('site_id[]')
             actions = request.form.getlist('planned_actions[]')
@@ -725,11 +735,6 @@ def edit_plan(plan_id):
             except Exception as e:
                 db.session.rollback()
                 flash(f'Error updating plan: {str(e)}', 'danger')
-                flash(site_ids)
-                flash(actions)
-                flash(durations)
-                flash(updated_actions)
-                flash(new_status)
                 return redirect(url_for('main.edit_plan', plan_id=plan.id))
         elif action == 'submit':
             try:

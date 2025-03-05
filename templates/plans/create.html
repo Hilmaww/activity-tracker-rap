@@ -48,9 +48,9 @@
 {% block extra_js %}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-            let today = new Date().toISOString().split('T')[0];  // Get today's date in YYYY-MM-DD format
-            document.getElementById('plan_date').value = today;
-        });
+        let today = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }).split(',')[0];  // Get today's date in YYYY-MM-DD format
+        document.getElementById('plan_date').value = today;
+    });
         
 $(document).ready(function() {
     // Initialize Select2 for site selection
