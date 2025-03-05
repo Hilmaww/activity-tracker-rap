@@ -761,7 +761,7 @@ def delete_plan(plan_id):
         plan.enom_user_id != current_user.id or 
         plan.status.name != 'DRAFT'
     ):
-        flash('You do not have permission to delete this plan', 'danger')
+        flash('You do not have permission to delete this plan. Request to delete plan from TSEL admin', 'danger')
         return redirect(url_for('main.list_plans'))
     
     try:
