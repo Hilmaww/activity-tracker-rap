@@ -678,7 +678,6 @@ def view_plan(plan_id):
 @bp.route('/plans/<int:plan_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_plan(plan_id):
-    # Retrieve the plan by ID
     plan = DailyPlan.query.get_or_404(plan_id)
 
     # Check if the user has permission to edit the plan
@@ -687,34 +686,42 @@ def edit_plan(plan_id):
         return redirect(url_for('main.list_plans'))
 
     if request.method == 'POST':
-        # Update plan details
-        plan.plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
-        plan.status = PlanStatus[request.form['status']]
+        try:
+            plan.plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
+            new_status = PlanStatus[request.form['status']]
+            
+            # Clear existing planned sites
+            db.session.query(PlannedSite).filter_by(daily_plan_id=plan.id).delete()
 
-        # Clear existing planned sites and comments if necessary
-        # (Optional: You can choose to keep them or update them)
-        plan.planned_sites.clear()  # Uncomment if you want to clear existing sites
+            # Add new planned sites
+            site_ids = request.form.getlist('site_id[]')
+            actions = request.form.getlist('planned_actions[]')
+            durations = request.form.getlist('duration[]')
+            updated_actions = request.form.getlist('updated_actions[]')
 
-        # Add new planned sites
-        site_ids = request.form.getlist('site_id[]')
-        actions = request.form.getlist('planned_actions[]')
-        durations = request.form.getlist('duration[]')
+            for i, site_id in enumerate(site_ids):
+                planned_site = PlannedSite(
+                    daily_plan_id=plan.id,
+                    site_id=site_id,
+                    planned_actions=actions[i],
+                    visit_order=i + 1,
+                    estimated_duration=durations[i],
+                    updated_actions=updated_actions[i] if new_status != PlanStatus.DRAFT else 'Not Done Yet'
+                )
+                db.session.add(planned_site)
 
-        for i, site_id in enumerate(site_ids):
-            planned_site = PlannedSite(
-                daily_plan_id=plan_id,
-                site_id=site_id,
-                planned_actions=actions[i],
-                visit_order=i + 1,
-                estimated_duration=durations[i]
-            )
-            db.session.add(planned_site)
+            # Update status after all sites are added
+            plan.status = new_status
+            
+            db.session.commit()
+            flash('Plan updated successfully', 'success')
+            return redirect(url_for('main.view_plan', plan_id=plan.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating plan: {str(e)}', 'danger')
+            return redirect(url_for('main.edit_plan', plan_id=plan.id))
 
-        db.session.commit()
-        flash('Plan updated successfully', 'success')
-        return redirect(url_for('main.view_plan', plan_id=plan.id))
-
-    # Render the edit plan form
     return render_template('plans/edit.html', plan=plan)
 
 @bp.route('/plans/<int:plan_id>/delete', methods=['POST'])

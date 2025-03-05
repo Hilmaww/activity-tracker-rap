@@ -178,7 +178,7 @@ class PlannedSite(db.Model):
     visit_order = db.Column(db.Integer, nullable=False)
     estimated_duration = db.Column(db.Integer, default=60)  # in minutes
     assignee = db.Column(db.String(100))  # New field for assignee
-    # updated_actions = db.Column(db.Text)  # New field for updated actions
+    updated_actions = db.Column(db.Text, default='Not Done Yet')  # New field for updated actions
 
     site = db.relationship('Site', backref='planned_sites', lazy=True)
     

@@ -136,7 +136,7 @@
                         <img src="/{{ action.photo_path }}" class="img-fluid mt-2" style="max-width: 300px;">
                         {% endif %}
                         <small class="text-muted">
-                            Added by {{ action.created_by.username }} on {{ action.created_at.strftime('%d-%m-%Y %H:%M:%S') }}
+                            Added by {{ action.user.username }} on {{ action.created_at.strftime('%d-%m-%Y %H:%M:%S') }}
                         </small>
                     </div>
                 </div>

@@ -79,4 +79,12 @@
 .text-align {
     text-align: match-parent; /* Non-prefixed version */
     -webkit-text-align: match-parent; /* Safari */
+}
+
+/* Toastr message styles */
+#toast-container.toast-top-right {
+    background-color: #333; /* Dark background color */
+    color: #fff; /* White text color */
+    border-radius: 4px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Shadow effect */
 } 

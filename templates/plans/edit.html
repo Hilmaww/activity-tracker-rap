@@ -64,7 +64,7 @@
                         {% for site in plan.planned_sites %}
                         <div class="planned-site mb-4">
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="site-select-{{ loop.index }}">Site</label>
                                     <select class="site-select form-select" 
                                             id="site-select-{{ loop.index }}" 
@@ -77,7 +77,7 @@
                                         {% endif %}
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label">Planned Actions</label>
                                     <textarea class="form-control" 
                                               name="planned_actions[]" 
@@ -93,6 +93,14 @@
                                            min="15" 
                                            max="480" 
                                            value="{{ site.estimated_duration }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="updated_actions_{{ loop.index }}">Updated Actions</label>
+                                    <textarea class="form-control" 
+                                              name="updated_actions[]" 
+                                              rows="2"
+                                              {% if plan.status.name == 'DRAFT' %}disabled{% endif %}
+                                              >{{ site.updated_actions }}</textarea>
                                 </div>
                                 <div class="col-md-1">
                                     <label class="form-label">&nbsp;</label>
@@ -132,6 +140,14 @@
                                            min="15" 
                                            max="480" 
                                            value="15">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="updated_actions_1">Updated Actions</label>
+                                    <textarea class="form-control" 
+                                              name="updated_actions[]" 
+                                              rows="2" 
+                                              required 
+                                              placeholder="{{ plan.planned_sites[i].updated_actions }}"></textarea>
                                 </div>
                                 <div class="col-md-1">
                                     <label class="form-label">&nbsp;</label>
