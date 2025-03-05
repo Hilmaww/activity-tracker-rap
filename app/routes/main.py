@@ -586,6 +586,7 @@ def create_plan():
         except Exception as e:
             logger.error(f"Error creating plan: {str(e)}")
             flash('Failed to create plan', 'danger')
+            flash(str(e))
             return render_template('plans/create.html')
             
     return render_template('plans/create.html')
