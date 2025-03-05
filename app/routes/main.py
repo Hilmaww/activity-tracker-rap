@@ -697,7 +697,10 @@ def edit_plan(plan_id):
             site_ids = request.form.getlist('site_id[]')
             actions = request.form.getlist('planned_actions[]')
             durations = request.form.getlist('duration[]')
-            updated_actions = request.form.getlist('updated_actions[]')
+            if new_status != PlanStatus.DRAFT:
+                updated_actions = request.form.getlist('updated_actions[]')
+            else:
+                updated_actions = ['Not Done Yet'] * len(site_ids)
 
             for i, site_id in enumerate(site_ids):
                 planned_site = PlannedSite(
