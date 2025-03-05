@@ -59,6 +59,11 @@
 
 {% block extra_js %}
 <script>
+    document.addEventListener("DOMContentLoaded", function() {
+            let today = new Date().toISOString().split('T')[0];  // Get today's date in YYYY-MM-DD format
+            document.getElementById('plan_date').value = today;
+        });
+        
 $(document).ready(function() {
     // Initialize Select2 for site selection
     $('#site-select-1').select2({
@@ -134,12 +139,6 @@ $(document).ready(function() {
                 </div>
             </div>
         `;
-
-        // Get today's date in the format YYYY-MM-DD
-        var today = new Date().toISOString().split('T')[0];
-
-        // Set the value of the date input to today
-        document.getElementById('plan_date').value = today;
         
         $('#planned-sites').append(newSite);
         // Initialize Select2 for the new select
