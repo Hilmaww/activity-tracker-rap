@@ -48,9 +48,15 @@
 {% block extra_js %}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        let today = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }).split(',')[0];  // Get today's date in YYYY-MM-DD format
-        let formattedDate = new Date(today).toISOString().split('T')[0];  // Format the date as YYYY-MM-DD
-        document.getElementById('plan_date').value = formattedDate;
+        let now = new Date(); 
+        let jakartaDate = new Intl.DateTimeFormat('en-CA', { 
+            timeZone: 'Asia/Jakarta', 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit'
+        }).format(now);  // Format as YYYY-MM-DD
+
+        document.getElementById('plan_date').value = jakartaDate;
     });
         
 $(document).ready(function() {
