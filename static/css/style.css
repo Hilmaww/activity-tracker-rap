@@ -81,27 +81,3 @@
     -webkit-text-align: match-parent; /* Safari */
 }
 
-#toast-container > .toast {
-    background-color: rgba(0, 0, 0, 0.85) !important; /* Dark background */
-    color: #ffffff !important; /* White text */
-}
-
-.toast-success {
-    background-color: #28a745 !important; /* Green */
-    color: #fff !important;
-}
-
-.toast-error {
-    background-color: #dc3545 !important; /* Red */
-    color: #fff !important;
-}
-
-.toast-warning {
-    background-color: #ffc107 !important; /* Yellow */
-    color: #212529 !important;
-}
-
-.toast-info {
-    background-color: #17a2b8 !important; /* Blue */
-    color: #fff !important;
-}
