@@ -95,7 +95,7 @@ class Ticket(db.Model):
     closed_at = db.Column(db.DateTime)
 
     # Relationships
-    actions = db.relationship('TicketAction', backref='ticket', lazy=True)
+    actions = db.relationship('TicketAction', backref='ticket', lazy=True, cascade='all, delete-orphan')
 
     @property
     def created_at_jakarta(self):
@@ -178,6 +178,7 @@ class PlannedSite(db.Model):
     visit_order = db.Column(db.Integer, nullable=False)
     estimated_duration = db.Column(db.Integer, default=60)  # in minutes
     assignee = db.Column(db.String(100))  # New field for assignee
+    # updated_actions = db.Column(db.Text)  # New field for updated actions
 
     site = db.relationship('Site', backref='planned_sites', lazy=True)
     

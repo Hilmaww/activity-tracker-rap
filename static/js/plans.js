@@ -234,10 +234,6 @@ class PlanManager {
     setupFormValidation() {
         // Validate duration inputs on change
         $(document).on('change', 'input[name="duration[]"]', (e) => this.validateDuration(e));
-
-        // Validate form on submit
-        $('#plan-form').on('submit', (e) => this.validateForm(e));
-
     }
 
 }

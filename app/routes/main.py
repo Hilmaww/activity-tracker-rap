@@ -693,7 +693,7 @@ def edit_plan(plan_id):
 
         # Clear existing planned sites and comments if necessary
         # (Optional: You can choose to keep them or update them)
-        # plan.planned_sites.clear()  # Uncomment if you want to clear existing sites
+        plan.planned_sites.clear()  # Uncomment if you want to clear existing sites
 
         # Add new planned sites
         site_ids = request.form.getlist('site_id[]')
