@@ -17,7 +17,7 @@
                     Reject Plan
                 </button>
             {% endif %}
-            {% if current_user.id == plan.enom_user_id and plan.status.name == 'DRAFT' %}
+            {% if current_user.id == plan.enom_user_id %}
                 <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
                    class="btn btn-primary">Edit Plan</a>
             {% endif %}

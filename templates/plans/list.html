@@ -93,11 +93,9 @@
                             <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
                                class="btn btn-sm btn-primary">View</a>
                             {% if current_user.role == 'tsel' or 
-                                  (current_user.id == plan.enom_user_id and plan.status.name == 'DRAFT') %}
-                                {% if plan.status.name == 'DRAFT' %}
+                                  (current_user.id == plan.enom_user_id) %}
                                 <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
                                    class="btn btn-sm btn-warning">Edit</a>
-                                {% endif %}
                                 <button type="button" 
                                         class="btn btn-sm btn-danger"
                                         onclick="confirmDelete({{ plan.id }})">

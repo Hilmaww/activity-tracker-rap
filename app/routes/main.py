@@ -720,6 +720,10 @@ def edit_plan(plan_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating plan: {str(e)}', 'danger')
+            flash(site_ids)
+            flash(actions)
+            flash(durations)
+            flash(updated_actions)
             return redirect(url_for('main.edit_plan', plan_id=plan.id))
 
     return render_template('plans/edit.html', plan=plan)

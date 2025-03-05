@@ -12,13 +12,6 @@
             </a>
         </div>
     </div>
-
-    {% if plan.status.name != 'DRAFT' %}
-        <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i>
-            This plan can't be edited because it's already {{ plan.status.name.lower() }}.
-        </div>
-    {% else %}
     <form method="POST" id="plan-form" class="needs-validation" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         
