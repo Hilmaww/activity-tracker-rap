@@ -159,8 +159,8 @@ class DailyPlan(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    planned_sites = db.relationship('PlannedSite', backref='daily_plan', lazy=True)
-    comments = db.relationship('PlanComment', backref='daily_plan', lazy=True)
+    planned_sites = db.relationship('PlannedSite', backref='daily_plan', lazy=True, cascade='all, delete-orphan')
+    comments = db.relationship('PlanComment', backref='daily_plan', lazy=True, cascade='all, delete-orphan')
     enom_user = db.relationship('User', backref='daily_plans', lazy=True)
 
     @property

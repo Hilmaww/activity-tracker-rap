@@ -134,6 +134,12 @@ $(document).ready(function() {
                 </div>
             </div>
         `;
+
+        // Get today's date in the format YYYY-MM-DD
+        var today = new Date().toISOString().split('T')[0];
+
+        // Set the value of the date input to today
+        document.getElementById('plan_date').value = today;
         
         $('#planned-sites').append(newSite);
         // Initialize Select2 for the new select
