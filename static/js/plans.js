@@ -120,9 +120,9 @@ class PlanManager {
             return false;
         }
         
-        if (totalDuration > 480) {
+        if (totalDuration > 1440) {
             event.preventDefault();
-            toastr.error('Total duration cannot exceed 8 hours');
+            toastr.error('Total duration cannot exceed 24 hours');
             return false;
         }
         
