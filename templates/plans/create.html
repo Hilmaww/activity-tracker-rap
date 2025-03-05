@@ -171,26 +171,33 @@ $(document).ready(function() {
 
 function parsePlanText() {
     const text = document.getElementById('plan-text').value;
+    console.log('Text:', text); // Debug log
     const parsedSites = [];
     let currentAssignee = '';
     let visitOrder = 1;
     
     // Split by lines and process each line
     const lines = text.split('\n');
+    console.log('Lines:', lines); // Debug log
     lines.forEach(line => {
         line = line.trim();
+        console.log('Trimmed line:', line); // Debug log
         
         // Check if line is an assignee line
         if (line.toLowerCase().startsWith('Bang @') || line.toLowerCase().startsWith('Bg @')) {
             currentAssignee = line.split('@')[1].split(' ')[0];
+            console.log('Current assignee:', currentAssignee); // Debug log
             return;
         }
         
         // Check if line is a site entry
         if (line.startsWith('#')) {
             const siteInfo = line.substring(1).trim();
+            console.log('Site info:', siteInfo); // Debug log
             const siteId = siteInfo.split(' ')[0];
+            console.log('Site ID:', siteId); // Debug log
             const actions = siteInfo.substring(siteId.length).trim();
+            console.log('Actions:', actions); // Debug log
             
             if (siteId && actions) {
                 parsedSites.push({
@@ -200,6 +207,7 @@ function parsePlanText() {
                     assignee: currentAssignee,
                     duration: 60 // Default duration in minutes
                 });
+                console.log('Parsed sites:', parsedSites); // Debug log
             }
         }
     });
