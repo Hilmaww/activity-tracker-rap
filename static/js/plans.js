@@ -100,9 +100,9 @@ class PlanManager {
             toastr.warning('Minimum duration is 15 minutes');
         }
         
-        if (value > 480) {
-            input.val(480);
-            toastr.warning('Maximum duration is 480 minutes (8 hours)');
+        if (value > 1440) {
+            input.val(1440);
+            toastr.warning('Maximum duration is 24 hours');
         }
     }
 
