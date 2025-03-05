@@ -12,7 +12,7 @@
             </a>
         </div>
     </div>
-    <form method="POST" id="plan-form" class="needs-validation" novalidate>
+    <form method="POST" id="plan-form" class="needs-validation" novalidate action="{{ url_for('main.edit_plan', plan_id=plan.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         
         <div class="card mb-4">

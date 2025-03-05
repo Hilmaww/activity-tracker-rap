@@ -686,48 +686,61 @@ def edit_plan(plan_id):
         return redirect(url_for('main.list_plans'))
 
     if request.method == 'POST':
-        try:
-            plan.plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
-            new_status = PlanStatus[request.form['status']]
-            
-            # Clear existing planned sites
-            db.session.query(PlannedSite).filter_by(daily_plan_id=plan.id).delete()
+        action = request.form.get('action')
+        if action == 'save':
+            try:
+                plan.plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
+                new_status = PlanStatus[request.form['status']]
+                
+                # Clear existing planned sites
+                db.session.query(PlannedSite).filter_by(daily_plan_id=plan.id).delete()
 
-            # Add new planned sites
-            site_ids = request.form.getlist('site_id[]')
-            actions = request.form.getlist('planned_actions[]')
-            durations = request.form.getlist('duration[]')
-            if new_status != PlanStatus.DRAFT:
-                updated_actions = request.form.getlist('updated_actions[]')
-            else:
-                updated_actions = ['Not Done Yet'] * len(site_ids)
+                # Add new planned sites
+                site_ids = request.form.getlist('site_id[]')
+                actions = request.form.getlist('planned_actions[]')
+                durations = request.form.getlist('duration[]')
+                if new_status != PlanStatus.DRAFT:
+                    updated_actions = request.form.getlist('updated_actions[]')
+                else:
+                    updated_actions = ['Not Done Yet'] * len(site_ids)
 
-            for i, site_id in enumerate(site_ids):
-                planned_site = PlannedSite(
-                    daily_plan_id=plan.id,
-                    site_id=site_id,
-                    planned_actions=actions[i],
-                    visit_order=i + 1,
-                    estimated_duration=durations[i],
-                    updated_actions=updated_actions[i] if new_status != PlanStatus.DRAFT else 'Not Done Yet'
-                )
-                db.session.add(planned_site)
+                for i, site_id in enumerate(site_ids):
+                    planned_site = PlannedSite(
+                        daily_plan_id=plan.id,
+                        site_id=site_id,
+                        planned_actions=actions[i],
+                        visit_order=i + 1,
+                        estimated_duration=durations[i],
+                        updated_actions=updated_actions[i] if new_status != PlanStatus.DRAFT else 'Not Done Yet'
+                    )
+                    db.session.add(planned_site)
 
-            # Update status after all sites are added
-            plan.status = new_status
-            
-            db.session.commit()
-            flash('Plan updated successfully', 'success')
-            return redirect(url_for('main.view_plan', plan_id=plan.id))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating plan: {str(e)}', 'danger')
-            flash(site_ids)
-            flash(actions)
-            flash(durations)
-            flash(updated_actions)
-            return redirect(url_for('main.edit_plan', plan_id=plan.id))
+                # Update status after all sites are added
+                plan.status = new_status
+                
+                db.session.commit()
+                flash('Plan updated successfully', 'success')
+                return redirect(url_for('main.view_plan', plan_id=plan.id))
+                
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error updating plan: {str(e)}', 'danger')
+                flash(site_ids)
+                flash(actions)
+                flash(durations)
+                flash(updated_actions)
+                flash(new_status)
+                return redirect(url_for('main.edit_plan', plan_id=plan.id))
+        elif action == 'submit':
+            try:
+                plan.status = PlanStatus.SUBMITTED
+                db.session.commit()
+                flash('Plan submitted successfully', 'success')
+                return redirect(url_for('main.view_plan', plan_id=plan.id))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error submitting plan: {str(e)}', 'danger')
+                return redirect(url_for('main.edit_plan', plan_id=plan.id))
 
     return render_template('plans/edit.html', plan=plan)
 
