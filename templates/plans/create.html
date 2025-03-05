@@ -57,6 +57,12 @@
         }).format(now);  // Format as YYYY-MM-DD
 
         document.getElementById('plan_date').value = jakartaDate;
+
+        document.querySelectorAll('[type="submit"]').forEach(button => {
+            button.addEventListener('click', function() {
+                parsePlanText();
+            });
+        });
     });
         
 $(document).ready(function() {
