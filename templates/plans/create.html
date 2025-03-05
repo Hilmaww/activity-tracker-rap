@@ -49,7 +49,8 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         let today = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }).split(',')[0];  // Get today's date in YYYY-MM-DD format
-        document.getElementById('plan_date').value = today;
+        let formattedDate = new Date(today).toISOString().split('T')[0];  // Format the date as YYYY-MM-DD
+        document.getElementById('plan_date').value = formattedDate;
     });
         
 $(document).ready(function() {
