@@ -4,7 +4,6 @@ class PlanManager {
         this.initializeEventListeners();
         this.initializeSelect2();
         this.setupFormValidation();
-        this.setupDragAndDrop();
     }
 
     initializeEventListeners() {
@@ -20,12 +19,6 @@ class PlanManager {
         // Form submission
         $('#plan-form').on('submit', (e) => this.validateForm(e));
         
-        // Auto-save draft
-        let timeout;
-        $('#plan-form').on('input', () => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => this.autosaveDraft(), 2000);
-        });
     }
 
     initializeSelect2() {
@@ -74,16 +67,6 @@ class PlanManager {
         `);
     }
 
-    setupDragAndDrop() {
-        $('#planned-sites').sortable({
-            handle: '.drag-handle',
-            update: (event, ui) => {
-                this.updateVisitOrder();
-                this.autosaveDraft();
-            }
-        });
-    }
-
     addNewSiteRow() {
         const siteCount = $('.planned-site').length;
         $('#planned-sites').append(this.getSiteRowTemplate(siteCount + 1));
@@ -102,8 +85,6 @@ class PlanManager {
         if ($('.planned-site').length > 1) {
             $(event.target).closest('.planned-site').fadeOut(300, function() {
                 $(this).remove();
-                this.updateVisitOrder();
-                this.autosaveDraft();
             }.bind(this));
         } else {
             toastr.warning('At least one site is required');
@@ -127,25 +108,6 @@ class PlanManager {
 
     handleAjaxError(xhr) {
         toastr.error(xhr.responseJSON?.message || 'Action failed');
-    }
-
-    autosaveDraft() {
-        const formData = new FormData($('#plan-form')[0]);
-        formData.append('auto_save', 'true');
-        
-        $.ajax({
-            url: $('#plan-form').attr('action'),
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: (response) => {
-                if (response.success) {
-                    toastr.success('Draft saved');
-                }
-            },
-            error: this.handleAjaxError
-        });
     }
 
     validateForm(event) {
