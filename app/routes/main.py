@@ -758,8 +758,7 @@ def delete_plan(plan_id):
     # Check permissions
     if current_user.role != 'tsel' and (
         current_user.role != 'enom' or 
-        plan.enom_user_id != current_user.id or 
-        plan.status.name != 'DRAFT'
+        plan.enom_user_id != current_user.id
     ):
         flash('You do not have permission to delete this plan. Request to delete plan from TSEL admin', 'danger')
         return redirect(url_for('main.list_plans'))

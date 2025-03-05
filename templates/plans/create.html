@@ -197,7 +197,7 @@ function parsePlanText() {
         // Check if line is a site entry
         if (line.startsWith('#') || line.startsWith('*') || line.startsWith('-')) {
             const siteInfo = line.substring(1).trim();
-            const siteId = siteInfo.replace(/^[a-z]/, match => match.toUpperCase()).split(' ')[0];
+            const siteId = siteInfo.split(' ')[0].toUpperCase();
             const actions = siteInfo.substring(siteId.length).trim();
             
             if (siteId && actions) {
@@ -218,7 +218,7 @@ function parsePlanText() {
     
     parsedSites.forEach((site, index) => {
         parsedSitesDiv.innerHTML += `
-            <input type="hidden" name="site_id[]" value="${site.siteId}">
+            <input type="hidden" name="site_id[]" value="${site.siteId.toUpperCase()}">
             <input type="hidden" name="planned_actions[]" value="${site.actions}">
             <input type="hidden" name="visit_order[]" value="${site.visitOrder}">
             <input type="hidden" name="duration[]" value="${site.duration}">
