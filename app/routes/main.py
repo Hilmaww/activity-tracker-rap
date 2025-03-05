@@ -551,17 +551,23 @@ def create_plan():
             # Add planned sites
             site_ids = request.form.getlist('site_id[]')
             actions = request.form.getlist('planned_actions[]')
+            visit_orders = request.form.getlist('visit_order[]')
             durations = request.form.getlist('duration[]')
+            assignees = request.form.getlist('assignee[]')
             
-            for i, site_id in enumerate(site_ids):
-                planned_site = PlannedSite(
-                    daily_plan_id=new_plan.id,
-                    site_id=site_id,
-                    planned_actions=actions[i],
-                    visit_order=i+1,
-                    estimated_duration=durations[i]
-                )
-                db.session.add(planned_site)
+            for i in range(len(site_ids)):
+                # Get site by site_id
+                site = Site.query.filter_by(site_id=site_ids[i]).first()
+                if site:
+                    planned_site = PlannedSite(
+                        daily_plan_id=new_plan.id,
+                        site_id=site.id,
+                        planned_actions=actions[i],
+                        visit_order=visit_orders[i],
+                        estimated_duration=durations[i],
+                        assignee=assignees[i]
+                    )
+                    db.session.add(planned_site)
             
             db.session.commit()
             flash('Plan created successfully', 'success')
@@ -570,9 +576,9 @@ def create_plan():
         except Exception as e:
             logger.error(f"Error creating plan: {str(e)}")
             flash('Failed to create plan', 'danger')
-            return render_template('plans/create.html', sites=Site.query.all())
-    else:
-        return render_template('plans/create.html', sites=Site.query.all())
+            return render_template('plans/create.html')
+            
+    return render_template('plans/create.html')
 
 @bp.route('/plans/<int:plan_id>/submit', methods=['POST'])
 @login_required
@@ -740,6 +746,30 @@ def delete_plan(plan_id):
 def get_sites_count():
     count = Site.query.count()
     return jsonify({'count': count})
+
+@bp.route('/tickets/<int:ticket_id>/delete', methods=['POST'])
+@login_required
+def delete_ticket(ticket_id):
+    if current_user.role != 'tsel':
+        return jsonify({
+            'success': False,
+            'message': 'Only TSEL users can delete tickets'
+        }), 403
+        
+    ticket = Ticket.query.get_or_404(ticket_id)
+    try:
+        db.session.delete(ticket)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Ticket deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 @bp.after_request
 def add_header(response):

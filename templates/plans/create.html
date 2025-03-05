@@ -14,41 +14,29 @@
             <div class="invalid-feedback">Please select a valid date.</div>
         </div>
 
-        <div id="planned-sites">
-            <h4>Planned Site Visits</h4>
-            <div class="planned-site mb-3">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="site-select-1">Site</label>
-                        <select class="site-select form-select" id="site-select-1" name="site_id[]" required>
-                            <option value="">Select Site</option>
-                            {% for site in sites %}
-                            <option value="{{ site.id }}" data-name="{{ site.name }}" data-location="{{ site.location }}">
-                                {{ site.name }} - {{ site.location }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Planned Actions</label>
-                        <textarea class="form-control" name="planned_actions[]" rows="2" required placeholder="Enter planned actions..."></textarea>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="duration_1">Duration (minutes)</label>
-                        <input type="number" name="duration[]" class="form-control" id="duration_1" min="15" max="480" value="15">
-                    </div>
-                    <div class="col-md-1">
-                        <label class="form-label">&nbsp;</label>
-                        <button type="button" class="btn btn-danger remove-site" aria-label="Remove site">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Planned Sites</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="plan-text" class="form-label">Enter Plan Details</label>
+                    <textarea class="form-control" id="plan-text" rows="10" 
+                              placeholder="Enter plan details in the format:
+# SITE_ID Description of planned actions
+# Another_SITE_ID Another description"></textarea>
                 </div>
+                
+                <div id="parsed-sites" class="d-none">
+                    <!-- This will be populated with hidden inputs -->
+                </div>
+                
+                <button type="button" class="btn btn-primary" onclick="parsePlanText()">
+                    Parse Plan Text
+                </button>
             </div>
         </div>
 
-        <button type="button" class="btn btn-secondary mb-3" id="add-site">Add Another Site</button>
-        
         <div class="mt-4">
             <button type="submit" class="btn btn-primary" name="action" value="draft">Save as Draft</button>
             <button type="submit" class="btn btn-success" name="action" value="submit">Submit for Review</button>
@@ -180,6 +168,93 @@ $(document).ready(function() {
         }
     });
 });
+
+function parsePlanText() {
+    const text = document.getElementById('plan-text').value;
+    const parsedSites = [];
+    let currentAssignee = '';
+    let visitOrder = 1;
+    
+    // Split by lines and process each line
+    const lines = text.split('\n');
+    lines.forEach(line => {
+        line = line.trim();
+        
+        // Check if line is an assignee line
+        if (line.toLowerCase().startsWith('Bang @') || line.toLowerCase().startsWith('Bg @')) {
+            currentAssignee = line.split('@')[1].split(' ')[0];
+            return;
+        }
+        
+        // Check if line is a site entry
+        if (line.startsWith('#')) {
+            const siteInfo = line.substring(1).trim();
+            const siteId = siteInfo.split(' ')[0];
+            const actions = siteInfo.substring(siteId.length).trim();
+            
+            if (siteId && actions) {
+                parsedSites.push({
+                    siteId: siteId,
+                    actions: actions,
+                    visitOrder: visitOrder++,
+                    assignee: currentAssignee,
+                    duration: 60 // Default duration in minutes
+                });
+            }
+        }
+    });
+    
+    // Update hidden inputs
+    const parsedSitesDiv = document.getElementById('parsed-sites');
+    parsedSitesDiv.innerHTML = '';
+    
+    parsedSites.forEach((site, index) => {
+        parsedSitesDiv.innerHTML += `
+            <input type="hidden" name="site_id[]" value="${site.siteId}">
+            <input type="hidden" name="planned_actions[]" value="${site.actions}">
+            <input type="hidden" name="visit_order[]" value="${site.visitOrder}">
+            <input type="hidden" name="duration[]" value="${site.duration}">
+            <input type="hidden" name="assignee[]" value="${site.assignee}">
+        `;
+    });
+    
+    // Show preview table
+    showPreview(parsedSites);
+}
+
+function showPreview(sites) {
+    const previewHtml = `
+        <div class="mt-4">
+            <h5>Preview</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Site ID</th>
+                            <th>Planned Actions</th>
+                            <th>Assignee</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sites.map(site => `
+                            <tr>
+                                <td>${site.visitOrder}</td>
+                                <td>${site.siteId}</td>
+                                <td>${site.actions}</td>
+                                <td>${site.assignee}</td>
+                                <td>${site.duration} min</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('parsed-sites').insertAdjacentHTML('afterend', previewHtml);
+}
 </script>
 
 <style>

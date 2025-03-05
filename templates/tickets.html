@@ -90,7 +90,15 @@
                 {% for ticket in tickets %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">View</a>
+                        <div class="btn-group">
+                            <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="btn btn-sm btn-primary">View</a>
+                            {% if current_user.role == 'tsel' %}
+                            <button type="button" class="btn btn-sm btn-danger" 
+                                    onclick="deleteTicket({{ ticket.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
                     </td>
                     <td>{{ ticket.ticket_number }}</td>
                     <td>{{ ticket.site.site_id }} - {{ ticket.site.name }}</td>
@@ -178,5 +186,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function deleteTicket(ticketId) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/tickets/${ticketId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire(
+                        'Deleted!',
+                        'Ticket has been deleted.',
+                        'success'
+                    ).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire(
+                        'Error!',
+                        data.message,
+                        'error'
+                    );
+                }
+            });
+        }
+    });
+}
 </script>
 {% endblock %}

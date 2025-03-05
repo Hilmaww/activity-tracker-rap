@@ -176,9 +176,10 @@ class PlannedSite(db.Model):
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
     planned_actions = db.Column(db.Text, nullable=False)
     visit_order = db.Column(db.Integer, nullable=False)
-    estimated_duration = db.Column(db.Integer)  # in minutes
+    estimated_duration = db.Column(db.Integer, default=60)  # in minutes
+    assignee = db.Column(db.String(100))  # New field for assignee
 
-    site =  db.relationship('Site', backref='planned_sites', lazy=True)
+    site = db.relationship('Site', backref='planned_sites', lazy=True)
     
 class PlanComment(db.Model):
     __tablename__ = 'plan_comments'
