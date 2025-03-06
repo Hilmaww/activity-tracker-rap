@@ -34,7 +34,7 @@ def index():
         status_counts = {status: 0 for status in TicketStatus} # initialize all status to 0
 
         results = Ticket.query.join(EnomAssignee).filter(
-            EnomAssignee.username == username_prefix
+            EnomAssignee[username_prefix]
         ).all()
 
         for ticket in results:
@@ -56,7 +56,7 @@ def index():
         in_progress_tickets = status_counts[TicketStatus.IN_PROGRESS]
         pending_tickets = status_counts[TicketStatus.PENDING]
         resolved_tickets = status_counts[TicketStatus.RESOLVED]
-        
+
     # Total tickets in last 30 days (using timezone aware query)
     total_30_days = Ticket.query.filter(
         Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= 
