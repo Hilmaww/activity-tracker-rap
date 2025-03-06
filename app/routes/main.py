@@ -31,10 +31,10 @@ def index():
     if current_user.role == 'enom':
         username_prefix = current_user.username.split('_')[0].upper()
 
-        status_counts = {status: 0 for status in TicketStatus} # initialize all status to 0
+        status_counts = {status: 0 for status in TicketStatus}
 
-        results = Ticket.query.join(EnomAssignee).filter(
-            EnomAssignee[username_prefix]
+        results = Ticket.query.filter(
+            Ticket.assigned_to_enom == username_prefix # change here
         ).all()
 
         for ticket in results:
