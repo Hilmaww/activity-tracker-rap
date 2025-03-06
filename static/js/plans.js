@@ -297,6 +297,9 @@ function handlePlanAction(planId, action) {
             }
         });
     }
+
+    // Soft refresh the page
+    window.location.reload();
 }
 
 function submitPlanAction(url, data = {}) {
