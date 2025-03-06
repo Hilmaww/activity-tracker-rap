@@ -268,7 +268,7 @@ function handlePlanAction(planId, action) {
         approve: 'Are you sure you want to approve this plan?',
         reject: 'Please provide a reason for rejection:'
     };
-    
+
     if (action === 'reject') {
         Swal.fire({
             title: 'Reject Plan',
@@ -282,7 +282,7 @@ function handlePlanAction(planId, action) {
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                submitPlanAction(url, { reason: result.value });
+                submitPlanAction(url, { reason: result.value }, true);
             }
         });
     } else {
@@ -293,16 +293,13 @@ function handlePlanAction(planId, action) {
             showCancelButton: true
         }).then((result) => {
             if (result.isConfirmed) {
-                submitPlanAction(url);
+                submitPlanAction(url, {}, true);
             }
         });
     }
-
-    // Soft refresh the page
-    window.location.reload();
 }
 
-function submitPlanAction(url, data = {}) {
+function submitPlanAction(url, data = {}, shouldReload = false) {
     $.ajax({
         url: url,
         type: 'POST',
@@ -312,8 +309,12 @@ function submitPlanAction(url, data = {}) {
         },
         success: function(response) {
             toastr.success(response.message);
-            setTimeout(() => window.location.reload(), 1500);
+            if (shouldReload) {
+                setTimeout(() => window.location.reload(), 1500); // Delay reload for toastr message
+            }
         },
-        error: this.handleAjaxError
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON?.message || "Something went wrong.");
+        }
     });
-} 
+}
