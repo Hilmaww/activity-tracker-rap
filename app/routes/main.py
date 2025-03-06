@@ -244,8 +244,12 @@ def list_tickets():
         ))
     
     # Filter by ENOM user if current user is ENOM
-    if current_user.role == 'enom':
-        query = query.filter(Ticket.assigned_to_enom==EnomAssignee[current_user.username.split('_')[0].upper()])
+    try:    
+        if current_user.role == 'enom':
+            query = query.filter(Ticket.assigned_to_enom==EnomAssignee[current_user.username.split('_')[0].upper()])
+    except Exception as e:
+        logger.error(f"Error filtering by ENOM user. There are no such ENOM users in the database: {str(e)}")
+        pass
     
     # Order and paginate the query
     pagination = query.order_by(Ticket.created_at.desc()).paginate(
