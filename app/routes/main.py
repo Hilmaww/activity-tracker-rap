@@ -224,7 +224,7 @@ def list_tickets():
     
     # Get page number from request args, default to 1
     page = request.args.get('page', 1, type=int)
-    per_page = 10  # Number of items per page
+    per_page = 30  # Number of items per page
     
     # Start with base query
     query = Ticket.query
@@ -242,6 +242,9 @@ def list_tickets():
             Ticket.created_by.ilike(f'%{search_query}%'),
             Ticket.description.ilike(f'%{search_query}%')
         ))
+    
+    # Filter by ENOM user if current user is ENOM
+    query = query.filter(Ticket.assigned_to_enom==EnomAssignee[current_user.username.split('_')[0].upper()])
     
     # Order and paginate the query
     pagination = query.order_by(Ticket.created_at.desc()).paginate(
