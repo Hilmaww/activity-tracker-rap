@@ -100,39 +100,40 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for plan in todays_plans %}
-                                <tr>
-                                    <td>{{ plan.enom_user.username }}</td>
-                                    <td>
-                                        {{ plan.planned_sites|length }} sites
-                                        <small class="text-muted d-block">
-                                            {{ plan.planned_sites|map(attribute='site.name')|join(', ') }}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ plan.status.name|lower }}">
-                                            {{ plan.status.name }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
-                                               class="btn btn-sm btn-primary">View</a>
-                                            {% if plan.status.name == 'SUBMITTED' %}
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-success"
-                                                    onclick="handlePlanAction({{ plan.id }}, 'approve')">
-                                                Approve
-                                            </button>
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-danger"
-                                                    onclick="handlePlanAction({{ plan.id }}, 'reject')">
-                                                Reject
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
+                                {% set sorted_plans = todays_plans|sort(attribute='status.name', reverse=True) %}
+                                {% for plan in sorted_plans %}
+                                    <tr>
+                                        <td>{{ plan.enom_user.username }}</td>
+                                        <td>
+                                            {{ plan.planned_sites|length }} sites
+                                            <small class="text-muted d-block">
+                                                {{ plan.planned_sites|map(attribute='site.name')|join(', ') }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ plan.status.name|lower }}">
+                                                {{ plan.status.name }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
+                                                   class="btn btn-sm btn-primary">View</a>
+                                                {% if plan.status.name == 'SUBMITTED' %}
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-success"
+                                                        onclick="handlePlanAction({{ plan.id }}, 'approve')">
+                                                    Approve
+                                                </button>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-danger"
+                                                        onclick="handlePlanAction({{ plan.id }}, 'reject')">
+                                                    Reject
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
