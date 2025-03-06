@@ -27,13 +27,36 @@ def index():
     # Get current date and 30 days ago date in Jakarta time
     current_datetime = datetime.now(jakarta_tz)
     current_date = current_datetime.date()
-    
-    # Current status counts (existing)
-    open_tickets = Ticket.query.filter_by(status=TicketStatus.OPEN).count()
-    in_progress_tickets = Ticket.query.filter_by(status=TicketStatus.IN_PROGRESS).count()
-    pending_tickets = Ticket.query.filter_by(status=TicketStatus.PENDING).count()
-    resolved_tickets = Ticket.query.filter_by(status=TicketStatus.RESOLVED).count()
 
+    if current_user.role == 'enom':
+        username_prefix = current_user.username.split('_')[0].upper()
+
+        status_counts = {status: 0 for status in TicketStatus} # initialize all status to 0
+
+        results = Ticket.query.join(EnomAssignee).filter(
+            EnomAssignee.username == username_prefix
+        ).all()
+
+        for ticket in results:
+            status_counts[ticket.status] += 1
+
+        open_tickets = status_counts[TicketStatus.OPEN]
+        in_progress_tickets = status_counts[TicketStatus.IN_PROGRESS]
+        pending_tickets = status_counts[TicketStatus.PENDING]
+        resolved_tickets = status_counts[TicketStatus.RESOLVED]
+
+    else:
+        status_counts = {
+            TicketStatus.OPEN: Ticket.query.filter_by(status=TicketStatus.OPEN).count(),
+            TicketStatus.IN_PROGRESS: Ticket.query.filter_by(status=TicketStatus.IN_PROGRESS).count(),
+            TicketStatus.PENDING: Ticket.query.filter_by(status=TicketStatus.PENDING).count(),
+            TicketStatus.RESOLVED: Ticket.query.filter_by(status=TicketStatus.RESOLVED).count(),
+        }
+        open_tickets = status_counts[TicketStatus.OPEN]
+        in_progress_tickets = status_counts[TicketStatus.IN_PROGRESS]
+        pending_tickets = status_counts[TicketStatus.PENDING]
+        resolved_tickets = status_counts[TicketStatus.RESOLVED]
+        
     # Total tickets in last 30 days (using timezone aware query)
     total_30_days = Ticket.query.filter(
         Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= 
