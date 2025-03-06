@@ -244,7 +244,8 @@ def list_tickets():
         ))
     
     # Filter by ENOM user if current user is ENOM
-    query = query.filter(Ticket.assigned_to_enom==EnomAssignee[current_user.username.split('_')[0].upper()])
+    if current_user.role == 'enom':
+        query = query.filter(Ticket.assigned_to_enom==EnomAssignee[current_user.username.split('_')[0].upper()])
     
     # Order and paginate the query
     pagination = query.order_by(Ticket.created_at.desc()).paginate(
