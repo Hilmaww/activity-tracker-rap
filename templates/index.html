@@ -45,13 +45,15 @@
             </div>
         </div>
     </div>
-    {% if current_user.role == 'tsel' %}
+    
     <!-- Action Buttons -->
     <div class="action-buttons">
+        {% if current_user.role == 'tsel' %}
         <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
+        {% endif %}
         <a href="/tickets" class="btn btn-secondary">View All Tickets</a>
     </div>
-    {% endif %}
+
     <!-- Add this after the status cards section -->
     {% if current_user.role == 'enom' %}
         {% set has_plan_today = current_user.daily_plans|selectattr('plan_date', 'equalto', today)|first %}
