@@ -9,7 +9,7 @@ from sqlalchemy import or_, func
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
 from flask import jsonify, abort
-from werkzeug.urls import url_parse
+from werkzeug.urls import parse_url
 import re
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
@@ -946,7 +946,7 @@ def add_header(response):
 
 def is_safe_url(target):
     ref_url = request.host_url
-    test_url = url_parse(target)
+    test_url = parse_url(target)
     return test_url.scheme in ('http', 'https') and \
            ref_url.rstrip('/') == test_url.netloc
 
