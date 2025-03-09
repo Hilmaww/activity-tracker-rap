@@ -8,7 +8,9 @@ import os
 from sqlalchemy import or_, func
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
-from flask import jsonify
+from flask import jsonify, abort
+from werkzeug.urls import url_parse
+import re
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
 
@@ -207,6 +209,65 @@ def index():
     # Add today's date for ENOM plan check
     today = datetime.now(jakarta_tz).date()
 
+    # Get top 10 planned sites in the last two weeks
+    two_weeks_ago = today - timedelta(days=14)
+    top_planned_sites = db.session.query(
+        Site.site_id,
+        Site.name,
+        func.count(PlannedSite.id).label('visit_count')
+    ).join(
+        PlannedSite,
+        Site.id == PlannedSite.site_id
+    ).join(
+        DailyPlan,
+        PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= two_weeks_ago,
+        DailyPlan.plan_date <= today
+    ).group_by(
+        Site.id
+    ).order_by(
+        func.count(PlannedSite.id).desc()
+    ).limit(10).all()
+
+    top_planned_sites_data = {
+        'site_ids': [site.site_id for site in top_planned_sites],
+        'site_names': [site.name for site in top_planned_sites],
+        'visit_counts': [site.visit_count for site in top_planned_sites]
+    }
+
+    # Get today's planned sites for the map
+    todays_planned_sites = db.session.query(
+        Site,
+        DailyPlan.enom_user_id,
+        User.username.label('enom_username'),
+        PlannedSite.planned_actions,
+        PlannedSite.estimated_duration
+    ).join(
+        PlannedSite,
+        Site.id == PlannedSite.site_id
+    ).join(
+        DailyPlan,
+        PlannedSite.daily_plan_id == DailyPlan.id
+    ).join(
+        User,
+        DailyPlan.enom_user_id == User.id
+    ).filter(
+        DailyPlan.plan_date == today
+    ).all()
+
+    planned_site_markers = [{
+        'id': site.Site.id,
+        'site_id': site.Site.site_id,
+        'name': site.Site.name,
+        'kabupaten': site.Site.kabupaten,
+        'lat': float(site.Site.lat),
+        'long': float(site.Site.long),
+        'enom_username': site.enom_username,
+        'planned_actions': site.planned_actions,
+        'estimated_duration': site.estimated_duration
+    } for site in todays_planned_sites if site.Site.lat and site.Site.long]
+
     # Add today's plans for TSEL users
     todays_plans = None
     if current_user.is_authenticated and current_user.role == 'tsel':
@@ -232,6 +293,8 @@ def index():
                        trend_labels=trend_labels,
                        statuses=TicketStatus,
                        site_markers=site_markers,
+                       planned_site_markers=planned_site_markers,
+                       top_planned_sites_data=top_planned_sites_data,
                        mapbox_token=os.getenv('MAPBOX_TOKEN'),
                        today=today,
                        todays_plans=todays_plans)
@@ -292,6 +355,9 @@ def list_tickets():
 @bp.route('/tickets/new', methods=['GET', 'POST'])
 @login_required
 def create_ticket():
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+        
     if current_user.role != 'tsel':
         flash('Only Tsel users can create tickets')
         return redirect(url_for('main.index'))
@@ -343,6 +409,9 @@ def create_ticket():
 
 @bp.route('/tickets/<int:ticket_id>/actions', methods=['POST'])
 def add_action(ticket_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     try:
         ticket = Ticket.query.get_or_404(ticket_id)
         current_time = datetime.now(jakarta_tz)
@@ -383,6 +452,9 @@ def view_ticket(ticket_id):
 @bp.route('/tickets/<int:ticket_id>/update_status', methods=['POST'])
 @login_required
 def update_ticket_status(ticket_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     try:
         ticket = Ticket.query.get_or_404(ticket_id)
         new_status = request.form.get('status')
@@ -422,6 +494,9 @@ def update_ticket_status(ticket_id):
 
 @bp.route('/ticket/<int:ticket_id>/edit-description', methods=['POST'])
 def edit_ticket_description(ticket_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     ticket = Ticket.query.get_or_404(ticket_id)
     
     description = request.form.get('description')
@@ -489,6 +564,9 @@ def search_sites():
 @bp.route('/ticket/<int:ticket_id>/resolve', methods=['POST'])
 @login_required
 def resolve_ticket(ticket_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     ticket = Ticket.query.get_or_404(ticket_id)
     
     if current_user.role != 'enom' or ticket.assigned_to_id != current_user.id:
@@ -503,6 +581,9 @@ def resolve_ticket(ticket_id):
 @bp.route('/ticket/<int:ticket_id>/close', methods=['POST'])
 @login_required
 def close_ticket(ticket_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     ticket = Ticket.query.get_or_404(ticket_id)
     
     if current_user.role != 'tsel':
@@ -563,6 +644,9 @@ def list_plans():
 @bp.route('/plans/new', methods=['GET', 'POST'])
 @login_required
 def create_plan():
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     if current_user.role != 'enom':
         flash('Only ENOM users can create plans', 'danger')
         return redirect(url_for('main.list_plans'))
@@ -625,6 +709,9 @@ def create_plan():
 @bp.route('/plans/<int:plan_id>/submit', methods=['POST'])
 @login_required
 def submit_plan(plan_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     plan = DailyPlan.query.get_or_404(plan_id)
     if plan.enom_user_id != current_user.id:
         flash('Unauthorized access', 'danger')
@@ -639,6 +726,9 @@ def submit_plan(plan_id):
 @bp.route('/plans/<int:plan_id>/approve', methods=['POST'])
 @login_required
 def approve_plan(plan_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     if current_user.role != 'tsel':
         flash('Only TSEL admin can approve plans', 'danger')
         return redirect(url_for('main.list_plans'))
@@ -653,6 +743,9 @@ def approve_plan(plan_id):
 @bp.route('/plans/<int:plan_id>/add_comment', methods=['POST'])
 @login_required
 def add_comment(plan_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     plan = DailyPlan.query.get_or_404(plan_id)
     comment_text = request.form.get('comment')
     
@@ -674,6 +767,9 @@ def add_comment(plan_id):
 @bp.route('/plans/<int:plan_id>/reject', methods=['POST'])
 @login_required
 def reject_plan(plan_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     if current_user.role != 'tsel':
         flash('Only TSEL admin can reject plans', 'danger')
         return redirect(url_for('main.list_plans'))
@@ -720,6 +816,9 @@ def view_plan(plan_id):
 @bp.route('/plans/<int:plan_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_plan(plan_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     plan = DailyPlan.query.get_or_404(plan_id)
 
     # Check if the user has permission to edit the plan
@@ -784,6 +883,9 @@ def edit_plan(plan_id):
 @bp.route('/plans/<int:plan_id>/delete', methods=['POST'])
 @login_required
 def delete_plan(plan_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+
     plan = DailyPlan.query.get_or_404(plan_id)
     
     # Check permissions
@@ -813,6 +915,9 @@ def get_sites_count():
 @bp.route('/tickets/<int:ticket_id>/delete', methods=['POST'])
 @login_required
 def delete_ticket(ticket_id):
+    if not all(is_safe_string(v) for v in request.form.values()):
+        abort(400)
+        
     if current_user.role != 'tsel':
         return jsonify({
             'success': False,
@@ -838,3 +943,15 @@ def delete_ticket(ticket_id):
 def add_header(response):
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
     return response
+
+def is_safe_url(target):
+    ref_url = request.host_url
+    test_url = url_parse(target)
+    return test_url.scheme in ('http', 'https') and \
+           ref_url.rstrip('/') == test_url.netloc
+
+def is_safe_string(v):
+    # Check for SQL injection
+    if re.search(r'(;|--|insert|delete|update|drop|alter|create|truncate|xp_|exec|sp_|xp_cmdshell)', v, re.IGNORECASE):
+        return False
+    return True

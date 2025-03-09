@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
@@ -9,6 +9,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -46,6 +47,27 @@ logger.addHandler(handler)
 logger.addHandler(file_handler)
 
 load_dotenv()
+
+def validate_request():
+    """Middleware to validate request parameters and URLs"""
+    if request.args:
+        # Block file:// protocol
+        for value in request.args.values():
+            if isinstance(value, str):
+                if value.startswith('file:'):
+                    abort(403)
+                
+                # Validate URLs in parameters
+                if any(value.startswith(prefix) for prefix in ['http://', 'https://']):
+                    parsed = urlparse(value)
+                    # Only allow specific domains
+                    if parsed.netloc not in ['cdn.jsdelivr.net', 'unpkg.com', 'code.jquery.com']:
+                        abort(403)
+        
+        # Block known dangerous parameters
+        dangerous_params = ['wp_automatic', 'action', 'preview', 'load', 'proxy']
+        if any(param in request.args for param in dangerous_params):
+            abort(403)
 
 def create_app(config=None):
     app = Flask(__name__)
@@ -111,6 +133,8 @@ def create_app(config=None):
     def log_request_info():
         app.logger.debug('Headers: %s', request.headers)
         app.logger.debug('Body: %s', request.get_data())
+
+    app.before_request(validate_request)
 
     with app.app_context():
         db.create_all()

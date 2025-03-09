@@ -212,9 +212,30 @@
         </div>
     </div>
 
+    <!-- Top Planned Sites Chart -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Top 10 Most Visited Sites (Last 2 Weeks)</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_planned_sites_data['site_ids'] %}
+                        <p class="text-muted mb-3">
+                            Site {{ top_planned_sites_data['site_ids'][0] }} - {{ top_planned_sites_data['site_names'][0] }} has been visited {{ top_planned_sites_data['visit_counts'][0] }} times in the last 2 weeks.
+                        </p>
+                    {% else %}
+                        <p class="text-muted mb-3">No planned site visits in the last 2 weeks.</p>
+                    {% endif %}
+                    <canvas id="topPlannedSitesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Map Section -->
     <div class="map-container">
-        <h4 class="text-center mb-4">Site Locations with Active Tickets</h4>
+        <h4 class="text-center mb-4">Site Locations with Active Tickets and Today's Planned Visits</h4>
         <div class="map-controls mb-3">
             <div class="input-group">
                 <input type="text" id="site-search" class="form-control" placeholder="Search for a site...">
@@ -229,6 +250,9 @@
                     </button>
                     <button type="button" class="btn btn-light" id="toggle-clusters" title="Toggle Clustering">
                         <i class="fas fa-layer-group"></i>
+                    </button>
+                    <button type="button" class="btn btn-light" id="toggle-planned" title="Toggle Planned Sites">
+                        <i class="fas fa-calendar-check"></i>
                     </button>
                 </div>
             </div>
@@ -369,24 +393,67 @@
         }
     });
 
+    // Top Planned Sites Chart
+    var topPlannedSitesCtx = document.getElementById('topPlannedSitesChart').getContext('2d');
+    var topPlannedSitesData = {{ top_planned_sites_data | tojson }};
+    new Chart(topPlannedSitesCtx, {
+        type: 'bar',
+        data: {
+            labels: topPlannedSitesData.site_ids.map((id, index) => `${id} - ${topPlannedSitesData.site_names[index]}`),
+            datasets: [{
+                label: 'Number of Visits',
+                data: topPlannedSitesData.visit_counts,
+                backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.raw} visits`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     // Initialize the map with loading state
     const mapContainer = document.getElementById('siteMap');
     const mapLoading = mapContainer.querySelector('.map-loading');
     
-    // Create a marker cluster group
-    const markers = L.markerClusterGroup();
+    // Create marker cluster groups
+    const ticketMarkers = L.markerClusterGroup();
+    const plannedMarkers = L.markerClusterGroup();
     
-    // Define marker colors for different statuses
+    // Define marker colors
     const statusColors = {
         'OPEN': '#ff6384',      // Red
         'IN_PROGRESS': '#36a2eb', // Blue
         'PENDING': '#ffce56',    // Yellow
-        'RESOLVED': '#4bc0c0'    // Green
+        'RESOLVED': '#4bc0c0',   // Green
+        'PLANNED': '#9966ff'     // Purple for planned sites
     };
 
     // Custom marker icon function
-    function createCustomMarker(status, count) {
-        const color = statusColors[status] || '#4bc0c0';
+    function createCustomMarker(status, count, isPlanned = false) {
+        const color = isPlanned ? statusColors.PLANNED : (statusColors[status] || '#4bc0c0');
         return L.divIcon({
             className: 'custom-marker',
             html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);">
@@ -400,7 +467,7 @@
     // Initialize the map
     const map = L.map('siteMap').setView([3.5952, 98.6722], 7);
 
-    // Add Mapbox tiles with token from backend
+    // Add Mapbox tiles
     const mapboxToken = '{{ mapbox_token }}';
     if (mapboxToken) {
         L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
@@ -412,7 +479,6 @@
             accessToken: mapboxToken
         }).addTo(map);
     } else {
-        // Fallback to OpenStreetMap
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             maxZoom: 19
@@ -421,9 +487,10 @@
 
     // Add markers for sites with tickets
     const sites = {{ site_markers | tojson }};
+    const plannedSites = {{ planned_site_markers | tojson }};
     let allMarkers = [];
 
-    // Create all markers first
+    // Create ticket markers
     sites.forEach(site => {
         const marker = L.marker([site.lat, site.long], {
             icon: createCustomMarker(site.status, site.ticket_count)
@@ -447,20 +514,49 @@
         `;
         
         marker.bindPopup(popupContent);
-        markers.addLayer(marker);
+        ticketMarkers.addLayer(marker);
         
         allMarkers.push({
             marker: marker,
-            searchText: `${site.site_id} ${site.name} ${site.kabupaten}`.toLowerCase()
+            searchText: `${site.site_id} ${site.name} ${site.kabupaten}`.toLowerCase(),
+            type: 'ticket'
         });
     });
 
-    // Add the marker cluster group to the map
-    map.addLayer(markers);
+    // Create planned site markers
+    plannedSites.forEach(site => {
+        const marker = L.marker([site.lat, site.long], {
+            icon: createCustomMarker('PLANNED', 'P', true)
+        });
+        
+        const popupContent = `
+            <div class="site-popup">
+                <h5>${site.site_id} - ${site.name}</h5>
+                <p>Kabupaten: ${site.kabupaten}</p>
+                <p>ENOM: ${site.enom_username}</p>
+                <p>Planned Actions: ${site.planned_actions}</p>
+                <p>Estimated Duration: ${site.estimated_duration} minutes</p>
+            </div>
+        `;
+        
+        marker.bindPopup(popupContent);
+        plannedMarkers.addLayer(marker);
+        
+        allMarkers.push({
+            marker: marker,
+            searchText: `${site.site_id} ${site.name} ${site.kabupaten}`.toLowerCase(),
+            type: 'planned'
+        });
+    });
+
+    // Add the marker cluster groups to the map
+    map.addLayer(ticketMarkers);
+    map.addLayer(plannedMarkers);
 
     // Fit the map to show all markers
-    if (sites.length > 0) {
-        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+    const allLayers = L.featureGroup([ticketMarkers, plannedMarkers]);
+    if (allLayers.getLayers().length > 0) {
+        map.fitBounds(allLayers.getBounds(), { padding: [50, 50] });
     }
 
     // Initialize search functionality
@@ -473,11 +569,12 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 const searchText = e.target.value.toLowerCase();
-                allMarkers.forEach(({marker, searchText: markerText}) => {
+                allMarkers.forEach(({marker, searchText: markerText, type}) => {
+                    const markerGroup = type === 'planned' ? plannedMarkers : ticketMarkers;
                     if (searchText === '' || markerText.includes(searchText)) {
-                        markers.addLayer(marker);
+                        markerGroup.addLayer(marker);
                     } else {
-                        markers.removeLayer(marker);
+                        markerGroup.removeLayer(marker);
                     }
                 });
             }, 300);
@@ -488,7 +585,10 @@
         clearButton.addEventListener('click', () => {
             if (searchInput) {
                 searchInput.value = '';
-                allMarkers.forEach(({marker}) => markers.addLayer(marker));
+                allMarkers.forEach(({marker, type}) => {
+                    const markerGroup = type === 'planned' ? plannedMarkers : ticketMarkers;
+                    markerGroup.addLayer(marker);
+                });
             }
         });
     }
@@ -496,24 +596,40 @@
     // Initialize map controls
     const centerButton = document.getElementById('center-indonesia');
     const toggleClustersButton = document.getElementById('toggle-clusters');
+    const togglePlannedButton = document.getElementById('toggle-planned');
     let clusteringEnabled = true;
+    let plannedSitesVisible = true;
 
     if (centerButton) {
         centerButton.addEventListener('click', () => {
-            map.setView([3.5952, 98.6722], 7);  // Changed coordinates and zoom level
+            map.setView([3.5952, 98.6722], 7);
         });
     }
 
     if (toggleClustersButton) {
         toggleClustersButton.addEventListener('click', () => {
             if (clusteringEnabled) {
-                map.removeLayer(markers);
+                map.removeLayer(ticketMarkers);
+                map.removeLayer(plannedMarkers);
                 allMarkers.forEach(({marker}) => marker.addTo(map));
             } else {
                 allMarkers.forEach(({marker}) => map.removeLayer(marker));
-                markers.addTo(map);
+                map.addLayer(ticketMarkers);
+                map.addLayer(plannedMarkers);
             }
             clusteringEnabled = !clusteringEnabled;
+        });
+    }
+
+    if (togglePlannedButton) {
+        togglePlannedButton.addEventListener('click', () => {
+            if (plannedSitesVisible) {
+                map.removeLayer(plannedMarkers);
+            } else {
+                map.addLayer(plannedMarkers);
+            }
+            plannedSitesVisible = !plannedSitesVisible;
+            togglePlannedButton.classList.toggle('active');
         });
     }
 
@@ -575,12 +691,35 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
+    .custom-map-controls .btn.active {
+        background-color: #007bff;
+        color: white;
+    }
+    
     .search-loading {
         position: absolute;
         right: 45px;
         top: 50%;
         transform: translateY(-50%);
         color: #666;
+    }
+
+    .site-popup {
+        max-width: 300px;
+    }
+
+    .site-popup h5 {
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+
+    .site-popup p {
+        margin-bottom: 5px;
+    }
+
+    #topPlannedSitesChart {
+        height: 300px;
     }
 </style>
 {% endblock %}

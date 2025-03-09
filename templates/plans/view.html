@@ -53,6 +53,7 @@
                     <th>Order</th>
                     <th>Site</th>
                     <th>Planned Actions</th>
+                    <th>tim TS</th>
                     <th>Updated Actions</th>
                     <th>Duration</th>
                 </tr>
@@ -63,6 +64,7 @@
                     <td>{{ site.visit_order }}</td>
                     <td>{{ site.site.site_id }} - {{ site.site.name }}</td>
                     <td>{{ site.planned_actions }}</td>
+                    <td>{{ site.assignee }}</td>
                     <td>
                         {% if plan.status.name in ['SUBMITTED', 'APPROVED', 'REJECTED'] %}
                             {{ site.updated_actions }}
