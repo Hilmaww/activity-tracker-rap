@@ -9,7 +9,7 @@ from sqlalchemy import or_, func
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
 from flask import jsonify, abort
-from werkzeug.urls import parse_url
+from werkzeug.routing import parse_url
 import re
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
