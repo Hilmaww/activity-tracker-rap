@@ -396,7 +396,7 @@
     // Top Planned Sites Chart
     var topPlannedSitesCtx = document.getElementById('topPlannedSitesChart').getContext('2d');
     var topPlannedSitesData = {{ top_planned_sites_data | tojson }};
-    new Chart(topPlannedSitesCtx, {
+    const topPlannedSitesChart = new Chart(topPlannedSitesCtx, {
         type: 'bar',
         data: {
             labels: topPlannedSitesData.site_ids.map((id, index) => `${id} - ${topPlannedSitesData.site_names[index]}`),
