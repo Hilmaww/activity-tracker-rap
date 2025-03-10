@@ -227,7 +227,9 @@
                     {% else %}
                         <p class="text-muted mb-3">No planned site visits in the last 2 weeks.</p>
                     {% endif %}
-                    <canvas id="topPlannedSitesChart" style="height: 300px; width: 300px;"></canvas>
+                    <div class="chart-wrapper">
+                        <canvas id="topPlannedSitesChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -410,7 +412,7 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom'
