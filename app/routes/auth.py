@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import urlparse
 from app.models import User
 from app import db, limiter
 import re
@@ -9,9 +10,10 @@ from datetime import datetime, timedelta
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 def is_safe_url(target):
-    ref_url = request.host_url
-    test_url = target.replace(ref_url, '')
-    return not bool(re.search(r'[^/\w\s-]', test_url))
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(target)
+
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
