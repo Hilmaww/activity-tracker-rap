@@ -85,6 +85,14 @@
                                               {% if plan.status.name == 'DRAFT' %}disabled{% endif %}
                                               >{{ site.updated_actions }}</textarea>
                                 </div>
+                                <div class="col-md-3"></div>
+                                    <label for="ts_{{ loop.index }}">TS</label>
+                                    <input type="text" 
+                                           name="ts[]" 
+                                           class="form-control" 
+                                           id="ts_{{ loop.index }}" 
+                                           value="{{ site.assignee }}">
+                                </div>
                                 <div class="col-md-3">
                                     <label for="duration_{{ loop.index }}">Duration (minutes)</label>
                                     <input type="number" 
@@ -123,6 +131,14 @@
                                               rows="2" 
                                               required 
                                               placeholder="Enter planned actions..."></textarea>
+                                </div>
+                                <div class="col-md-3"></div>
+                                    <label for="ts_1">TS</label>
+                                    <input type="text" 
+                                           name="ts[]" 
+                                           class="form-control" 
+                                           id="ts_1" 
+                                           value="None">
                                 </div>
                                 <div class="col-md-3">
                                     <label for="duration_1">Duration (minutes)</label>

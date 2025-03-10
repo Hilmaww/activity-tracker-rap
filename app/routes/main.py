@@ -838,6 +838,7 @@ def edit_plan(plan_id):
                 # Add new planned sites
                 site_ids = request.form.getlist('site_id[]')
                 actions = request.form.getlist('planned_actions[]')
+                ts = request.form.getlist('ts[]')
                 durations = request.form.getlist('duration[]')
                 if new_status != PlanStatus.DRAFT:
                     updated_actions = request.form.getlist('updated_actions[]')
@@ -849,6 +850,7 @@ def edit_plan(plan_id):
                         daily_plan_id=plan.id,
                         site_id=site_id,
                         planned_actions=actions[i],
+                        assignee=ts[i],
                         visit_order=i + 1,
                         estimated_duration=durations[i],
                         updated_actions=updated_actions[i] if new_status != PlanStatus.DRAFT else 'Not Done Yet'
