@@ -194,8 +194,13 @@ function parsePlanText() {
         line = line.trim();
         
         // Check if line is an assignee line
-        if (line.toLowerCase().startsWith('bang @') || line.toLowerCase().startsWith('bg @')) {
-            let assignees = line.split('@').slice(1).map(a => a.split(' ')[0]).join(', ');
+        if (line.toLowerCase().startsWith('bang ') || line.toLowerCase().startsWith('bg ')) {
+            let assignees = line
+                .split(' ') // Split by spaces
+                .filter(word => word.startsWith('@') || word.toLowerCase() !== 'bang' && word.toLowerCase() !== 'bg') // Keep words that start with '@' or are names
+                .map(word => word.replace('@', '')) // Remove '@' symbol if present
+                .join(', '); // Convert array to a string
+
             currentAssignee = assignees;
             return;
         }
@@ -203,7 +208,7 @@ function parsePlanText() {
         // Check if line is a site entry
         if (line.startsWith('#') || line.startsWith('*') || line.startsWith('-')) {
             const siteInfo = line.substring(1).trim();
-            const siteId = siteInfo.split(' ')[0].toUpperCase();
+            const siteId = siteInfo.split(' ')[0].substring(0, 6).toUpperCase();
             const actions = siteInfo.substring(siteId.length).trim();
             
             if (siteId && actions) {

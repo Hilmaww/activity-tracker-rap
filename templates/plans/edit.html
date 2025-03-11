@@ -35,7 +35,7 @@
                             <select class="form-select" id="status" name="status" required>
                                 {% if current_user.role == 'enom' %}
                                     <option value="DRAFT" {% if plan.status.name == 'DRAFT' %}selected{% endif %}>Draft</option>
-                                    <option value="SUBMITTED" {% if plan.status.name == 'SUBMITTED' or plan.status.name == 'APPROVED' %}selected{% endif %}>Submit for Review</option>
+                                    <option value="SUBMITTED" {% if plan.status.name == 'SUBMITTED' or plan.status.name == 'APPROVED' or plan.status.name == 'REJECTED' %}selected{% endif %}>Submit for Review</option>
                                 {% elif current_user.role == 'tsel' %}
                                     <option value="APPROVED" {% if plan.status.name == 'APPROVED' %}selected{% endif %}>Approve</option>
                                     <option value="REJECTED" {% if plan.status.name == 'REJECTED' %}selected{% endif %}>Reject</option>
