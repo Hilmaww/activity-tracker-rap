@@ -24,9 +24,7 @@
                             <input type="date" class="form-control" id="plan_date" name="plan_date" 
                                    value="{{ plan.plan_date.strftime('%Y-%m-%d') }}" required>
                             <div class="invalid-feedback">Please select a valid date.</div>
-                            <small class="form-text text-muted formatted-date">
-                                {{ plan.plan_date.strftime('%m-%d-%Y') }}
-                            </small>
+
                         </div>
                     </div>
                     <div class="col-md-6">

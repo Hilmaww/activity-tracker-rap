@@ -127,10 +127,10 @@ class PlanManager {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        if (planDate < today) {
-            valid = false;
-            $('#plan_date').addClass('is-invalid');
-        }
+        // if (planDate < today) {
+        //     valid = false;
+        //     $('#plan_date').addClass('is-invalid');
+        // }
         
         // Validate each site row
         $('.planned-site').each(function() {
