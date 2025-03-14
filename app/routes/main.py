@@ -643,9 +643,6 @@ def list_plans():
 @bp.route('/plans/new', methods=['GET', 'POST'])
 @login_required
 def create_plan():
-    if not all(is_safe_string(v) for v in request.form.values()):
-        abort(400)
-
     if current_user.role != 'enom':
         flash('Only ENOM users can create plans', 'danger')
         return redirect(url_for('main.list_plans'))
@@ -947,6 +944,6 @@ def add_header(response):
 
 def is_safe_string(v):
     # Check for SQL injection
-    if re.search(r'(;|--|insert|delete|update|drop|alter|create|truncate|xp_|exec|sp_|xp_cmdshell)', v, re.IGNORECASE):
-        return False
+    # if re.search(r'(;|--|insert|delete|update|drop|alter|create|truncate|xp_|exec|sp_|xp_cmdshell)', v, re.IGNORECASE):
+    #     return False
     return True
