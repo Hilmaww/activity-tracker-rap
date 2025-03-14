@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from app.models import User
 from app import db, limiter
 import re
@@ -11,7 +11,7 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 def is_safe_url(target):
     ref_url = urlparse(request.host_url)
-    test_url = urlparse(target)
+    test_url = urlparse(urljoin(request.host_url, target))  # Handles relative URLs
 
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 

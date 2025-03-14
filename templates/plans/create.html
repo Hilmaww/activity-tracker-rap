@@ -194,7 +194,7 @@ function parsePlanText() {
         line = line.trim();
         
         // Check if line is an assignee line
-        if (line.toLowerCase().startsWith('bang ') || line.toLowerCase().startsWith('bg ')) {
+        if (line.toLowerCase().startsWith('bang') || line.toLowerCase().startsWith('bg')) {
             let assignees = line
                 .split(' ') // Split by spaces
                 .filter(word => word.startsWith('@') || word.toLowerCase() !== 'bang' && word.toLowerCase() !== 'bg') // Keep words that start with '@' or are names
@@ -238,7 +238,7 @@ function parsePlanText() {
     });
     
     // Show preview table
-    showPreview(parsedSites);
+    // showPreview(parsedSites);
 }
 
 function showPreview(sites) {
