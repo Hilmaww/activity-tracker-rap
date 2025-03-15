@@ -176,14 +176,20 @@ def create_app(config=None):
     @app.after_request
     def add_security_headers(response):
         """Dynamically add security headers, replacing the {nonce} placeholder in CSP."""
+        if hasattr(g, 'nonce_value'):  # Ensure nonce_value is set
+            nonce = g.nonce_value
+        else:
+            nonce = Config.generate_nonce()  # Fallback (shouldn't happen if before_request is working)
+
         if 'Content-Security-Policy' in app.config['SECURITY_HEADERS']:
-            response.headers['Content-Security-Policy'] = app.config['SECURITY_HEADERS']['Content-Security-Policy'].format(nonce=g.nonce_value)
+            response.headers['Content-Security-Policy'] = app.config['SECURITY_HEADERS']['Content-Security-Policy'].format(nonce=nonce)
         
         for header, value in app.config['SECURITY_HEADERS'].items():
             if header != 'Content-Security-Policy':  # Avoid overriding CSP twice
                 response.headers[header] = value
 
         return response
+
 
     @app.context_processor
     def inject_nonce():
