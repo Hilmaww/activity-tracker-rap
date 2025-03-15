@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import redis
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -48,26 +49,6 @@ logger.addHandler(file_handler)
 
 load_dotenv()
 
-def validate_request():
-    """Middleware to validate request parameters and URLs"""
-    if request.args:
-        # Block file:// protocol
-        for value in request.args.values():
-            if isinstance(value, str):
-                if value.startswith('file:'):
-                    abort(403)
-                
-                # Validate URLs in parameters
-                if any(value.startswith(prefix) for prefix in ['http://', 'https://']):
-                    parsed = urlparse(value)
-                    # Only allow specific domains
-                    if parsed.netloc not in ['cdn.jsdelivr.net', 'unpkg.com', 'code.jquery.com']:
-                        abort(403)
-        
-        # Block known dangerous parameters
-        dangerous_params = ['wp_automatic', 'action', 'preview', 'load', 'proxy']
-        if any(param in request.args for param in dangerous_params):
-            abort(403)
 
 def create_app(config=None):
     app = Flask(__name__)
@@ -76,6 +57,13 @@ def create_app(config=None):
         app.config.from_object('config.Config')
     else:
         app.config.from_object(config)
+
+    # Initialize Flask-Limiter with Redis
+    limiter = Limiter(
+        key_func=get_remote_address, 
+        storage_uri="redis://localhost:6379"
+    )
+    limiter.init_app(app)  # This applies rate limiting to the Flask app
 
     # Set the SERVER_NAME to your domain
     app.config['SERVER_NAME'] = 'pataro.hilmifawwaz.xyz'
@@ -136,8 +124,47 @@ def create_app(config=None):
     def log_request_info():
         app.logger.debug('Headers: %s', request.headers)
         app.logger.debug('Body: %s', request.get_data())
+    
+    @app.before_request
+    def block_bad_user_agents():
+        user_agent = request.headers.get('User-Agent', '')
+        if not user_agent or 'python' in user_agent.lower() or 'curl' in user_agent.lower():
+            abort(403)
+    
+    @app.before_request
+    def detect_attackers():
+        client_ip = request.remote_addr
+        key = f"failed_attempts:{client_ip}"
 
-    app.before_request(validate_request)
+        # Increment failed attempts (Expire after 60 sec)
+        count = redis.Redis(host='localhost', port=6379, db=0).incr(key)
+        redis.Redis(host='localhost', port=6379, db=0).expire(key, 60)
+
+        if count > 10:  # More than 10 failed requests in 60 sec?
+            abort(403)  # Block the user
+
+    @app.before_request
+    def validate_request():
+        """Middleware to validate request parameters and URLs"""
+        if request.args:
+            for key, value in request.args.items():
+                if isinstance(value, str):
+                    # Block file:// protocol
+                    if value.startswith('file:'):
+                        abort(403)
+
+                    # Validate URLs in parameters (except search queries)
+                    if any(value.startswith(prefix) for prefix in ['http://', 'https://']):
+                        if key == 'search':  
+                            continue  # Allow URLs in search queries
+                        parsed = urlparse(value)
+                        if parsed.netloc not in ['cdn.jsdelivr.net', 'unpkg.com', 'code.jquery.com']:
+                            abort(403)
+
+            # Block known dangerous parameters (but only as keys, not values)
+            dangerous_params = ['wp_automatic', 'action', 'preview', 'load', 'proxy']
+            if any(param in request.args.keys() for param in dangerous_params):
+                abort(403)
 
     with app.app_context():
         db.create_all()

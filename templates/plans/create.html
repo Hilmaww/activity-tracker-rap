@@ -77,13 +77,11 @@ $(document).ready(function() {
             dataType: 'json',
             delay: 250,
             data: function(params) {
-                console.log('Search params:', params); // Debug log
                 return {
                     term: params.term || ''
                 };
             },
             processResults: function(data) {
-                console.log('Received data:', data); // Debug log
                 return {
                     results: data.results,
                     pagination: data.pagination
@@ -104,7 +102,6 @@ $(document).ready(function() {
         if (!site.id) {
             return site.text;
         }
-        console.log('Formatting site:', site); // Debug log
         return $('<div class="site-option">' +
             '<div class="site-name">' + site.text + '</div>' +
             (site.kabupaten ? '<small class="text-muted">Kabupaten: ' + site.kabupaten + '</small>' : '') +

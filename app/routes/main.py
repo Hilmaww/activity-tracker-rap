@@ -303,53 +303,58 @@ def index():
 def list_tickets():
     # Get filter parameters
     status_filter = request.args.get('status')
-    search_query = request.args.get('search')
+    search_query = request.args.get('search', '').strip()
     category_filter = request.args.get('category')
-    site_filter = request.args.get('site')
-    
-    # Get page number from request args, default to 1
+    site_filter = request.args.get('site', type=int)
+
+    # Validate enums safely
+    status_enum = TicketStatus.get(status_filter) if status_filter in TicketStatus.__members__ else None
+    category_enum = ProblemCategory.get(category_filter) if category_filter in ProblemCategory.__members__ else None
+
+    # Get page number, limit items per page
     page = request.args.get('page', 1, type=int)
-    per_page = 30  # Number of items per page
-    
+    per_page = min(request.args.get('per_page', 30, type=int), 100)  # Prevent abuse
+
     # Start with base query
     query = Ticket.query
-    
-    # Apply filters
-    if status_filter:
-        query = query.filter(Ticket.status == TicketStatus[status_filter])
-    if category_filter:
-        query = query.filter(Ticket.problem_category == ProblemCategory[category_filter])
+
+    # Apply filters safely
+    if status_enum:
+        query = query.filter(Ticket.status == status_enum)
+    if category_enum:
+        query = query.filter(Ticket.problem_category == category_enum)
     if site_filter:
         query = query.filter(Ticket.site_id == site_filter)
     if search_query:
         query = query.filter(or_(
-            Ticket.ticket_number.ilike(f'%{search_query}%'),
-            Ticket.created_by.ilike(f'%{search_query}%'),
-            Ticket.description.ilike(f'%{search_query}%')
+            Ticket.ticket_number.ilike(f"%{search_query}%"),
+            Ticket.created_by.ilike(f"%{search_query}%"),
+            Ticket.description.ilike(f"%{search_query}%")
         ))
-    
-    # Filter by ENOM user if current user is ENOM
-    try:    
-        if current_user.role == 'enom':
-            query = query.filter(Ticket.assigned_to_enom==EnomAssignee[current_user.username.split('_')[0].upper()])
-    except Exception as e:
-        logger.error(f"Error filtering by ENOM user. There are no such ENOM users in the database: {str(e)}")
-        pass
-    
+
+    # Filter by ENOM user
+    if current_user.role == 'enom':
+        try:
+            enom_enum = EnomAssignee.get(current_user.username.split('_')[0].upper())
+            if enom_enum:
+                query = query.filter(Ticket.assigned_to_enom == enom_enum)
+        except KeyError as e:
+            logger.warning(f"Invalid ENOM user: {str(e)}")
+
     # Order and paginate the query
     pagination = query.order_by(Ticket.created_at.desc()).paginate(
         page=page, 
         per_page=per_page,
         error_out=False
     )
-    
+
     sites = Site.query.all()
     return render_template('tickets.html', 
-                         pagination=pagination,
-                         tickets=pagination.items, 
-                         sites=sites,
-                         categories=ProblemCategory,
-                         statuses=TicketStatus)
+                           pagination=pagination,
+                           tickets=pagination.items, 
+                           sites=sites,
+                           categories=ProblemCategory,
+                           statuses=TicketStatus)
 
 @bp.route('/tickets/new', methods=['GET', 'POST'])
 @login_required
