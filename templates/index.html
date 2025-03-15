@@ -52,6 +52,7 @@
         <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
         {% endif %}
         <a href="/tickets" class="btn btn-secondary">View All Tickets</a>
+        <a href="/plans" class="btn btn-secondary">View My Plans</a>
     </div>
 
     <!-- Add this after the status cards section -->
@@ -234,7 +235,7 @@
             </div>
         </div>
     </div>
-
+    {% endif %}
     <!-- Map Section -->
     <div class="map-container">
         <h4 class="text-center mb-4">Site Locations with Active Tickets and Today's Planned Visits</h4>
@@ -266,7 +267,7 @@
             </div>
         </div>
     </div>
-    {% endif %}
+    
 {% endblock %}
 
 {% block extra_js %}

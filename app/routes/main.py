@@ -371,6 +371,7 @@ def create_ticket():
                 problem_category=request.form['problem_category'],
                 description=request.form['description'],
                 created_by=current_user.username,
+                created_by_id=current_user.id,
                 assigned_to_enom=request.form.get('assigned_to_enom'),
                 created_at=current_time,
                 status=TicketStatus.OPEN
@@ -383,7 +384,8 @@ def create_ticket():
                 ticket_id=new_ticket.id,
                 action_text="Ticket created",
                 created_by=current_user.username,
-                created_at=current_time
+                created_at=current_time,
+                created_by_id=current_user.id
             )
             db.session.add(action)
             db.session.commit()
@@ -428,6 +430,7 @@ def add_action(ticket_id):
             action_text=request.form['action_text'],
             photo_path=photo_path,
             created_by=request.form['created_by'],
+            created_by_id=current_user.id,
             created_at=current_time
         )
 
@@ -464,6 +467,7 @@ def update_ticket_status(ticket_id):
             ticket_id=ticket_id,
             action_text=action_text,
             created_by=request.form.get('created_by', 'system'),
+            created_by_id=current_user.id,
             created_at=current_time
         )
         
@@ -887,10 +891,7 @@ def delete_plan(plan_id):
     plan = DailyPlan.query.get_or_404(plan_id)
     
     # Check permissions
-    if current_user.role != 'tsel' and (
-        current_user.role != 'enom' or 
-        plan.enom_user_id != current_user.id
-    ):
+    if current_user.role != 'tsel':
         flash('You do not have permission to delete this plan. Request to delete plan from TSEL admin', 'danger')
         return redirect(url_for('main.list_plans'))
     

@@ -96,11 +96,13 @@
                                   (current_user.id == plan.enom_user_id) %}
                                 <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
                                    class="btn btn-sm btn-warning">Edit</a>
+                                {% if current_user.role == 'tsel'}
                                 <button type="button" 
                                         class="btn btn-sm btn-danger"
                                         onclick="confirmDelete({{ plan.id }})">
                                     Delete
                                 </button>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </td>

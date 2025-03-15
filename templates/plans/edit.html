@@ -56,15 +56,19 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <label for="site-select-{{ loop.index }}">Site</label>
-                                    <select class="site-select form-select" 
-                                            id="site-select-{{ loop.index }}" 
-                                            name="site_id[]" 
+                                    <select class="site-select form-select"
+                                            id="site-select-{{ loop.index }}"
+                                            name="site_id[]"
                                             required>
-                                        {% if site.site %}
-                                            <option value="{{ site.site.id }}" selected>
-                                                {{ site.site.site_id }} - {{ site.site.name }}
-                                            </option>
-                                        {% endif %}
+                                        <option value="">Select a site...</option>
+                                        {% for site in sites %}
+                                        <option value="{{ site.id }}" 
+                                                data-name="{{ site.name }}" 
+                                                data-location="{{ site.location }}"
+                                                {% if site.id == site.site.id %}selected{% endif %}>
+                                            {{ site.name }} - {{ site.location }}
+                                        </option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                                 <div class="col-md-3">
@@ -189,7 +193,7 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Initialize Select2 for all existing site selects
+    // Initialize Select2 for all site dropdowns
     $('.site-select').each(function() {
         initializeSelect2($(this));
     });
@@ -210,59 +214,39 @@ $(document).ready(function() {
                         page: params.page || 1
                     };
                 },
-                processResults: function(data, params) {
-                    params.page = params.page || 1;
+                processResults: function(data) {
                     return {
                         results: data.results.map(site => ({
                             id: site.id,
                             text: `${site.site_id} - ${site.name}`,
-                            site_id: site.site_id,
-                            name: site.name,
                             kabupaten: site.kabupaten
                         })),
                         pagination: {
-                            more: (params.page * 10) < data.total_count
+                            more: (data.page * 10) < data.total_count
                         }
                     };
                 },
                 cache: true
             },
             minimumInputLength: 2,
-            templateResult: formatSiteResult,
-            templateSelection: formatSiteSelection
+            templateResult: formatSite,
+            templateSelection: formatSite
         });
     }
 
-    function formatSiteResult(site) {
-        if (!site.id) return site.text;
+    function formatSite(site) {
+        if (!site.id) {
+            return site.text;
+        }
         return $(`
-            <div class="site-result">
+            <div class="site-option">
                 <div class="site-name">${site.text}</div>
-                ${site.kabupaten ? `
-                    <small class="text-muted">
-                        <i class="fas fa-map-marker-alt"></i> ${site.kabupaten}
-                    </small>
-                ` : ''}
+                ${site.kabupaten ? `<small class="text-muted">Kabupaten: ${site.kabupaten}</small>` : ''}
             </div>
         `);
     }
 
-    function formatSiteSelection(site) {
-        if (!site.id) return site.text;
-        return site.text;
-    }
-
-    // Format date input to dd-mm-yyyy
-    function formatDate(date) {
-        return date.split('-').reverse().join('-');
-    }
-
-    $('#plan_date').on('change', function() {
-        const formattedDate = formatDate($(this).val());
-        $('.formatted-date').text(formattedDate);
-    });
-
-    // Add site button handler
+    // Reinitialize Select2 when adding a new site row
     $('#add-site').on('click', function() {
         const siteCount = $('.planned-site').length + 1;
         const newSite = `
@@ -270,29 +254,17 @@ $(document).ready(function() {
                 <div class="row">
                     <div class="col-md-4">
                         <label for="site-select-${siteCount}">Site</label>
-                        <select class="site-select form-control" 
-                                id="site-select-${siteCount}" 
-                                name="site_id[]" 
-                                required>
+                        <select class="site-select form-control" id="site-select-${siteCount}" name="site_id[]" required>
+                            <option value="">Select a site...</option>
                         </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Planned Actions</label>
-                        <textarea class="form-control" 
-                                name="planned_actions[]" 
-                                rows="2" 
-                                required 
-                                placeholder="Enter planned actions..."></textarea>
+                        <textarea class="form-control" name="planned_actions[]" rows="2" required></textarea>
                     </div>
                     <div class="col-md-3">
                         <label for="duration_${siteCount}">Duration (minutes)</label>
-                        <input type="number" 
-                               name="duration[]" 
-                               class="form-control" 
-                               id="duration_${siteCount}" 
-                               min="15" 
-                               max="480" 
-                               value="15">
+                        <input type="number" name="duration[]" class="form-control" id="duration_${siteCount}" min="15" max="480" value="15">
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">&nbsp;</label>
@@ -306,7 +278,7 @@ $(document).ready(function() {
         
         $('#planned-sites').append(newSite);
         
-        // Initialize Select2 for the new select
+        // Initialize Select2 for the new site dropdown
         initializeSelect2($(`#site-select-${siteCount}`));
     });
 
