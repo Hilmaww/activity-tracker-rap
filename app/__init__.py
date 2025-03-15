@@ -170,7 +170,8 @@ def create_app(config=None):
     @app.before_request
     def before_request():
         """Generate a new nonce for each request and store it in `g` (Flask's global object)."""
-        g.nonce_value = Config.generate_nonce()
+        if not hasattr(g, 'nonce_value'):
+            g.nonce_value = Config.generate_nonce()
     
     @app.after_request
     def add_security_headers(response):
@@ -187,7 +188,7 @@ def create_app(config=None):
     @app.context_processor
     def inject_nonce():
         """Make nonce_value available in Jinja templates."""
-        return {'nonce_value': g.nonce_value}
+        return {'nonce_value': getattr(g, 'nonce_value', '')}
 
     with app.app_context():
         db.create_all()

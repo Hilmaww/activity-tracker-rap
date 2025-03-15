@@ -46,7 +46,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script nonce="{{ nonce_value }}">
+<script nonce="{{ nonce_value | default('') }}">
     document.addEventListener("DOMContentLoaded", function() {
         let now = new Date(); 
         let jakartaDate = new Intl.DateTimeFormat('en-CA', { 

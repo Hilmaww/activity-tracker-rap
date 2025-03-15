@@ -136,7 +136,7 @@
 </div>
 
 <!-- Add JavaScript for delete confirmation -->
-<script nonce="{{ nonce_value }}">
+<script nonce="{{ nonce_value | default('') }}">
 function confirmDelete(planId) {
     const modal = new bootstrap.Modal(document.getElementById('deletePlanModal'));
     const form = document.getElementById('deletePlanForm');

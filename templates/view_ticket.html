@@ -162,7 +162,7 @@
     </div>
 </div>
 
-<script nonce="{{ nonce_value }}">
+<script nonce="{{ nonce_value | default('') }}">
 function toggleEditDescription() {
     const form = document.getElementById('editDescriptionForm');
     const display = document.getElementById('descriptionDisplay');

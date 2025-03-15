@@ -175,7 +175,7 @@
 </div>
 
 <!-- Add JavaScript for auto-submit on select change -->
-<script nonce="{{ nonce_value }}">
+<script nonce="{{ nonce_value | default('') }}">
 document.addEventListener('DOMContentLoaded', function() {
     const filterForm = document.querySelector('form');
     const selectElements = filterForm.querySelectorAll('select');
