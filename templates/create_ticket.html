@@ -12,7 +12,7 @@
                 <option value="">Select a site...</option>
                 {% for site in sites %}
                 <option value="{{ site.id }}" data-name="{{ site.name }}" data-location="{{ site.location }}">
-                    {{ site.id }} - {{ site.id }}
+                    {{ site.site_id }} - {{ site.name }}
                 </option>
                 {% endfor %}
             </select>
