@@ -60,12 +60,11 @@
                                             id="site-select-{{ loop.index }}"
                                             name="site_id[]"
                                             required>
-                                        <option value="">Select a site...</option>
                                         {% for site in sites %}
                                         <option value="{{ site.id }}" 
                                                 data-name="{{ site.name }}" 
                                                 data-location="{{ site.location }}"
-                                                {% if site.id == site.site.id %}selected{% endif %}>
+                                                selected>
                                             {{ site.name }} - {{ site.location }}
                                         </option>
                                         {% endfor %}
@@ -197,8 +196,13 @@ $(document).ready(function() {
     $('.site-select').each(function() {
         initializeSelect2($(this));
     });
-
+    // $(document).on('focus', '.site-select', function() {
+    //     if (!$(this).data('select2')) {  // Prevent re-initialization
+    //         initializeSelect2($(this));
+    //     }
+    // });
     function initializeSelect2($element) {
+        console.log('Initializing Select2 for:', $element.attr('id'));
         $element.select2({
             theme: 'bootstrap-5',
             placeholder: 'Search for a site...',
@@ -209,12 +213,14 @@ $(document).ready(function() {
                 dataType: 'json',
                 delay: 250,
                 data: function(params) {
+                    console.log("Search params:", params);
                     return {
                         term: params.term || '',
                         page: params.page || 1
                     };
                 },
                 processResults: function(data) {
+                    console.log("API response:", data);
                     return {
                         results: data.results.map(site => ({
                             id: site.id,
