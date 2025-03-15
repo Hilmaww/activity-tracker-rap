@@ -880,7 +880,8 @@ def edit_plan(plan_id):
                 flash(f'Error submitting plan: {str(e)}', 'danger')
                 return redirect(url_for('main.edit_plan', plan_id=plan.id))
 
-    return render_template('plans/edit.html', plan=plan)
+    all_sites = Site.query.all()
+    return render_template('plans/edit.html', plan=plan, sites=all_sites)
 
 @bp.route('/plans/<int:plan_id>/delete', methods=['POST'])
 @login_required

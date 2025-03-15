@@ -60,7 +60,7 @@
                                             id="site-select-{{ loop.index }}"
                                             name="site_id[]"
                                             required>
-                                        {% for per_site in site %}
+                                        {% for per_site in sites %}
                                         <option value="{{ per_site.id }}" 
                                                 data-name="{{ per_site.name }}" 
                                                 data-location="{{ per_site.location }}"
