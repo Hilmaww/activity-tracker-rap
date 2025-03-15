@@ -60,7 +60,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ g.nonce_value }}">
     $(document).ready(function() {
         // Initialize Select2 for site selection
         $('#site_id').select2({

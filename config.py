@@ -1,4 +1,5 @@
 import os
+import secrets  # Import secrets for nonce generation
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -43,22 +44,25 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
     
+    def generate_nonce(self):
+        return secrets.token_urlsafe(16)  # Generate a secure random nonce
+
     # Security Headers
     SECURITY_HEADERS = {
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",  # Enforce HTTPS
-    "X-Content-Type-Options": "nosniff",  # Prevent MIME-type sniffing
-    "X-Frame-Options": "DENY",  # Prevent clickjacking (was SAMEORIGIN, now stricter)
-    "Content-Security-Policy": (
-        "default-src 'self'; "
-        "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://code.jquery.com; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
-        "img-src 'self' data: https://*; "
-        "font-src 'self' https://cdnjs.cloudflare.com; "
-        "frame-ancestors 'none';"  # Prevents embedding in iframes
-    ),
-    "Referrer-Policy": "strict-origin-when-cross-origin",  # Prevents leaking referrer info
-    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",  # Blocks camera/mic usage
-}
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": (
+            "default-src 'self'; "
+            "script-src 'self' 'nonce-{nonce_value}' https://cdn.jsdelivr.net https://unpkg.com https://code.jquery.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
+            "img-src 'self' data: https://*; "
+            "font-src 'self' https://cdnjs.cloudflare.com; "
+            "frame-ancestors 'none';"
+        ),
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+    }
 
     # Rate limiting
     RATELIMIT_ENABLED = True

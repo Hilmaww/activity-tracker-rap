@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort
+from flask import Flask, render_template, request, abort, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
@@ -11,6 +11,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from urllib.parse import urlparse
+from config import Config
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -165,6 +166,10 @@ def create_app(config=None):
             dangerous_params = ['wp_automatic', 'action', 'preview', 'load', 'proxy']
             if any(param in request.args.keys() for param in dangerous_params):
                 abort(403)
+
+    @app.before_request
+    def before_request():
+        g.nonce_value = app.config['SECURITY_HEADERS']['Content-Security-Policy'].format(nonce_value=app.config['generate_nonce']())
 
     with app.app_context():
         db.create_all()
