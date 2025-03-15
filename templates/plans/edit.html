@@ -190,7 +190,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script nonce="{{ g.nonce_value }}">
+<script nonce="{{ nonce_value }}">
 $(document).ready(function() {
     // Initialize Select2 for all site dropdowns
     $('.site-select').each(function() {

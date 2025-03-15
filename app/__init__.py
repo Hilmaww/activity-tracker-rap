@@ -169,7 +169,25 @@ def create_app(config=None):
 
     @app.before_request
     def before_request():
-        g.nonce_value = app.config['SECURITY_HEADERS']['Content-Security-Policy'].format(nonce_value=app.config['generate_nonce']())
+        """Generate a new nonce for each request and store it in `g` (Flask's global object)."""
+        g.nonce_value = Config.generate_nonce()
+    
+    @app.after_request
+    def add_security_headers(response):
+        """Dynamically add security headers, replacing the {nonce} placeholder in CSP."""
+        if 'Content-Security-Policy' in app.config['SECURITY_HEADERS']:
+            response.headers['Content-Security-Policy'] = app.config['SECURITY_HEADERS']['Content-Security-Policy'].format(nonce=g.nonce_value)
+        
+        for header, value in app.config['SECURITY_HEADERS'].items():
+            if header != 'Content-Security-Policy':  # Avoid overriding CSP twice
+                response.headers[header] = value
+
+        return response
+
+    @app.context_processor
+    def inject_nonce():
+        """Make nonce_value available in Jinja templates."""
+        return {'nonce_value': g.nonce_value}
 
     with app.app_context():
         db.create_all()
