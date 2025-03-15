@@ -60,12 +60,12 @@
                                             id="site-select-{{ loop.index }}"
                                             name="site_id[]"
                                             required>
-                                        {% for site in sites %}
-                                        <option value="{{ site.id }}" 
-                                                data-name="{{ site.name }}" 
-                                                data-location="{{ site.location }}"
+                                        {% for per_site in site %}
+                                        <option value="{{ per_site.id }}" 
+                                                data-name="{{ per_site.name }}" 
+                                                data-location="{{ per_site.location }}"
                                                 selected>
-                                            {{ site.name }} - {{ site.location }}
+                                            {{ per_site.name }} - {{ per_site.location }}
                                         </option>
                                         {% endfor %}
                                     </select>
