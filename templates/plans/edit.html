@@ -65,7 +65,7 @@
                                                 data-name="{{ per_site.name }}" 
                                                 data-location="{{ per_site.location }}"
                                                 selected>
-                                            {{ per_site.name }} - {{ per_site.location }}
+                                            {{ per_site.id }} - {{ per_site.name }}
                                         </option>
                                         {% endfor %}
                                     </select>
@@ -202,7 +202,6 @@ $(document).ready(function() {
     //     }
     // });
     function initializeSelect2($element) {
-        console.log('Initializing Select2 for:', $element.attr('id'));
         $element.select2({
             theme: 'bootstrap-5',
             placeholder: 'Search for a site...',
@@ -222,14 +221,8 @@ $(document).ready(function() {
                 processResults: function(data) {
                     console.log("API response:", data);
                     return {
-                        results: data.results.map(site => ({
-                            id: site.id,
-                            text: `${site.site_id} - ${site.name}`,
-                            kabupaten: site.kabupaten
-                        })),
-                        pagination: {
-                            more: (data.page * 10) < data.total_count
-                        }
+                        results: data.results,
+                        pagination: data.pagination
                     };
                 },
                 cache: true
@@ -244,12 +237,11 @@ $(document).ready(function() {
         if (!site.id) {
             return site.text;
         }
-        return $(`
-            <div class="site-option">
-                <div class="site-name">${site.text}</div>
-                ${site.kabupaten ? `<small class="text-muted">Kabupaten: ${site.kabupaten}</small>` : ''}
-            </div>
-        `);
+        // For search results
+        return $('<div class="site-option">' +
+                '<div class="site-name">' + site.text + '</div>' +
+                (site.kabupaten ? '<small class="text-muted">Kabupaten: ' + site.kabupaten + '</small>' : '') +
+                '</div>');
     }
 
     // Reinitialize Select2 when adding a new site row
