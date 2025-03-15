@@ -44,6 +44,7 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
     
+    @staticmethod
     def generate_nonce(self):
         return secrets.token_urlsafe(16)  # Generate a secure random nonce
 
