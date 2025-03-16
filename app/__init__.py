@@ -141,7 +141,7 @@ def create_app(config=None):
         count = redis.Redis(host='localhost', port=6379, db=0).incr(key)
         redis.Redis(host='localhost', port=6379, db=0).expire(key, 60)
 
-        if count > 10:  # More than 10 failed requests in 60 sec?
+        if count > 50:  # More than 50 failed requests in 60 sec?
             abort(403)  # Block the user
 
     @app.before_request
