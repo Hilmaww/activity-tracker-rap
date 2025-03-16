@@ -54,18 +54,36 @@
         <table class="table table-hover">
             <thead>
                 <tr>
+                    <th>Actions</th>
                     <th>Date</th>
                     <th>ENOM User</th>
                     <th>Sites</th>
                     <th>Total Duration</th>
                     <th>Status</th>
                     <th>Created At</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for plan in plans %}
                 <tr class="{% if plan.plan_date == today %}table-info{% endif %}">
+                    <td>
+                        <div class="btn-group">
+                            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
+                               class="btn btn-sm btn-primary">View</a>
+                            {% if current_user.role == 'tsel' or 
+                                  (current_user.id == plan.enom_user_id) %}
+                                <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
+                                   class="btn btn-sm btn-warning">Edit</a>
+                                {% if current_user.role == 'tsel' %}
+                                <button type="button" 
+                                        class="btn btn-sm btn-danger"
+                                        onclick="confirmDelete({{ plan.id }})">
+                                    Delete
+                                </button>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
                     <td>
                         {{ plan.plan_date.strftime('%d-%m-%Y') }}
                         {% if plan.created_at_jakarta %}
@@ -88,24 +106,6 @@
                         </span>
                     </td>
                     <td>{{ plan.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}</td>
-                    <td>
-                        <div class="btn-group">
-                            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
-                               class="btn btn-sm btn-primary">View</a>
-                            {% if current_user.role == 'tsel' or 
-                                  (current_user.id == plan.enom_user_id) %}
-                                <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
-                                   class="btn btn-sm btn-warning">Edit</a>
-                                {% if current_user.role == 'tsel' %}
-                                <button type="button" 
-                                        class="btn btn-sm btn-danger"
-                                        onclick="confirmDelete({{ plan.id }})">
-                                    Delete
-                                </button>
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

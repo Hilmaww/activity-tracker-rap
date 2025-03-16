@@ -299,7 +299,7 @@ function handlePlanAction(planId, action) {
     }
 }
 
-function submitPlanAction(url, data = {}, shouldReload = false) {
+function submitPlanAction(url, data = {}, shouldReload = true) {
     $.ajax({
         url: url,
         type: 'POST',
@@ -310,7 +310,7 @@ function submitPlanAction(url, data = {}, shouldReload = false) {
         success: function(response) {
             toastr.success(response.message);
             if (shouldReload) {
-                setTimeout(() => window.location.reload(), 1500); // Delay reload for toastr message
+                window.location.reload()
             }
         },
         error: function(xhr) {
