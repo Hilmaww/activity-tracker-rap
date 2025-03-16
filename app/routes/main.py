@@ -304,11 +304,15 @@ def list_tickets():
     status_filter = request.args.get('status')
     search_query = request.args.get('search', '').strip()
     category_filter = request.args.get('category')
-    site_filter = request.args.get('site', type=int)
-
+    
+    try:
+        site_filter = int(request.args.get('site')) if request.args.get('site') else None
+    except ValueError:
+        site_filter = None  # Gracefully handle invalid site values
+    
     # Validate enums safely
-    status_enum = TicketStatus.get(status_filter) if status_filter in TicketStatus.__members__ else None
-    category_enum = ProblemCategory.get(category_filter) if category_filter in ProblemCategory.__members__ else None
+    status_enum = TicketStatus[status_filter] if status_filter in TicketStatus.__members__ else None
+    category_enum = ProblemCategory[category_filter] if category_filter in ProblemCategory.__members__ else None
 
     # Get page number, limit items per page
     page = request.args.get('page', 1, type=int)

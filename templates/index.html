@@ -7,7 +7,7 @@
             <div class="card text-center clickable" data-status="OPEN">
                 <div class="card-body">
                     <h5 class="card-title">Open Tickets</h5>
-                    <p class="card-text h3">{{ open_tickets }}</p>
+                    <p class="card-text h3">{{ open_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
@@ -15,7 +15,7 @@
             <div class="card text-center clickable" data-status="IN_PROGRESS">
                 <div class="card-body">
                     <h5 class="card-title">In Progress</h5>
-                    <p class="card-text h3">{{ in_progress_tickets }}</p>
+                    <p class="card-text h3">{{ in_progress_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
@@ -23,7 +23,7 @@
             <div class="card text-center clickable" data-status="PENDING">
                 <div class="card-body">
                     <h5 class="card-title">Pending</h5>
-                    <p class="card-text h3">{{ pending_tickets }}</p>
+                    <p class="card-text h3">{{ pending_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
@@ -31,7 +31,7 @@
             <div class="card text-center clickable" data-status="RESOLVED">
                 <div class="card-body">
                     <h5 class="card-title">Resolved</h5>
-                    <p class="card-text h3">{{ resolved_tickets }}</p>
+                    <p class="card-text h3">{{ resolved_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
@@ -39,7 +39,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <h5 class="card-title">Last 30 Days</h5>
-                    <p class="card-text h3">{{ total_30_days }}</p>
+                    <p class="card-text h3">{{ total_30_days | default(0) }}</p>
                     <small class="text-muted">Total Tickets</small>
                 </div>
             </div>
