@@ -162,7 +162,7 @@ def index():
         trend_data.append(count)
         trend_labels.append(date.strftime('%d-%m-%Y'))
 
-    # Base query
+    # Get sites with tickets for map
     sites_with_tickets_query = db.session.query(
         Site,
         func.count(Ticket.id).label('ticket_count')
@@ -173,7 +173,7 @@ def index():
     ).group_by(Site.id)
 
     # Apply additional filter only for 'tsel' users
-    if current_user.role != 'tsel':
+    if current_user.role == 'enom':
         sites_with_tickets_query = sites_with_tickets_query.filter(Ticket.assigned_to_enom == username_prefix)
 
     # Execute query
@@ -262,7 +262,7 @@ def index():
     )
 
     # Apply additional filter only for 'tsel' users
-    if current_user.role != 'tsel':
+    if current_user.role == 'enom':
         todays_planned_sites_query = todays_planned_sites_query.filter(Ticket.assigned_to_enom == username_prefix)
 
     # Execute query
