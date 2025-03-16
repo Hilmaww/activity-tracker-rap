@@ -310,7 +310,7 @@ function submitPlanAction(url, data = {}, shouldReload = true) {
         success: function(response) {
             toastr.success(response.message);
             if (shouldReload) {
-                window.location.reload()
+                setTimeout(() => window.location.reload(), 1500); // Delay reload for toastr message
             }
         },
         error: function(xhr) {
