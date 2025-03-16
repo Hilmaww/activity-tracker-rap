@@ -280,6 +280,7 @@
     });
 
     // Status Distribution Chart (30 days)
+    {% if current_user.role == 'tsel' %}
     const statusPieChart = new Chart(
         document.getElementById('statusPieChart'),
         {
@@ -428,6 +429,7 @@
             }
         }
     });
+    {% endif %}
 
     // Initialize the map with loading state
     const mapContainer = document.getElementById('siteMap');
