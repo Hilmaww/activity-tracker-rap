@@ -242,26 +242,6 @@ def index():
     }
 
     # Get today's planned sites for the map
-    todays_planned_sites = db.session.query(
-        Site,
-        DailyPlan.enom_user_id,
-        User.username.label('enom_username'),
-        PlannedSite.planned_actions,
-        PlannedSite.estimated_duration
-    ).join(
-        PlannedSite,
-        Site.id == PlannedSite.site_id
-    ).join(
-        DailyPlan,
-        PlannedSite.daily_plan_id == DailyPlan.id
-    ).join(
-        User,
-        DailyPlan.enom_user_id == User.id
-    ).filter(
-        DailyPlan.plan_date == today
-    ).all()
-
-    # Base query
     todays_planned_sites_query = db.session.query(
         Site,
         DailyPlan.enom_user_id,
