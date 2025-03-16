@@ -162,16 +162,22 @@ def index():
         trend_data.append(count)
         trend_labels.append(date.strftime('%d-%m-%Y'))
 
-    # Get sites with active tickets and their coordinates
-    sites_with_tickets = db.session.query(
+    # Base query
+    sites_with_tickets_query = db.session.query(
         Site,
         func.count(Ticket.id).label('ticket_count')
     ).join(
-        Ticket,
-        Site.id == Ticket.site_id
+        Ticket, Site.id == Ticket.site_id
     ).filter(
         Ticket.status.in_([TicketStatus.OPEN, TicketStatus.IN_PROGRESS, TicketStatus.PENDING])
-    ).group_by(Site.id).all()
+    ).group_by(Site.id)
+
+    # Apply additional filter only for 'tsel' users
+    if current_user.role != 'tsel':
+        sites_with_tickets_query = sites_with_tickets_query.filter(Ticket.assigned_to_enom == username_prefix)
+
+    # Execute query
+    sites_with_tickets = sites_with_tickets_query.all()
 
     # Format site data for the map
     site_markers = [{
@@ -254,6 +260,33 @@ def index():
     ).filter(
         DailyPlan.plan_date == today
     ).all()
+
+    # Base query
+    todays_planned_sites_query = db.session.query(
+        Site,
+        DailyPlan.enom_user_id,
+        User.username.label('enom_username'),
+        PlannedSite.planned_actions,
+        PlannedSite.estimated_duration
+    ).join(
+        PlannedSite,
+        Site.id == PlannedSite.site_id
+    ).join(
+        DailyPlan,
+        PlannedSite.daily_plan_id == DailyPlan.id
+    ).join(
+        User,
+        DailyPlan.enom_user_id == User.id
+    ).filter(
+        DailyPlan.plan_date == today
+    )
+
+    # Apply additional filter only for 'tsel' users
+    if current_user.role != 'tsel':
+        todays_planned_sites_query = todays_planned_sites_query.filter(Ticket.assigned_to_enom == username_prefix)
+
+    # Execute query
+    todays_planned_sites = todays_planned_sites_query.all()
 
     planned_site_markers = [{
         'id': site.Site.id,
