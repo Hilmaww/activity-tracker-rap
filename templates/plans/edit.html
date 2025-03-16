@@ -64,7 +64,7 @@
                                         <option value="{{ per_site.id }}" 
                                                 data-name="{{ per_site.name }}" 
                                                 data-location="{{ per_site.location }}"
-                                                {% if site.id == site.site.id %} selected {% endif %}>
+                                                {% if per_site.id == site.site.id %} selected {% endif %}>
                                             {{ per_site.site_id }} - {{ per_site.name }}
                                         </option>
                                         {% endfor %}
