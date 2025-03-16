@@ -334,7 +334,7 @@ def list_tickets():
     # Filter by ENOM user
     if current_user.role == 'enom':
         try:
-            enom_enum = EnomAssignee.get(current_user.username.split('_')[0].upper())
+            enom_enum = current_user.username.split('_')[0].upper()
             if enom_enum:
                 query = query.filter(Ticket.assigned_to_enom == enom_enum)
         except KeyError as e:
@@ -946,6 +946,7 @@ def delete_ticket(ticket_id):
 @bp.after_request
 def add_header(response):
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     return response
 
 def is_safe_string(v):
