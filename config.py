@@ -9,7 +9,7 @@ class Config:
     # Validate required environment variables
     required_env_vars = [
         'DB_USERNAME', 'DB_PASSWORD', 'DB_HOST', 'DB_NAME', 
-        'FLASK_SECRET_KEY', 'MAPBOX_TOKEN'
+        'FLASK_SECRET_KEY', 'MAPBOX_TOKEN', 'FLASK_ENV'
     ]
     
     missing_vars = [var for var in required_env_vars if not os.getenv(var)]
@@ -76,12 +76,27 @@ class Config:
     # Mapbox configuration
     MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
 
+    @staticmethod
+    def get_environment_config():
+        env = os.getenv('FLASK_ENV', 'development')
+        if env == 'production':
+            return ProductionConfig
+        elif env == 'staging':
+            return StagingConfig
+        else:
+            return DevelopmentConfig
+
 class DevelopmentConfig(Config):
     DEBUG = True
+    HOST = '127.0.0.1'
+    PORT = 5005
 
 class ProductionConfig(Config):
     DEBUG = False
+    HOST = '0.0.0.0'
+    PORT = 5000
 
-class TestingConfig(Config):
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  # Use in-memory SQLite for testing 
+class StagingConfig(Config):
+    DEBUG = False
+    HOST = '0.0.0.0'
+    PORT = 5001
