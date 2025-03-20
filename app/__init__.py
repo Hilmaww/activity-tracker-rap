@@ -66,9 +66,6 @@ def create_app(config=None):
     )
     limiter.init_app(app)  # This applies rate limiting to the Flask app
 
-    # Set the SERVER_NAME to your domain
-    app.config['SERVER_NAME'] = 'pataro.hilmifawwaz.xyz'
-
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
