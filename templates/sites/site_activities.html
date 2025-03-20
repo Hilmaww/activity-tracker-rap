@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}Site Activities - {{ site.site_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-broadcast-tower"></i> {{ site.site_id }} - {{ site.name }}</h2>
+            <p class="text-muted">{{ site.kabupaten }} | Tower Owner: {{ site.tower_owner }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('main.visited_sites') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Sites
+            </a>
+        </div>
+    </div>
+
+    <!-- Site Information Card -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Site Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Site ID:</strong> {{ site.site_id }}</p>
+                            <p><strong>Name:</strong> {{ site.name }}</p>
+                            <p><strong>Kabupaten:</strong> {{ site.kabupaten }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Tower Owner:</strong> {{ site.tower_owner }}</p>
+                            <p><strong>Latitude:</strong> {{ site.lat }}</p>
+                            <p><strong>Longitude:</strong> {{ site.long }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-ticket-alt"></i> Recent Tickets</h5>
+                </div>
+                <div class="card-body">
+                    {% if ticket_history %}
+                        <div class="list-group">
+                            {% for ticket in ticket_history %}
+                                <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ ticket.ticket_number }}</h6>
+                                        <small class="text-muted">{{ ticket.created_at_jakarta.strftime('%d-%m-%Y') }}</small>
+                                    </div>
+                                    <p class="mb-1 text-truncate">{{ ticket.description }}</p>
+                                    <small class="d-flex justify-content-between">
+                                        <span class="badge bg-{{ ticket.status.name|lower }}">{{ ticket.status.name }}</span>
+                                        <span>{{ ticket.problem_category.name }}</span>
+                                    </small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle"></i> No recent tickets for this site.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-filter"></i> Filter Activities</h5>
+        </div>
+        <div class="card-body">
+            <form id="filter-form" method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="time_frame" class="form-label">Time Frame</label>
+                    <select class="form-select" id="time_frame" name="time_frame">
+                        <option value="all" {% if time_frame == 'all' %}selected{% endif %}>All Time</option>
+                        <option value="7days" {% if time_frame == '7days' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30days" {% if time_frame == '30days' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90days" {% if time_frame == '90days' %}selected{% endif %}>Last 90 Days</option>
+                        <option value="custom" {% if time_frame == 'custom' %}selected{% endif %}>Custom Range</option>
+                    </select>
+                </div>
+                <div class="col-md-3 date-range {% if time_frame != 'custom' %}d-none{% endif %}">
+                    <label for="from_date" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date }}">
+                </div>
+                <div class="col-md-3 date-range {% if time_frame != 'custom' %}d-none{% endif %}">
+                    <label for="to_date" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('main.site_activities', site_id=site.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Site Activities Timeline -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Site Visit Timeline</h5>
+                <span class="badge bg-light text-dark">{{ visits.total }} Visits</span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if visits.items %}
+                <div class="timeline-container">
+                    {% for planned_site, daily_plan, user in visits.items %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">{{ daily_plan.plan_date.strftime('%d-%m-%Y') }}</h6>
+                                            <span class="badge bg-{{ daily_plan.status.name|lower }}">
+                                                {{ daily_plan.status.name }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>ENOM:</strong> {{ user.username }}</p>
+                                                <p><strong>Visit Order:</strong> #{{ planned_site.visit_order }}</p>
+                                                <p><strong>Duration:</strong> {{ planned_site.estimated_duration }} minutes</p>
+                                                {% if planned_site.assignee %}
+                                                    <p><strong>Team Support:</strong> {{ planned_site.assignee }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Planned Actions:</h6>
+                                                <div class="mb-3">
+                                                    <div class="alert alert-secondary">
+                                                        {{ planned_site.planned_actions }}
+                                                    </div>
+                                                </div>
+                                                {% if planned_site.updated_actions and planned_site.updated_actions != 'Not Done Yet' %}
+                                                    <h6>Updated Actions:</h6>
+                                                    <div class="alert alert-success">
+                                                        {{ planned_site.updated_actions }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-light">
+                                        <a href="{{ url_for('main.view_plan', plan_id=daily_plan.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View Full Plan
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if visits.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.site_activities', site_id=site.id, page=visits.prev_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
+                                    <i class="fas fa-angle-left"></i> Previous
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-angle-left"></i> Previous</span>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in visits.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                            {% if page_num %}
+                                {% if page_num == visits.page %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('main.site_activities', site_id=site.id, page=page_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if visits.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.site_activities', site_id=site.id, page=visits.next_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
+                                    Next <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Next <i class="fas fa-angle-right"></i></span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No site activities found for the selected time period.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Timeline Styling */
+    .timeline-container {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 20px;
+        width: 4px;
+        background: #ddd;
+        border-radius: 2px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: 15px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #3498db;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+        z-index: 1;
+        margin-top: 12px;
+    }
+    
+    .timeline-content {
+        position: relative;
+        margin-left: 45px;
+    }
+    
+    /* Card enhancements */
+    .card {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ nonce_value | default('') }}">
+    $(document).ready(function() {
+        // Show/hide date range inputs based on time frame selection
+        $('#time_frame').on('change', function() {
+            if ($(this).val() === 'custom') {
+                $('.date-range').removeClass('d-none');
+            } else {
+                $('.date-range').addClass('d-none');
+                $('#filter-form').submit();
+            }
+        });
+    });
+</script>
+{% endblock %} 

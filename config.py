@@ -55,8 +55,8 @@ class Config:
         "X-Frame-Options": "DENY",
         "Content-Security-Policy": (
             "default-src 'self'; "
-            "script-src 'self' 'nonce-{nonce}' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://code.jquery.com https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
+            "script-src 'self' 'nonce-{nonce}' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.datatables.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://cdn.datatables.net; "
             "img-src 'self' data: https://*; "
             "font-src 'self' https://cdnjs.cloudflare.com; "
             "frame-ancestors 'none';"

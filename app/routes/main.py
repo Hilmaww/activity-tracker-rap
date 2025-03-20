@@ -417,6 +417,7 @@ def create_ticket():
                          enom_assignees=EnomAssignee)
 
 @bp.route('/tickets/<int:ticket_id>/actions', methods=['POST'])
+@login_required
 def add_action(ticket_id):
     if not all(is_safe_string(v) for v in request.form.values()):
         abort(400)
@@ -454,6 +455,7 @@ def add_action(ticket_id):
         return jsonify({'error': str(e)}), 400
 
 @bp.route('/tickets/<int:ticket_id>', methods=['GET'])
+@login_required
 def view_ticket(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
     actions = TicketAction.query.filter_by(ticket_id=ticket_id).order_by(TicketAction.created_at.desc()).all()
@@ -504,6 +506,7 @@ def update_ticket_status(ticket_id):
                              message_category="danger")
 
 @bp.route('/ticket/<int:ticket_id>/edit-description', methods=['POST'])
+@login_required
 def edit_ticket_description(ticket_id):
     if not all(is_safe_string(v) for v in request.form.values()):
         abort(400)
@@ -958,3 +961,178 @@ def is_safe_string(v):
     # if re.search(r'(;|--|insert|delete|update|drop|alter|create|truncate|xp_|exec|sp_|xp_cmdshell)', v, re.IGNORECASE):
     #     return False
     return True
+
+@bp.route('/visited-sites', methods=['GET'])
+@login_required
+def visited_sites():
+    """
+    Page that displays all BTS sites that have been visited, along with visit counts.
+    This serves as an overview of all site activities.
+    """
+    # Get filter parameters
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+    time_frame = request.args.get('time_frame', 'all')
+    
+    # Process date range based on time frame
+    today = datetime.now(jakarta_tz).date()
+    
+    if time_frame == '7days':
+        from_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+        to_date = today.strftime('%Y-%m-%d')
+    elif time_frame == '30days':
+        from_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        to_date = today.strftime('%Y-%m-%d')
+    elif time_frame == '90days':
+        from_date = (today - timedelta(days=90)).strftime('%Y-%m-%d')
+        to_date = today.strftime('%Y-%m-%d')
+    
+    # Convert to date objects if provided
+    from_date_obj = None
+    to_date_obj = None
+    
+    if from_date:
+        from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()
+    if to_date:
+        to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()
+    
+    # Build query for visited sites
+    query = db.session.query(
+        Site,
+        func.count(PlannedSite.id).label('visit_count')
+    ).join(
+        PlannedSite,
+        Site.id == PlannedSite.site_id
+    ).join(
+        DailyPlan,
+        PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED])
+    )
+    
+    # Apply date filters if specified
+    if from_date_obj:
+        query = query.filter(DailyPlan.plan_date >= from_date_obj)
+    if to_date_obj:
+        query = query.filter(DailyPlan.plan_date <= to_date_obj)
+    
+    # Group by site and order by visit count (descending)
+    visited_sites = query.group_by(Site.id).order_by(func.count(PlannedSite.id).desc()).all()
+    
+    # Get the latest visit for each site
+    latest_visits = {}
+    for site, _ in visited_sites:
+        latest_visit_query = db.session.query(
+            DailyPlan.plan_date,
+            User.username
+        ).join(
+            PlannedSite,
+            DailyPlan.id == PlannedSite.daily_plan_id
+        ).join(
+            User,
+            DailyPlan.enom_user_id == User.id
+        ).filter(
+            PlannedSite.site_id == site.id,
+            DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED])
+        ).order_by(
+            DailyPlan.plan_date.desc()
+        ).first()
+        
+        if latest_visit_query:
+            latest_visits[site.id] = {
+                'date': latest_visit_query[0],
+                'enom': latest_visit_query[1]
+            }
+    
+    return render_template(
+        'sites/visited_sites.html',
+        visited_sites=visited_sites,
+        latest_visits=latest_visits,
+        time_frame=time_frame,
+        from_date=from_date,
+        to_date=to_date
+    )
+
+@bp.route('/site/<int:site_id>/activities', methods=['GET'])
+@login_required
+def site_activities(site_id):
+    """
+    Detailed page showing all activities performed at a specific site.
+    Includes filtering options and a timeline view of actions.
+    """
+    # Get the site
+    site = Site.query.get_or_404(site_id)
+    
+    # Get filter parameters
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+    time_frame = request.args.get('time_frame', 'all')
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Number of visits to show per page
+    
+    # Process date range based on time frame
+    today = datetime.now(jakarta_tz).date()
+    
+    if time_frame == '7days':
+        from_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+        to_date = today.strftime('%Y-%m-%d')
+    elif time_frame == '30days':
+        from_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        to_date = today.strftime('%Y-%m-%d')
+    elif time_frame == '90days':
+        from_date = (today - timedelta(days=90)).strftime('%Y-%m-%d')
+        to_date = today.strftime('%Y-%m-%d')
+    
+    # Convert to date objects if provided
+    from_date_obj = None
+    to_date_obj = None
+    
+    if from_date:
+        from_date_obj = datetime.strptime(from_date, '%Y-%m-%d').date()
+    if to_date:
+        to_date_obj = datetime.strptime(to_date, '%Y-%m-%d').date()
+    
+    # Query for all visits to this site
+    query = db.session.query(
+        PlannedSite,
+        DailyPlan,
+        User
+    ).join(
+        DailyPlan,
+        PlannedSite.daily_plan_id == DailyPlan.id
+    ).join(
+        User,
+        DailyPlan.enom_user_id == User.id
+    ).filter(
+        PlannedSite.site_id == site_id,
+        DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED])
+    )
+    
+    # Apply date filters if specified
+    if from_date_obj:
+        query = query.filter(DailyPlan.plan_date >= from_date_obj)
+    if to_date_obj:
+        query = query.filter(DailyPlan.plan_date <= to_date_obj)
+    
+    # Order by date (most recent first)
+    query = query.order_by(DailyPlan.plan_date.desc())
+    
+    # Paginate the results
+    paginated_visits = query.paginate(page=page, per_page=per_page)
+    
+    # Get ticket history for this site
+    ticket_history = Ticket.query.filter(
+        Ticket.site_id == site_id
+    ).order_by(
+        Ticket.created_at.desc()
+    ).limit(5).all()
+    
+    return render_template(
+        'sites/site_activities.html',
+        site=site,
+        visits=paginated_visits,
+        ticket_history=ticket_history,
+        time_frame=time_frame,
+        from_date=from_date,
+        to_date=to_date
+    )
