@@ -196,3 +196,80 @@ class PlanComment(db.Model):
     def created_at_jakarta(self):
         jakarta_tz = pytz.timezone('Asia/Jakarta')
         return self.created_at.astimezone(jakarta_tz) if self.created_at else None
+
+# New models for alarm management
+class AlarmCategory(str, Enum):
+    CELL_DOWN = "CELL_DOWN"
+    ZERO_PAYLOAD = "ZERO_PAYLOAD"
+    POWER_ISSUE = "POWER_ISSUE"
+    TRANSPORT_ISSUE = "TRANSPORT_ISSUE"
+    OTHER = "OTHER"
+
+class AlarmStatus(str, Enum):
+    OPEN = "OPEN"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    SCHEDULED = "SCHEDULED"
+    RESOLVED = "RESOLVED"
+    CLOSED = "CLOSED"
+
+class AlarmRecord(db.Model):
+    __tablename__ = 'alarm_records'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
+    category = db.Column(db.Enum(AlarmCategory), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    source_file = db.Column(db.String(255))
+    status = db.Column(db.Enum(AlarmStatus), default=AlarmStatus.OPEN)
+    priority_score = db.Column(db.Integer, default=0)
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime)
+    is_deleted = db.Column(db.Boolean, default=False)  # For soft delete
+    
+    # Relationships
+    site = db.relationship('Site', backref='alarms', lazy=True)
+    uploaded_by = db.relationship('User', foreign_keys=[uploaded_by_id], backref='uploaded_alarms', lazy=True)
+    remarks = db.relationship('AlarmRemark', backref='alarm', lazy=True, cascade='all, delete-orphan')
+    
+    @property
+    def created_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        return self.created_at.astimezone(jakarta_tz) if self.created_at else None
+    
+    @property
+    def resolved_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        return self.resolved_at.astimezone(jakarta_tz) if self.resolved_at else None
+
+class AlarmRemark(db.Model):
+    __tablename__ = 'alarm_remarks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    alarm_id = db.Column(db.Integer, db.ForeignKey('alarm_records.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    planned_visit_date = db.Column(db.DateTime, nullable=False)
+    initial_findings = db.Column(db.Text, nullable=False)
+    planned_actions = db.Column(db.Text, nullable=False)
+    assignee = db.Column(db.String(100))
+    estimated_resolution_time = db.Column(db.Integer)  # in minutes
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_deleted = db.Column(db.Boolean, default=False)  # For soft delete
+    
+    # Relationships
+    user = db.relationship('User', backref='alarm_remarks', lazy=True)
+    
+    @property
+    def created_at_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        return self.created_at.astimezone(jakarta_tz) if self.created_at else None
+    
+    @property
+    def planned_visit_date_jakarta(self):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        return self.planned_visit_date.astimezone(jakarta_tz) if self.planned_visit_date else None

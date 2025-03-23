@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Add Remark - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-comment"></i> Add Remark
+                </h2>
+                <a href="{{ url_for('alarms.view_alarm', alarm_id=alarm.id) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Alarm
+                </a>
+            </div>
+            <p class="text-muted">
+                Add a remark to document the planned visit and actions for this alarm.
+            </p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <!-- Alarm Information -->
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Alarm Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Site ID:</strong>
+                        <div>{{ alarm.site.site_id }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Site Name:</strong>
+                        <div>{{ alarm.site.name }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Location:</strong>
+                        <div>{{ alarm.site.kabupaten }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Category:</strong>
+                        <div>
+                            <span class="badge bg-secondary">
+                                {{ alarm.category.replace('_', ' ') }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Description:</strong>
+                        <div class="p-2 bg-light rounded mt-1 small">
+                            {{ alarm.description }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Priority:</strong>
+                        <div>
+                            {% if alarm.priority_score > 10 %}
+                                <span class="badge bg-danger">High ({{ alarm.priority_score }})</span>
+                            {% elif alarm.priority_score > 5 %}
+                                <span class="badge bg-warning text-dark">Medium ({{ alarm.priority_score }})</span>
+                            {% else %}
+                                <span class="badge bg-info">Low ({{ alarm.priority_score }})</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Remark Form -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Add Remark
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('alarms.add_remark', alarm_id=alarm.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="planned_visit_date" class="form-label">Planned Visit Date <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="planned_visit_date" 
+                                       name="planned_visit_date" required>
+                                <div class="form-text">When do you plan to visit this site?</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assignee" class="form-label">Assignee</label>
+                                <select class="form-select" id="assignee" name="assignee">
+                                    <option value="">Select an assignee</option>
+                                    {% for user in assignees %}
+                                        <option value="{{ user.username }}" 
+                                                {% if user.id == current_user.id %}selected{% endif %}>
+                                            {{ user.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Who will handle this alarm?</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="initial_findings" class="form-label">Initial Findings <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="initial_findings" name="initial_findings" 
+                                      rows="3" required></textarea>
+                            <div class="form-text">
+                                What have you initially observed or identified regarding this alarm?
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="planned_actions" class="form-label">Planned Actions <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="planned_actions" name="planned_actions" 
+                                      rows="4" required></textarea>
+                            <div class="form-text">
+                                What actions do you plan to take to resolve this alarm?
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="estimated_resolution_time" class="form-label">Estimated Resolution Time (minutes)</label>
+                            <input type="number" class="form-control" id="estimated_resolution_time" 
+                                   name="estimated_resolution_time" min="15" step="5" value="60">
+                            <div class="form-text">
+                                How long do you estimate it will take to resolve this issue?
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Remark
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ nonce_value | default('') }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default planned visit date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);  // Default to 9 AM
+        
+        // Format as YYYY-MM-DDThh:mm
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+        const hours = String(tomorrow.getHours()).padStart(2, '0');
+        const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
+        
+        document.getElementById('planned_visit_date').value = 
+            `${year}-${month}-${day}T${hours}:${minutes}`;
+        
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Validate planned visit date (must be in the future)
+            const plannedDate = new Date(document.getElementById('planned_visit_date').value);
+            const now = new Date();
+            
+            if (plannedDate <= now) {
+                toastr.error('Planned visit date must be in the future');
+                isValid = false;
+            }
+            
+            // Validate the maximum date (within 5 days per business requirement)
+            const maxDate = new Date();
+            maxDate.setDate(maxDate.getDate() + 5);
+            
+            if (plannedDate > maxDate) {
+                toastr.error('Planned visit must be within the next 5 days');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %} 

@@ -95,6 +95,10 @@ def create_app(config=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
 
+    # Register alarms blueprint
+    from app.routes.alarms import bp as alarms_bp
+    app.register_blueprint(alarms_bp)
+
     # Error handlers
     @app.errorhandler(401)
     def unauthorized(error):

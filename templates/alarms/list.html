@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Alarms & Programs - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h2>
+                    <i class="fas fa-bell"></i> Alarms & Programs
+                </h2>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('alarms.upload_alarm') }}" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload New Alarms
+                    </a>
+                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('alarms.list_alarms') }}" class="row g-3">
+                        <!-- Category Filter -->
+                        <div class="col-md-4">
+                            <label for="category" class="form-label">Category</label>
+                            <select name="category" id="category" class="form-select">
+                                <option value="all" {% if current_category == 'all' %}selected{% endif %}>All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}" {% if current_category == category %}selected{% endif %}>
+                                    {{ category.replace('_', ' ') }} ({{ category_counts[category] }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Status Filter -->
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Status</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Statuses</option>
+                                {% for status in statuses %}
+                                <option value="{{ status }}" {% if current_status == status %}selected{% endif %}>
+                                    {{ status.replace('_', ' ') }} ({{ status_counts[status] }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Search -->
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Search Site</label>
+                            <div class="input-group">
+                                <input type="text" name="search" id="search" class="form-control" 
+                                       placeholder="Site ID or Name" value="{{ search }}">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Status Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for status in statuses %}
+                            <div class="col-md-2 col-sm-4 mb-3">
+                                <div class="card text-center h-100">
+                                    <div class="card-body p-2">
+                                        <h3 class="mb-0">{{ status_counts[status] }}</h3>
+                                        <div class="mt-2">
+                                            <span class="badge rounded-pill bg-{{ status.lower() }}">
+                                                {{ status.replace('_', ' ') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alarms Table -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#all-pane" type="button" role="tab">
+                                All Alarms 
+                                <span class="badge rounded-pill bg-secondary">{{ alarms|length }}</span>
+                            </button>
+                        </li>
+                        {% for category in categories %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="{{ category|lower }}-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#{{ category|lower }}-pane" type="button" role="tab">
+                                    {{ category.replace('_', ' ') }}
+                                    <span class="badge rounded-pill bg-secondary">{{ category_counts[category] }}</span>
+                                </button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="all-pane" role="tabpanel" tabindex="0">
+                            {% if alarms %}
+                                {% include 'alarms/partials/alarm_table.html' with context %}
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> No alarms found matching your filters.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% for category in categories %}
+                            <div class="tab-pane fade" id="{{ category|lower }}-pane" role="tabpanel" tabindex="0">
+                                {% set filtered_alarms = alarms|selectattr('category', 'eq', category)|list %}
+                                {% if filtered_alarms %}
+                                    {% with alarms = filtered_alarms %}
+                                        {% include 'alarms/partials/alarm_table.html' with context %}
+                                    {% endwith %}
+                                {% else %}
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> No {{ category.replace('_', ' ') }} alarms found.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ nonce_value | default('') }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit form when filters change
+        document.getElementById('category').addEventListener('change', function() {
+            this.form.submit();
+        });
+        
+        document.getElementById('status').addEventListener('change', function() {
+            this.form.submit();
+        });
+        
+        // Initialize DataTables
+        $('#alarmsTable').DataTable({
+            "order": [[4, "desc"], [0, "asc"]], // Sort by priority (desc) then site ID (asc)
+            "pageLength": 25,
+            "lengthMenu": [10, 25, 50, 100],
+            "columnDefs": [
+                { "width": "6%", "targets": 0 }, // Site ID
+                { "width": "15%", "targets": 1 }, // Site Name
+                { "width": "25%", "targets": 2 }, // Description
+                { "width": "10%", "targets": 3 }, // Category
+                { "width": "8%", "targets": 4 }, // Priority
+                { "width": "10%", "targets": 5 }, // Status
+                { "width": "15%", "targets": 6 }, // Created
+                { "width": "11%", "targets": 7 }  // Actions
+            ]
+        });
+        
+        // Handle resolve alarm
+        $('.resolve-alarm').on('click', function(e) {
+            e.preventDefault();
+            const alarmId = $(this).data('alarm-id');
+            
+            Swal.fire({
+                title: 'Resolve Alarm',
+                text: 'Add a resolution note (optional):',
+                input: 'textarea',
+                showCancelButton: true,
+                confirmButtonText: 'Resolve',
+                showLoaderOnConfirm: true,
+                preConfirm: (resolution_note) => {
+                    return $.ajax({
+                        url: `/alarms/resolve/${alarmId}`,
+                        type: 'POST',
+                        data: { 
+                            resolution_note: resolution_note,
+                            csrf_token: $('meta[name="csrf-token"]').attr('content')
+                        }
+                    }).then(response => {
+                        return response;
+                    }).catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toastr.success('Alarm resolved successfully');
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            });
+        });
+        
+        // Handle close alarm
+        $('.close-alarm').on('click', function(e) {
+            e.preventDefault();
+            const alarmId = $(this).data('alarm-id');
+            
+            Swal.fire({
+                title: 'Close Alarm',
+                text: 'Are you sure you want to close this alarm?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, close it',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return $.ajax({
+                        url: `/alarms/close/${alarmId}`,
+                        type: 'POST',
+                        headers: {
+                            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+                        }
+                    }).then(response => {
+                        return response;
+                    }).catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toastr.success('Alarm closed successfully');
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            });
+        });
+        
+        // Handle delete alarm
+        $('.delete-alarm').on('click', function(e) {
+            e.preventDefault();
+            const alarmId = $(this).data('alarm-id');
+            
+            Swal.fire({
+                title: 'Delete Alarm',
+                text: 'Are you sure you want to delete this alarm? This cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it',
+                confirmButtonColor: '#dc3545',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return $.ajax({
+                        url: `/alarms/delete/${alarmId}`,
+                        type: 'POST',
+                        headers: {
+                            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+                        }
+                    }).then(response => {
+                        return response;
+                    }).catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toastr.success('Alarm deleted successfully');
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

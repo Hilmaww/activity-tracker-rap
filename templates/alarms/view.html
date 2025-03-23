@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Alarm Details - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h2>
+                    <i class="fas fa-bell"></i> Alarm Details
+                </h2>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('alarms.list_alarms') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Alarms
+                    </a>
+                    {% if current_user.role == 'enom' and alarm.status.value in ['OPEN', 'ACKNOWLEDGED'] %}
+                        <a href="{{ url_for('alarms.add_remark', alarm_id=alarm.id) }}" class="btn btn-warning">
+                            <i class="fas fa-comment"></i> Add Remark
+                        </a>
+                    {% endif %}
+                    {% if alarm.status.value not in ['RESOLVED', 'CLOSED'] %}
+                        <button class="btn btn-success resolve-alarm" data-alarm-id="{{ alarm.id }}">
+                            <i class="fas fa-check"></i> Resolve
+                        </button>
+                    {% endif %}
+                    {% if current_user.role == 'tsel' and alarm.status.value == 'RESOLVED' %}
+                        <button class="btn btn-secondary close-alarm" data-alarm-id="{{ alarm.id }}">
+                            <i class="fas fa-lock"></i> Close
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Alarm Details -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Alarm Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th style="width: 40%">Site ID</th>
+                                    <td>{{ alarm.site.site_id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Site Name</th>
+                                    <td>{{ alarm.site.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Location</th>
+                                    <td>{{ alarm.site.kabupaten }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Category</th>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ alarm.category.replace('_', ' ') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    <td>
+                                        <span class="badge bg-{{ alarm.status.lower() }}">
+                                            {{ alarm.status.replace('_', ' ') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th style="width: 40%">Priority Score</th>
+                                    <td>
+                                        {% if alarm.priority_score > 10 %}
+                                            <span class="badge bg-danger">High ({{ alarm.priority_score }})</span>
+                                        {% elif alarm.priority_score > 5 %}
+                                            <span class="badge bg-warning text-dark">Medium ({{ alarm.priority_score }})</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Low ({{ alarm.priority_score }})</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Source File</th>
+                                    <td>{{ alarm.source_file or 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Created By</th>
+                                    <td>{{ alarm.uploaded_by.username if alarm.uploaded_by else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Created At</th>
+                                    <td>{{ alarm.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Resolved At</th>
+                                    <td>
+                                        {% if alarm.resolved_at %}
+                                            {{ alarm.resolved_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">Not yet resolved</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h5>Description</h5>
+                        <div class="p-3 bg-light rounded">
+                            {{ alarm.description }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Daily Plans -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt"></i> Related Daily Plans
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% set planned_visits = alarm.site.planned_sites %}
+                    {% if planned_visits %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Plan Date</th>
+                                        <th>Planned Actions</th>
+                                        <th>Status</th>
+                                        <th>ENOM Team</th>
+                                        <th>View</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for visit in planned_visits %}
+                                        <tr>
+                                            <td>{{ visit.daily_plan.plan_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ visit.planned_actions }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ visit.daily_plan.status.lower() }}">
+                                                    {{ visit.daily_plan.status.replace('_', ' ') }}
+                                                </span>
+                                            </td>
+                                            <td>{{ visit.daily_plan.enom_user.username }}</td>
+                                            <td>
+                                                <a href="{{ url_for('main.view_plan', plan_id=visit.daily_plan.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> No daily plans found for this site.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Remarks -->
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments"></i> Remarks
+                        </h5>
+                        {% if alarm.status.value in ['OPEN', 'ACKNOWLEDGED'] %}
+                            <a href="{{ url_for('alarms.add_remark', alarm_id=alarm.id) }}" class="btn btn-sm btn-dark">
+                                <i class="fas fa-plus"></i> Add Remark
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if remarks %}
+                        <div class="timeline">
+                            {% for remark in remarks %}
+                                <div class="card mb-3 border-left-primary">
+                                    <div class="card-header bg-light">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ remark.user.username }}</strong>
+                                                <small class="text-muted ms-2">
+                                                    {{ remark.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
+                                                </small>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-info">
+                                                    Planned Visit: {{ remark.planned_visit_date_jakarta.strftime('%Y-%m-%d %H:%M') }}
+                                                </span>
+                                                {% if remark.assignee %}
+                                                    <span class="badge bg-secondary ms-1">
+                                                        Assignee: {{ remark.assignee }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <h6>Initial Findings:</h6>
+                                        <p>{{ remark.initial_findings }}</p>
+                                        
+                                        <h6>Planned Actions:</h6>
+                                        <p>{{ remark.planned_actions }}</p>
+                                        
+                                        {% if remark.estimated_resolution_time %}
+                                            <div class="text-muted">
+                                                <i class="fas fa-clock"></i> Estimated Resolution Time: 
+                                                {{ remark.estimated_resolution_time }} minutes
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No remarks have been added yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ nonce_value | default('') }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle resolve alarm
+        $('.resolve-alarm').on('click', function(e) {
+            e.preventDefault();
+            const alarmId = $(this).data('alarm-id');
+            
+            Swal.fire({
+                title: 'Resolve Alarm',
+                text: 'Add a resolution note (optional):',
+                input: 'textarea',
+                showCancelButton: true,
+                confirmButtonText: 'Resolve',
+                showLoaderOnConfirm: true,
+                preConfirm: (resolution_note) => {
+                    return $.ajax({
+                        url: `/alarms/resolve/${alarmId}`,
+                        type: 'POST',
+                        data: { 
+                            resolution_note: resolution_note,
+                            csrf_token: $('meta[name="csrf-token"]').attr('content')
+                        }
+                    }).then(response => {
+                        return response;
+                    }).catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toastr.success('Alarm resolved successfully');
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            });
+        });
+        
+        // Handle close alarm
+        $('.close-alarm').on('click', function(e) {
+            e.preventDefault();
+            const alarmId = $(this).data('alarm-id');
+            
+            Swal.fire({
+                title: 'Close Alarm',
+                text: 'Are you sure you want to close this alarm?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, close it',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return $.ajax({
+                        url: `/alarms/close/${alarmId}`,
+                        type: 'POST',
+                        headers: {
+                            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+                        }
+                    }).then(response => {
+                        return response;
+                    }).catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toastr.success('Alarm closed successfully');
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 
