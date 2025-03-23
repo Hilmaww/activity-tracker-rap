@@ -26,6 +26,7 @@ def parse_alarm_file(file_path, category, preview=True):
         if file_ext == '.csv':
             return parse_csv(file_path, preview)
         elif file_ext in ['.xlsx', '.xls']:
+            print("parse_alarm_file excel")
             return parse_excel(file_path, preview)
         elif file_ext == '.txt':
             return parse_txt(file_path, preview)
@@ -51,6 +52,7 @@ def parse_excel(file_path, preview=True):
     """Parse Excel file."""
     try:
         df = pd.read_excel(file_path)
+        print("parse_excel df")
         return process_dataframe(df, preview)
     except Exception as e:
         raise Exception(f"Failed to parse Excel: {str(e)}")
@@ -78,7 +80,7 @@ def parse_txt(file_path, preview=True):
         header = lines[0].strip()
         
         # If header contains common site ID patterns
-        site_id_matches = re.findall(r'[A-Z]{3}\d{4}', header)
+        site_id_matches = re.findall(r'[A-Z]{3}\d{3}', header)
         if site_id_matches:
             # Parse as a list of site IDs with descriptions
             result = []
@@ -87,7 +89,7 @@ def parse_txt(file_path, preview=True):
                 if not line:
                     continue
                 
-                site_matches = re.findall(r'([A-Z]{3}\d{4})', line)
+                site_matches = re.findall(r'([A-Z]{3}\d{3})', line)
                 if site_matches:
                     site_id = site_matches[0]
                     description = line.replace(site_id, '').strip()
@@ -108,7 +110,7 @@ def parse_txt(file_path, preview=True):
                 continue
             
             # Try to extract site ID using regex pattern
-            site_id_match = re.search(r'([A-Z]{3}\d{4})', line)
+            site_id_match = re.search(r'([A-Z]{3}\d{3})', line)
             if site_id_match:
                 site_id = site_id_match.group(1)
                 description = line.replace(site_id, '').strip()
@@ -160,14 +162,14 @@ def process_dataframe(df, preview=True):
             continue
             
         # Ensure site ID is in the expected format (e.g., ABC1234)
-        if not re.match(r'^[A-Z]{3}\d{4}$', site_id):
+        if not re.match(r'^[A-Z]{3}\d{3}$', site_id):
             continue
             
         result.append({
             'site_id': site_id,
             'description': str(row['description']) if pd.notna(row['description']) else f"Issue reported for {site_id}"
         })
-    
+    print(result[:10])
     if preview:
         return result[:10]
     return result 
