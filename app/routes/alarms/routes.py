@@ -1,4 +1,4 @@
-from flask import render_template, flash, redirect, url_for, request, jsonify, current_app, abort
+from flask import render_template, flash, redirect, url_for, request, jsonify, current_app, abort, session
 from flask_login import login_required, current_user
 from sqlalchemy import func, desc, and_
 from werkzeug.utils import secure_filename
