@@ -59,9 +59,14 @@ def create_app(config=None):
     else:
         app.config.from_object(config)
 
+    def get_real_ip():
+        if request.headers.getlist("X-Forwarded-For"):
+            return request.headers.getlist("X-Forwarded-For")[0]
+        return request.remote_addr
+
     # Initialize Flask-Limiter with Redis
     limiter = Limiter(
-        key_func=get_remote_address, 
+        key_func=get_real_ip, 
         storage_uri="redis://localhost:6379"
     )
     limiter.init_app(app)  # This applies rate limiting to the Flask app
@@ -134,7 +139,7 @@ def create_app(config=None):
     
     @app.before_request
     def detect_attackers():
-        client_ip = request.remote_addr
+        client_ip = get_real_ip()
         key = f"failed_attempts:{client_ip}"
 
         # Increment failed attempts (Expire after 60 sec)
