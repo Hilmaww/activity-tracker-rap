@@ -13,13 +13,18 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 from config import Config
 
+def get_real_ip():
+        if request.headers.getlist("X-Forwarded-For"):
+            return request.headers.getlist("X-Forwarded-For")[0]
+        return request.remote_addr
+
 # Initialize extensions
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
 csrf = CSRFProtect()
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=get_real_ip,
     default_limits=["100 per hour"]
 )
 
@@ -58,11 +63,6 @@ def create_app(config=None):
         app.config.from_object('config.Config')
     else:
         app.config.from_object(config)
-
-    def get_real_ip():
-        if request.headers.getlist("X-Forwarded-For"):
-            return request.headers.getlist("X-Forwarded-For")[0]
-        return request.remote_addr
 
     # Initialize Flask-Limiter with Redis
     limiter = Limiter(
