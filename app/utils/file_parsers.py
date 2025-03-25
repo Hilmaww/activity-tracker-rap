@@ -119,7 +119,7 @@ def parse_txt(file_path, preview=True):
                 })
         
         if not result:
-            raise Exception("Could not identify site IDs in the file")
+            raise Exception("Could not identify site IDs in the file. Site IDs should be in format ABC123.")
         
         if preview:
             return result[:10]
@@ -141,7 +141,7 @@ def process_dataframe(df, preview=True):
         df = df.rename(columns={potential_site_id_columns[0]: 'site_id'})
     
     if 'site_id' not in df.columns:
-        raise BadRequest("File must contain a 'site_id' column")
+        raise BadRequest("File must contain a 'site_id' column or a column with 'site' or 'id' in its name")
     
     # Create description from other columns if not present
     if 'description' not in df.columns:
@@ -154,20 +154,37 @@ def process_dataframe(df, preview=True):
     
     # Convert to list of dictionaries
     result = []
+    valid_site_pattern = re.compile(r'^[A-Z]{3}\d{3}$')
+    
+    skipped_rows = 0
     for _, row in df.iterrows():
         site_id = str(row['site_id']).strip()
         # Skip rows without valid site ID
         if not site_id or pd.isna(site_id):
+            skipped_rows += 1
             continue
             
-        # Ensure site ID is in the expected format (e.g., ABC1234)
-        if not re.match(r'^[A-Z]{3}\d{3}$', site_id):
-            continue
+        # Ensure site ID is in the expected format (e.g., ABC123)
+        if not valid_site_pattern.match(site_id):
+            # Try to extract a valid site ID from the string
+            match = re.search(r'([A-Z]{3}\d{3})', site_id)
+            if match:
+                site_id = match.group(1)
+            else:
+                skipped_rows += 1
+                continue
             
         result.append({
             'site_id': site_id,
             'description': str(row['description']) if pd.notna(row['description']) else f"Issue reported for {site_id}"
         })
+    
+    if len(result) == 0:
+        if skipped_rows > 0:
+            raise Exception(f"No valid site IDs found in the file. Skipped {skipped_rows} invalid entries. Site IDs should be in format ABC123.")
+        else:
+            raise Exception("No valid data found in the file.")
+    
     if preview:
         return result[:10]
     return result 

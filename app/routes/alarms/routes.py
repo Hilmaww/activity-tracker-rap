@@ -17,6 +17,32 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in {'csv', 'xlsx', 'xls', 'txt'}
 
+def get_site_planning_info(site_ids):
+    """Get planning information for a list of site IDs."""
+    from app.models import Site, PlannedSite, DailyPlan
+    
+    # Get all sites matching the given site_ids
+    sites = Site.query.filter(Site.site_id.in_(site_ids)).all()
+    site_map = {site.site_id: {'id': site.id, 'has_planned_visit': False} for site in sites}
+    
+    # Get the most recent planned visit for each site (if any)
+    for site_id, site_info in site_map.items():
+        site = Site.query.filter_by(site_id=site_id).first()
+        if site:
+            # Join with DailyPlan to get the most recent plan
+            planned_site = db.session.query(PlannedSite, DailyPlan)\
+                .join(DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id)\
+                .filter(PlannedSite.site_id == site.id)\
+                .order_by(DailyPlan.plan_date.desc())\
+                .first()
+            
+            if planned_site:
+                site_info['has_planned_visit'] = True
+                site_info['plan_id'] = planned_site[1].id
+                site_info['plan_date'] = planned_site[1].plan_date
+    
+    return site_map
+
 def calculate_priority_score(site_id):
     """Calculate priority score based on alarm frequency and historical data."""
     # Count how many times this site appears in alarms in the last 30 days
@@ -74,20 +100,55 @@ def upload_alarm():
         try:
             preview_data = parse_alarm_file(file_path, category)
             
+            if not preview_data:
+                flash('No valid site IDs found in the file. Please check the file format.', 'warning')
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                return redirect(request.url)
+            
+            # Get information about which sites are already planned
+            site_ids = [record['site_id'] for record in preview_data]
+            sites_info = get_site_planning_info(site_ids)
+            
+            # Count sites by status
+            planned_count = sum(1 for site in sites_info.values() if site['has_planned_visit'])
+            needs_plan_count = len(sites_info) - planned_count
+            unknown_count = len(site_ids) - len(sites_info)
+            
+            # Get IDs of unplanned sites for potential bulk planning
+            unplanned_site_ids = [
+                site_info['id'] for site_id, site_info in sites_info.items() 
+                if not site_info['has_planned_visit']
+            ]
+            
             # Store file path in session for later processing
-            if 'uploads' not in session:
-                session['uploads'] = {}
-            session['uploads']['alarm_file'] = {
+            # Make sure session is a mutable dict
+            session_data = dict(session)
+            if 'uploads' not in session_data:
+                session_data['uploads'] = {}
+            
+            session_data['uploads']['alarm_file'] = {
                 'path': file_path,
                 'category': category
             }
-            print("session after upload: ", session)
+            
+            # Update the entire session with the modified dict
+            for key, value in session_data.items():
+                session[key] = value
+                
+            # Force the session to save
+            session.modified = True
             
             return render_template(
                 'alarms/preview.html', 
                 preview_data=preview_data, 
                 filename=filename,
-                category=category
+                category=category,
+                sites=sites_info,
+                planned_count=planned_count,
+                needs_plan_count=needs_plan_count,
+                unknown_count=unknown_count,
+                unplanned_site_ids=unplanned_site_ids
             )
             
         except Exception as e:
@@ -107,12 +168,15 @@ def process_alarm():
         flash('You do not have permission to access this page.', 'danger')
         return redirect(url_for('main.index'))
     
-    print("sesion for process: ", session)
-    if 'uploads' not in session or 'alarm_file' not in session['uploads']:
+    # Force session to be accessed before checking
+    session_data = dict(session)
+    
+    # Verify file info is in session
+    if 'uploads' not in session_data or 'alarm_file' not in session_data['uploads']:
         flash('No file to process. Please upload a file first.', 'danger')
         return redirect(url_for('alarms.upload_alarm'))
     
-    file_info = session['uploads']['alarm_file']
+    file_info = session_data['uploads']['alarm_file']
     file_path = file_info['path']
     category = file_info['category']
     
@@ -124,10 +188,19 @@ def process_alarm():
         # Process file and save to database
         alarms_data = parse_alarm_file(file_path, category, preview=False)
         
+        if not alarms_data:
+            flash('No valid site IDs found in the uploaded file. Please check the file format.', 'warning')
+            return redirect(url_for('alarms.upload_alarm'))
+        
+        # Track stats for summary
+        processed_count = 0
+        skipped_count = 0
+        
         for alarm in alarms_data:
             # Find the site by site_id
             site = Site.query.filter_by(site_id=alarm['site_id']).first()
             if not site:
+                skipped_count += 1
                 continue  # Skip if site not found
             
             # Create alarm record
@@ -140,7 +213,12 @@ def process_alarm():
             )
             
             db.session.add(new_alarm)
+            processed_count += 1
         
+        if processed_count == 0:
+            flash('No valid sites found in the file. Please check that site IDs exist in the database.', 'warning')
+            return redirect(url_for('alarms.upload_alarm'))
+            
         db.session.commit()
         
         # Calculate priority scores for all sites with alarms
@@ -162,10 +240,24 @@ def process_alarm():
         if os.path.exists(file_path):
             os.remove(file_path)
         
+        # Clear session properly
         if 'uploads' in session and 'alarm_file' in session['uploads']:
-            del session['uploads']['alarm_file']
+            session_data = dict(session)
+            if 'uploads' in session_data and 'alarm_file' in session_data['uploads']:
+                del session_data['uploads']['alarm_file']
+                # If uploads is now empty, remove it too
+                if not session_data['uploads']:
+                    del session_data['uploads']
+                    
+                # Update session with modified dict
+                session.clear()
+                for key, value in session_data.items():
+                    session[key] = value
+                    
+                # Force session to save
+                session.modified = True
         
-        flash('Alarm data processed successfully.', 'success')
+        flash(f'Alarm data processed successfully. {processed_count} alarms imported, {skipped_count} skipped.', 'success')
         return redirect(url_for('alarms.list_alarms'))
         
     except Exception as e:
@@ -218,6 +310,42 @@ def list_alarms():
     categories = [cat.value for cat in AlarmCategory]
     statuses = [stat.value for stat in AlarmStatus]
     
+    # For ENOM users, get sites that need planning
+    unplanned_sites = []
+    unplanned_site_ids = []
+    
+    if current_user.role == 'enom':
+        # Get sites with active alarms but no plans
+        from app.models import PlannedSite, DailyPlan
+        
+        # First, get all sites with active alarms
+        sites_with_alarms = db.session.query(
+            Site,
+            func.count(AlarmRecord.id).label('alarm_count'),
+            func.max(AlarmRecord.priority_score).label('priority_score')
+        ).join(
+            AlarmRecord, Site.id == AlarmRecord.site_id
+        ).filter(
+            AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED]),
+            AlarmRecord.is_deleted == False
+        ).group_by(Site.id).order_by(desc('priority_score')).all()
+        
+        # For each site, check if it's already planned
+        for site, alarm_count, priority_score in sites_with_alarms:
+            # Check if site is in any active plan
+            planned = db.session.query(PlannedSite).join(
+                DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+            ).filter(
+                PlannedSite.site_id == site.id,
+                DailyPlan.plan_date >= datetime.now().date()
+            ).first()
+            
+            if not planned:
+                site.alarm_count = alarm_count
+                site.priority_score = priority_score
+                unplanned_sites.append(site)
+                unplanned_site_ids.append(site.id)
+    
     return render_template(
         'alarms/list.html',
         alarms=alarms,
@@ -227,7 +355,9 @@ def list_alarms():
         status_counts=status_counts,
         current_category=category,
         current_status=status,
-        search=search
+        search=search,
+        unplanned_sites=unplanned_sites,
+        unplanned_site_ids=unplanned_site_ids
     )
 
 @bp.route('/remark/<int:alarm_id>', methods=['GET', 'POST'])
