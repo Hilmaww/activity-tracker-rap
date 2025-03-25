@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Alarms & Programs - {{ super() }}{% endblock %}
+{% block title %}Sites with Alarms - {{ super() }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center flex-wrap">
                 <h2>
-                    <i class="fas fa-bell"></i> Alarms & Programs
+                    <i class="fas fa-bell"></i> Sites with Alarms
                 </h2>
                 <div class="d-flex gap-2">
                     <a href="{{ url_for('alarms.upload_alarm') }}" class="btn btn-primary">
@@ -19,6 +19,7 @@
                     </a>
                 </div>
             </div>
+            <p class="text-muted">Manage sites with alarms and align planning with site issues</p>
         </div>
     </div>
 
@@ -71,9 +72,9 @@
         </div>
     </div>
     
-    <!-- Stats Overview -->
+    <!-- Dashboard Overview -->
     <div class="row mb-4">
-        <div class="col-md-12">
+        <div class="col-md-8">
             <div class="card">
                 <div class="card-header bg-light">
                     <h5 class="mb-0">Status Overview</h5>
@@ -81,14 +82,20 @@
                 <div class="card-body">
                     <div class="row">
                         {% for status in statuses %}
-                            <div class="col-md-2 col-sm-4 mb-3">
-                                <div class="card text-center h-100">
-                                    <div class="card-body p-2">
-                                        <h3 class="mb-0">{{ status_counts[status] }}</h3>
-                                        <div class="mt-2">
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <div class="card text-center h-100 status-card">
+                                    <div class="card-body p-3">
+                                        <h3 class="mb-1">{{ status_counts[status] }}</h3>
+                                        <div class="mb-2">
                                             <span class="badge rounded-pill bg-{{ status.lower() }}">
                                                 {{ status.replace('_', ' ') }}
                                             </span>
+                                        </div>
+                                        <div class="progress" style="height: 5px;">
+                                            {% set percentage = (status_counts[status] / (status_counts.values()|sum or 1)) * 100 %}
+                                            <div class="progress-bar bg-{{ status.lower() }}" role="progressbar" 
+                                                 style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" 
+                                                 aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -98,30 +105,75 @@
                 </div>
             </div>
         </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Planning Alignment</h5>
+                </div>
+                <div class="card-body">
+                    {% set planned_count = sites|selectattr('is_planned', 'eq', true)|list|length %}
+                    {% set unplanned_count = sites|selectattr('is_planned', 'eq', false)|list|length %}
+                    {% set total_count = sites|length %}
+                    {% set planned_percentage = (planned_count / total_count * 100) if total_count > 0 else 0 %}
+                    
+                    <div class="text-center mb-3">
+                        <div class="planning-chart">
+                            <div class="planning-chart-inner">
+                                <h2 class="planning-percentage">{{ planned_percentage|int }}%</h2>
+                                <span>aligned</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="planning-stats">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <i class="fas fa-check-circle text-success"></i> Planned Sites
+                            </div>
+                            <span class="badge bg-success rounded-pill">{{ planned_count }}</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-exclamation-triangle text-warning"></i> Unplanned Sites
+                            </div>
+                            <span class="badge bg-warning text-dark rounded-pill">{{ unplanned_count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     {% if current_user.role == 'enom' and unplanned_sites %}
     <div class="row mb-4">
         <div class="col-md-12">
-            <div class="card bg-warning text-dark">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-exclamation-triangle"></i> Attention Required: Sites Need Planning
+            <div class="card bg-warning-subtle border-warning">
+                <div class="card-header bg-warning-subtle border-warning">
+                    <h5 class="mb-0 text-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Action Required: Sites Need Planning
                     </h5>
                 </div>
                 <div class="card-body">
-                    <p class="lead">
-                        There are <strong>{{ unplanned_sites|length }}</strong> sites with active alarms that have not been included in any plan.
-                    </p>
-                    <p>To ensure all critical issues are addressed, please create plans for these sites as soon as possible.</p>
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <p class="lead mb-2">
+                                There are <strong>{{ unplanned_sites|length }}</strong> sites with active alarms that have not been included in any plan.
+                            </p>
+                            <p class="mb-0">To ensure all critical issues are addressed, please create plans for these sites as soon as possible.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <a href="{{ url_for('main.create_plan', sites=unplanned_site_ids|join(',')) }}" class="btn btn-warning btn-lg">
+                                <i class="fas fa-calendar-plus me-2"></i> Create Plan for Unplanned Sites
+                            </a>
+                        </div>
+                    </div>
                     
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="mt-3">
                         <button class="btn btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#unplannedSitesList">
-                            <i class="fas fa-list"></i> View Unplanned Sites
+                            <i class="fas fa-list me-1"></i> View Unplanned Sites
                         </button>
-                        <a href="{{ url_for('main.create_plan', sites=unplanned_site_ids|join(',')) }}" class="btn btn-primary">
-                            <i class="fas fa-calendar-plus"></i> Create Plan for Unplanned Sites
-                        </a>
                     </div>
                     
                     <div class="collapse mt-3" id="unplannedSitesList">
@@ -155,8 +207,9 @@
                                                 </td>
                                                 <td>{{ site.alarm_count }}</td>
                                                 <td>
-                                                    <a href="{{ url_for('main.create_plan', site_id=site.id) }}" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-calendar-plus"></i> Plan
+                                                    <a href="{{ url_for('main.create_plan', site_id=site.id) }}" 
+                                                       class="btn btn-sm btn-warning">
+                                                        <i class="fas fa-calendar-plus me-1"></i> Plan
                                                     </a>
                                                 </td>
                                             </tr>
@@ -172,108 +225,130 @@
     </div>
     {% endif %}
     
-    <!-- Alarms Table -->
+    <!-- Sites with Alarms Table -->
     <div class="row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#all-pane" type="button" role="tab">
-                                All Alarms 
-                                <span class="badge rounded-pill bg-secondary">{{ alarms|length }}</span>
-                            </button>
-                        </li>
-                        {% for category in categories %}
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="{{ category|lower }}-tab" data-bs-toggle="tab" 
-                                        data-bs-target="#{{ category|lower }}-pane" type="button" role="tab">
-                                    {{ category.replace('_', ' ') }}
-                                    <span class="badge rounded-pill bg-secondary">{{ category_counts[category] }}</span>
-                                </button>
-                            </li>
-                        {% endfor %}
-                    </ul>
+                    <h5 class="mb-0">
+                        <i class="fas fa-broadcast-tower"></i> Sites with Alarms
+                        <span class="badge rounded-pill bg-secondary ms-2">{{ sites|length }}</span>
+                    </h5>
                 </div>
-                <div class="card-body">
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="all-pane" role="tabpanel" tabindex="0">
-                            {% if alarms %}
-                                {% include 'alarms/partials/alarm_table.html' with context %}
-                            {% else %}
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i> No alarms found matching your filters.
-                                </div>
-                            {% endif %}
+                <div class="card-body p-0">
+                    {% if sites %}
+                        {% include 'alarms/partials/site_table.html' with context %}
+                    {% else %}
+                        <div class="alert alert-info m-3">
+                            <i class="fas fa-info-circle"></i> No sites found matching your filters.
                         </div>
-                        
-                        {% for category in categories %}
-                            <div class="tab-pane fade" id="{{ category|lower }}-pane" role="tabpanel" tabindex="0">
-                                {% set filtered_alarms = alarms|selectattr('category', 'eq', category)|list %}
-                                {% if filtered_alarms %}
-                                    {% with alarms = filtered_alarms %}
-                                        {% include 'alarms/partials/alarm_table.html' with context %}
-                                    {% endwith %}
-                                {% else %}
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i> No {{ category.replace('_', ' ') }} alarms found.
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Status cards */
+    .status-card {
+        transition: transform 0.2s;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .status-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Planning chart */
+    .planning-chart {
+        width: 150px;
+        height: 150px;
+        margin: 0 auto;
+        border-radius: 50%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffc107;
+    }
+    
+    .planning-chart::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background-image: conic-gradient(#198754 0% {{ planned_percentage }}%, transparent {{ planned_percentage }}% 100%);
+    }
+    
+    .planning-chart-inner {
+        width: 120px;
+        height: 120px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+    }
+    
+    .planning-percentage {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 0;
+        line-height: 1;
+    }
+    
+    .planning-stats {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+    
+    /* Background color subtle utility classes */
+    .bg-warning-subtle {
+        background-color: rgba(255, 193, 7, 0.2);
+    }
+
+    .border-warning {
+        border-color: #ffc107;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
     document.addEventListener('DOMContentLoaded', function() {
-        // Auto-submit form when filters change
-        document.getElementById('category').addEventListener('change', function() {
-            this.form.submit();
+        // Enable tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
         });
         
-        document.getElementById('status').addEventListener('change', function() {
-            this.form.submit();
-        });
-        
-        // Initialize DataTables
-        $('#alarmsTable').DataTable({
-            "order": [[4, "desc"], [0, "asc"]], // Sort by priority (desc) then site ID (asc)
-            "pageLength": 25,
-            "lengthMenu": [10, 25, 50, 100],
-            "columnDefs": [
-                { "width": "6%", "targets": 0 }, // Site ID
-                { "width": "15%", "targets": 1 }, // Site Name
-                { "width": "25%", "targets": 2 }, // Description
-                { "width": "10%", "targets": 3 }, // Category
-                { "width": "8%", "targets": 4 }, // Priority
-                { "width": "10%", "targets": 5 }, // Status
-                { "width": "15%", "targets": 6 }, // Created
-                { "width": "11%", "targets": 7 }  // Actions
-            ]
-        });
-        
-        // Handle resolve alarm
-        $('.resolve-alarm').on('click', function(e) {
+        // Handle resolve all site alarms
+        $('.resolve-all-site-alarms').on('click', function(e) {
             e.preventDefault();
-            const alarmId = $(this).data('alarm-id');
+            const siteId = $(this).data('site-id');
             
             Swal.fire({
-                title: 'Resolve Alarm',
-                text: 'Add a resolution note (optional):',
+                title: 'Resolve All Alarms',
+                text: 'Are you sure you want to resolve all open alarms for this site?',
+                icon: 'question',
                 input: 'textarea',
+                inputPlaceholder: 'Add a resolution note (optional)',
                 showCancelButton: true,
-                confirmButtonText: 'Resolve',
+                confirmButtonText: 'Resolve All',
                 showLoaderOnConfirm: true,
                 preConfirm: (resolution_note) => {
                     return $.ajax({
-                        url: `/alarms/resolve/${alarmId}`,
+                        url: `/alarms/api/resolve-site-alarms/${siteId}`,
                         type: 'POST',
                         data: { 
                             resolution_note: resolution_note,
@@ -288,76 +363,7 @@
                 allowOutsideClick: () => !Swal.isLoading()
             }).then((result) => {
                 if (result.isConfirmed) {
-                    toastr.success('Alarm resolved successfully');
-                    setTimeout(() => window.location.reload(), 1500);
-                }
-            });
-        });
-        
-        // Handle close alarm
-        $('.close-alarm').on('click', function(e) {
-            e.preventDefault();
-            const alarmId = $(this).data('alarm-id');
-            
-            Swal.fire({
-                title: 'Close Alarm',
-                text: 'Are you sure you want to close this alarm?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, close it',
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return $.ajax({
-                        url: `/alarms/close/${alarmId}`,
-                        type: 'POST',
-                        headers: {
-                            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-                        }
-                    }).then(response => {
-                        return response;
-                    }).catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    toastr.success('Alarm closed successfully');
-                    setTimeout(() => window.location.reload(), 1500);
-                }
-            });
-        });
-        
-        // Handle delete alarm
-        $('.delete-alarm').on('click', function(e) {
-            e.preventDefault();
-            const alarmId = $(this).data('alarm-id');
-            
-            Swal.fire({
-                title: 'Delete Alarm',
-                text: 'Are you sure you want to delete this alarm? This cannot be undone.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, delete it',
-                confirmButtonColor: '#dc3545',
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return $.ajax({
-                        url: `/alarms/delete/${alarmId}`,
-                        type: 'POST',
-                        headers: {
-                            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-                        }
-                    }).then(response => {
-                        return response;
-                    }).catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    toastr.success('Alarm deleted successfully');
+                    toastr.success('All alarms have been resolved');
                     setTimeout(() => window.location.reload(), 1500);
                 }
             });

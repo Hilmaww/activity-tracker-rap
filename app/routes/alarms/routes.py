@@ -288,8 +288,74 @@ def list_alarms():
             Site.name.ilike(f'%{search}%')
         )
     
-    # Order by priority score and creation date
-    alarms = query.order_by(desc(AlarmRecord.priority_score), desc(AlarmRecord.created_at)).all()
+    # Get filtered alarms
+    filtered_alarms = query.all()
+    
+    # Group alarms by site
+    sites_with_alarms = {}
+    for alarm in filtered_alarms:
+        site = alarm.site
+        if site.id not in sites_with_alarms:
+            # Initialize site data
+            sites_with_alarms[site.id] = {
+                'site': site,
+                'alarms': [],
+                'alarm_count': 0,
+                'latest_alarm': None,
+                'highest_priority': 0,
+                'status_counts': {},
+                'category_counts': {},
+                'has_open_alarms': False,
+                'is_planned': False
+            }
+        
+        # Add alarm to site data
+        sites_with_alarms[site.id]['alarms'].append(alarm)
+        sites_with_alarms[site.id]['alarm_count'] += 1
+        
+        # Update latest alarm
+        if (not sites_with_alarms[site.id]['latest_alarm'] or 
+            alarm.created_at > sites_with_alarms[site.id]['latest_alarm'].created_at):
+            sites_with_alarms[site.id]['latest_alarm'] = alarm
+        
+        # Update highest priority
+        if alarm.priority_score > sites_with_alarms[site.id]['highest_priority']:
+            sites_with_alarms[site.id]['highest_priority'] = alarm.priority_score
+        
+        # Update status counts
+        if alarm.status not in sites_with_alarms[site.id]['status_counts']:
+            sites_with_alarms[site.id]['status_counts'][alarm.status] = 0
+        sites_with_alarms[site.id]['status_counts'][alarm.status] += 1
+        
+        # Update category counts
+        if alarm.category not in sites_with_alarms[site.id]['category_counts']:
+            sites_with_alarms[site.id]['category_counts'][alarm.category] = 0
+        sites_with_alarms[site.id]['category_counts'][alarm.category] += 1
+        
+        # Check if site has open alarms
+        if alarm.status in [AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED]:
+            sites_with_alarms[site.id]['has_open_alarms'] = True
+    
+    # Check which sites are already planned
+    from app.models import PlannedSite, DailyPlan
+    
+    for site_id in sites_with_alarms:
+        # Check if site is in any active plan
+        planned = db.session.query(PlannedSite).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            PlannedSite.site_id == site_id,
+            DailyPlan.plan_date >= datetime.now().date()
+        ).first()
+        
+        if planned:
+            sites_with_alarms[site_id]['is_planned'] = True
+            sites_with_alarms[site_id]['plan_id'] = planned.daily_plan_id
+            sites_with_alarms[site_id]['plan_date'] = planned.daily_plan.plan_date
+    
+    # Convert dictionary to list and sort by priority
+    sites_list = list(sites_with_alarms.values())
+    sites_list.sort(key=lambda x: (x['highest_priority'], x['alarm_count']), reverse=True)
     
     # Get counts for filter badges
     category_counts = {}
@@ -319,7 +385,7 @@ def list_alarms():
         from app.models import PlannedSite, DailyPlan
         
         # First, get all sites with active alarms
-        sites_with_alarms = db.session.query(
+        sites_with_active_alarms = db.session.query(
             Site,
             func.count(AlarmRecord.id).label('alarm_count'),
             func.max(AlarmRecord.priority_score).label('priority_score')
@@ -331,7 +397,7 @@ def list_alarms():
         ).group_by(Site.id).order_by(desc('priority_score')).all()
         
         # For each site, check if it's already planned
-        for site, alarm_count, priority_score in sites_with_alarms:
+        for site, alarm_count, priority_score in sites_with_active_alarms:
             # Check if site is in any active plan
             planned = db.session.query(PlannedSite).join(
                 DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
@@ -348,7 +414,7 @@ def list_alarms():
     
     return render_template(
         'alarms/list.html',
-        alarms=alarms,
+        sites=sites_list,
         categories=categories,
         statuses=statuses,
         category_counts=category_counts,
@@ -580,4 +646,163 @@ def get_site_alarms(site_id):
             'location': site.kabupaten
         },
         'alarms': alarm_data
-    }) 
+    })
+
+@bp.route('/site/<int:site_id>', methods=['GET'])
+@login_required
+def view_site_alarms(site_id):
+    """View all alarms for a specific site."""
+    site = Site.query.get_or_404(site_id)
+    
+    # Get all alarms for this site
+    alarms = AlarmRecord.query.filter(
+        AlarmRecord.site_id == site_id,
+        AlarmRecord.is_deleted == False
+    ).order_by(desc(AlarmRecord.created_at)).all()
+    
+    # Get all remarks for all alarms
+    alarm_ids = [alarm.id for alarm in alarms]
+    all_remarks = AlarmRemark.query.filter(
+        AlarmRemark.alarm_id.in_(alarm_ids),
+        AlarmRemark.is_deleted == False
+    ).order_by(desc(AlarmRemark.created_at)).all()
+    
+    # Group remarks by alarm_id
+    remarks_by_alarm = {}
+    for remark in all_remarks:
+        if remark.alarm_id not in remarks_by_alarm:
+            remarks_by_alarm[remark.alarm_id] = []
+        remarks_by_alarm[remark.alarm_id].append(remark)
+    
+    # Check if site is already planned
+    from app.models import PlannedSite, DailyPlan
+    planned_visit = db.session.query(PlannedSite, DailyPlan)\
+        .join(DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id)\
+        .filter(
+            PlannedSite.site_id == site_id,
+            DailyPlan.plan_date >= datetime.now().date()
+        ).order_by(DailyPlan.plan_date.asc()).first()
+    
+    return render_template(
+        'alarms/site_view.html',
+        site=site,
+        alarms=alarms,
+        remarks_by_alarm=remarks_by_alarm,
+        planned_visit=planned_visit[0] if planned_visit else None,
+        planned_date=planned_visit[1].plan_date if planned_visit else None
+    )
+
+@bp.route('/api/resolve-site-alarms/<int:site_id>', methods=['POST'])
+@login_required
+def resolve_site_alarms(site_id):
+    """Resolve all open alarms for a site."""
+    if current_user.role != 'tsel' and current_user.role != 'enom':
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+    
+    site = Site.query.get_or_404(site_id)
+    resolution_note = request.form.get('resolution_note', '')
+    
+    try:
+        # Get all open alarms for this site
+        open_alarms = AlarmRecord.query.filter(
+            AlarmRecord.site_id == site_id,
+            AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED, AlarmStatus.SCHEDULED]),
+            AlarmRecord.is_deleted == False
+        ).all()
+        
+        if not open_alarms:
+            return jsonify({'success': False, 'message': 'No open alarms found for this site'}), 400
+        
+        # Update each alarm
+        for alarm in open_alarms:
+            # Add resolution remark if provided
+            if resolution_note:
+                remark = AlarmRemark(
+                    alarm_id=alarm.id,
+                    user_id=current_user.id,
+                    planned_visit_date=datetime.utcnow(),
+                    initial_findings='Bulk resolution',
+                    planned_actions=f"Resolved in bulk action: {resolution_note}",
+                    assignee=current_user.username
+                )
+                db.session.add(remark)
+            
+            # Update alarm status
+            alarm.status = AlarmStatus.RESOLVED
+            alarm.resolved_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Successfully resolved {len(open_alarms)} alarms for site {site.site_id}'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@bp.route('/add-site-remark/<int:site_id>', methods=['GET', 'POST'])
+@login_required
+def add_site_remark(site_id):
+    """Add a remark to all open alarms for a site."""
+    if current_user.role != 'enom':
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('alarms.list_alarms'))
+    
+    site = Site.query.get_or_404(site_id)
+    
+    # Get all open alarms for this site
+    open_alarms = AlarmRecord.query.filter(
+        AlarmRecord.site_id == site_id,
+        AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED]),
+        AlarmRecord.is_deleted == False
+    ).all()
+    
+    if not open_alarms:
+        flash('No open alarms found for this site.', 'warning')
+        return redirect(url_for('alarms.view_site_alarms', site_id=site_id))
+    
+    if request.method == 'POST':
+        try:
+            planned_visit_date = datetime.strptime(
+                request.form.get('planned_visit_date'), 
+                '%Y-%m-%dT%H:%M'
+            )
+            initial_findings = request.form.get('initial_findings')
+            planned_actions = request.form.get('planned_actions')
+            assignee = request.form.get('assignee')
+            estimated_resolution_time = request.form.get('estimated_resolution_time')
+            
+            # Add remark to each alarm
+            for alarm in open_alarms:
+                remark = AlarmRemark(
+                    alarm_id=alarm.id,
+                    user_id=current_user.id,
+                    planned_visit_date=planned_visit_date,
+                    initial_findings=initial_findings,
+                    planned_actions=planned_actions,
+                    assignee=assignee,
+                    estimated_resolution_time=estimated_resolution_time
+                )
+                db.session.add(remark)
+                
+                # Update alarm status
+                alarm.status = AlarmStatus.SCHEDULED
+            
+            db.session.commit()
+            
+            flash(f'Remark added to {len(open_alarms)} alarms successfully.', 'success')
+            return redirect(url_for('alarms.view_site_alarms', site_id=site_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding remarks: {str(e)}', 'danger')
+    
+    assignees = User.query.filter(User.role == 'enom').all()
+    return render_template(
+        'alarms/site_remark.html',
+        site=site,
+        alarms=open_alarms,
+        assignees=assignees
+    ) 

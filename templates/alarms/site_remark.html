@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Add Remarks to {{ site.site_id }} Alarms - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h2>
+                    <i class="fas fa-comment"></i> Add Remarks to All Alarms
+                </h2>
+                <div>
+                    <a href="{{ url_for('alarms.view_site_alarms', site_id=site.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Site Alarms
+                    </a>
+                </div>
+            </div>
+            <p class="text-muted">
+                Adding remarks to {{ alarms|length }} open alarms for site {{ site.site_id }} - {{ site.name }}
+            </p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Remark Form
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('alarms.add_site_remark', site_id=site.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="planned_visit_date" class="form-label">Planned Visit Date <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" id="planned_visit_date" 
+                                   name="planned_visit_date" required>
+                            <div class="form-text">When do you plan to visit the site?</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="initial_findings" class="form-label">Initial Findings <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="initial_findings" name="initial_findings" 
+                                      rows="3" required></textarea>
+                            <div class="form-text">What do you know about the issues so far?</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="planned_actions" class="form-label">Planned Actions <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="planned_actions" name="planned_actions" 
+                                      rows="3" required></textarea>
+                            <div class="form-text">What actions do you plan to take during the visit?</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="assignee" class="form-label">Assignee</label>
+                                    <select class="form-select" id="assignee" name="assignee">
+                                        <option value="">-- Select Assignee --</option>
+                                        {% for user in assignees %}
+                                            <option value="{{ user.username }}" 
+                                                    {% if user.id == current_user.id %}selected{% endif %}>
+                                                {{ user.username }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">Who will handle this site visit?</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="estimated_resolution_time" class="form-label">Est. Resolution Time (min)</label>
+                                    <input type="number" class="form-control" id="estimated_resolution_time" 
+                                           name="estimated_resolution_time" min="1">
+                                    <div class="form-text">Estimated time to resolve (in minutes)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" 
+                                    onclick="window.location='{{ url_for('alarms.view_site_alarms', site_id=site.id) }}'">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Add Remarks to All Alarms
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Site Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Site ID</th>
+                            <td>{{ site.site_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Name</th>
+                            <td>{{ site.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Location</th>
+                            <td>{{ site.kabupaten }}</td>
+                        </tr>
+                        <tr>
+                            <th>Type</th>
+                            <td>{{ site.site_type or 'N/A' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell"></i> Affected Alarms ({{ alarms|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for alarm in alarms %}
+                            <div class="list-group-item list-group-item-action flex-column align-items-start">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <small class="text-muted">{{ alarm.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    <span class="badge bg-{{ alarm.status.lower() }}">
+                                        {{ alarm.status.replace('_', ' ') }}
+                                    </span>
+                                </div>
+                                <p class="mb-1 text-truncate" title="{{ alarm.description }}">
+                                    {{ alarm.description }}
+                                </p>
+                                <small class="text-muted">
+                                    <span class="badge bg-secondary">{{ alarm.category.replace('_', ' ') }}</span>
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i> Note: This action will add the same remark to all {{ alarms|length }} alarms and mark them as SCHEDULED.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ nonce_value | default('') }}">
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default visit date (tomorrow at 9:00 AM)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        
+        // Format for datetime-local input: YYYY-MM-DDThh:mm
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+        const hours = String(tomorrow.getHours()).padStart(2, '0');
+        const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
+        
+        document.getElementById('planned_visit_date').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    });
+</script>
+{% endblock %} 

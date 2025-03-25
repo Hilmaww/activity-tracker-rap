@@ -1,0 +1,202 @@
+<div class="table-responsive">
+    <table id="sitesTable" class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Site ID</th>
+                <th>Site Name</th>
+                <th>Location</th>
+                <th>Alarms</th>
+                <th>Latest Issue</th>
+                <th>Priority</th>
+                <th>Planning Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for site_data in sites %}
+                {% set site = site_data.site %}
+                {% set is_planned = site_data.is_planned %}
+                {% set has_open_alarms = site_data.has_open_alarms %}
+                {% set latest_alarm = site_data.latest_alarm %}
+                
+                <tr class="{% if has_open_alarms and not is_planned %}table-warning{% elif is_planned %}table-success{% endif %}">
+                    <td class="fw-bold">{{ site.site_id }}</td>
+                    <td>{{ site.name }}</td>
+                    <td>{{ site.kabupaten }}</td>
+                    <td>
+                        <div class="d-flex flex-column">
+                            <span class="fs-5 fw-bold">{{ site_data.alarm_count }}</span>
+                            <div>
+                                {% for status in site_data.status_counts %}
+                                    <span class="badge bg-{{ status.lower() }} me-1">
+                                        {{ site_data.status_counts[status] }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="text-truncate" style="max-width: 200px;" 
+                             data-bs-toggle="tooltip" title="{{ latest_alarm.description }}">
+                            {{ latest_alarm.description }}
+                        </div>
+                        <small class="text-muted">
+                            {{ latest_alarm.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                    </td>
+                    <td>
+                        {% if site_data.highest_priority > 10 %}
+                            <div class="d-flex align-items-center">
+                                <div class="priority-indicator priority-high me-2"></div>
+                                <span class="badge bg-danger">High ({{ site_data.highest_priority }})</span>
+                            </div>
+                        {% elif site_data.highest_priority > 5 %}
+                            <div class="d-flex align-items-center">
+                                <div class="priority-indicator priority-medium me-2"></div>
+                                <span class="badge bg-warning text-dark">Medium ({{ site_data.highest_priority }})</span>
+                            </div>
+                        {% else %}
+                            <div class="d-flex align-items-center">
+                                <div class="priority-indicator priority-low me-2"></div>
+                                <span class="badge bg-info">Low ({{ site_data.highest_priority }})</span>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if is_planned %}
+                            <div class="site-status-planned">
+                                <i class="fas fa-check-circle text-success"></i>
+                                <span>Planned for {{ site_data.plan_date.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        {% else %}
+                            <div class="site-status-unplanned">
+                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                                <span>Needs Planning</span>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <!-- View Site Alarms button -->
+                            <a href="{{ url_for('alarms.view_site_alarms', site_id=site.id) }}" 
+                               class="btn btn-sm btn-primary action-btn mb-2 w-100">
+                                <i class="fas fa-eye me-1"></i> View All Alarms ({{ site_data.alarm_count }})
+                            </a>
+                            
+                            <!-- Conditional buttons based on planning status -->
+                            {% if is_planned %}
+                                <a href="{{ url_for('main.view_plan', plan_id=site_data.plan_id) }}" 
+                                   class="btn btn-sm btn-success action-btn w-100">
+                                    <i class="fas fa-calendar-alt me-1"></i> View Plan
+                                </a>
+                            {% elif current_user.role == 'enom' %}
+                                <a href="{{ url_for('main.create_plan', site_id=site.id) }}" 
+                                   class="btn btn-sm btn-warning action-btn w-100">
+                                    <i class="fas fa-calendar-plus me-1"></i> Create Plan
+                                </a>
+                            {% endif %}
+                            
+                            <!-- Quick Action Dropdown -->
+                            <div class="dropdown mt-2">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" type="button" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-cog me-1"></i> Quick Actions
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% if has_open_alarms and current_user.role == 'enom' %}
+                                        <li>
+                                            <a class="dropdown-item text-warning" href="{{ url_for('alarms.add_site_remark', site_id=site.id) }}">
+                                                <i class="fas fa-comment me-1"></i> Add Remark to All Alarms
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('alarms.view_site_alarms', site_id=site.id) }}">
+                                            <i class="fas fa-bell me-1"></i> Manage Alarms
+                                        </a>
+                                    </li>
+                                    {% if current_user.role == 'tsel' %}
+                                        <li>
+                                            <a class="dropdown-item text-danger resolve-all-site-alarms" 
+                                               href="#" data-site-id="{{ site.id }}">
+                                                <i class="fas fa-check-double me-1"></i> Resolve All Alarms
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    /* Priority indicators */
+    .priority-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .priority-high {
+        background-color: #dc3545;
+        box-shadow: 0 0 5px #dc3545;
+    }
+    
+    .priority-medium {
+        background-color: #ffc107;
+        box-shadow: 0 0 5px #ffc107;
+    }
+    
+    .priority-low {
+        background-color: #0dcaf0;
+        box-shadow: 0 0 5px #0dcaf0;
+    }
+    
+    /* Planning status */
+    .site-status-planned, .site-status-unplanned {
+        display: flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 4px;
+    }
+    
+    .site-status-planned {
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+    
+    .site-status-unplanned {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+    
+    .site-status-planned i, .site-status-unplanned i {
+        font-size: 16px;
+        margin-right: 8px;
+    }
+    
+    /* Action buttons */
+    .action-buttons {
+        min-width: 200px;
+    }
+    
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Row hover effect */
+    #sitesTable tbody tr {
+        transition: transform 0.15s ease-in-out;
+    }
+    
+    #sitesTable tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        z-index: 1;
+        position: relative;
+    }
+</style> 
