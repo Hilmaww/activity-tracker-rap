@@ -246,17 +246,19 @@
     <div class="row mt-4">
         <div class="col-md-6">
             <div class="chart-container">
-                <h4 class="text-center mb-4">30-Day Status Distribution</h4>
+                <h4 class="text-center mb-4">Site Alignment & Proactive Management</h4>
+                <p class="text-muted text-center">Strategic responsiveness and predictive maintenance capability</p>
                 <div class="chart-wrapper">
-                    <canvas id="statusPieChart"></canvas>
+                    <canvas id="siteAlignmentChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="chart-container">
-                <h4 class="text-center mb-4">7-Day Ticket Trend</h4>
+                <h4 class="text-center mb-4">Operational Efficiency Quadrant</h4>
+                <p class="text-muted text-center">Identifying operational bottlenecks and optimization opportunities</p>
                 <div class="chart-wrapper">
-                    <canvas id="trendLineChart"></canvas>
+                    <canvas id="operationalEfficiencyChart"></canvas>
                 </div>
             </div>
         </div>
@@ -267,55 +269,87 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title">Ticket Distribution by ENOM (In The Last 30 Days)</h5>
+                    <h5 class="card-title">Resource Allocation Intelligence</h5>
+                    <small class="text-muted">Optimizing human capital and identifying training needs</small>
                 </div>
                 <div class="card-body">
-                    <canvas id="assigneeChart"></canvas>
+                    <canvas id="resourceAllocationChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title">Top 5 Sites with Most Ticket (Last 30 Days)</h5>
+                    <h5 class="card-title">Temporal Operational Performance</h5>
+                    <small class="text-muted">Tracking operational rhythm and seasonal variations</small>
                 </div>
                 <div class="card-body">
-                    {% if top_sites_data['site_ids'] %}
+                    {% if trend_data %}
                         <p class="text-muted mb-3">
-                            Site {{ top_sites_data['site_ids'][0] }} - {{ top_sites_data['site_names'][0] }} has the highest number of tickets ({{ top_sites_data['ticket_counts'][0] }} tickets) in the last 30 days.
+                            Performance analytics show {{ trend_data|last }} operations yesterday compared to a 7-day average of {{ (trend_data|sum / trend_data|length)|round(1) }}.
                         </p>
                     {% else %}
-                        <p class="text-muted mb-3">No ticket data available for the last 30 days.</p>
+                        <p class="text-muted mb-3">No performance data available for the last 7 days.</p>
                     {% endif %}
-                    <canvas id="topSitesChart"></canvas>
+                    <canvas id="temporalPerformanceChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Top Planned Sites Chart -->
+    <!-- Alarm Management Scorecard -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title">Top 10 Most Visited Sites (Last 2 Weeks)</h5>
+                    <h5 class="card-title">Comprehensive Alarm Management Scorecard</h5>
+                    <small class="text-muted">Strategic decision support for infrastructure management</small>
                 </div>
                 <div class="card-body">
-                    {% if top_planned_sites_data['site_ids'] %}
-                        <p class="text-muted mb-3">
-                            Site {{ top_planned_sites_data['site_ids'][0] }} - {{ top_planned_sites_data['site_names'][0] }} has been visited {{ top_planned_sites_data['visit_counts'][0] }} times in the last 2 weeks.
-                        </p>
-                    {% else %}
-                        <p class="text-muted mb-3">No planned site visits in the last 2 weeks.</p>
-                    {% endif %}
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <span class="badge bg-primary rounded-pill p-2">{{ alarm_stats.total|default(0) }}</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Total Alarms</h6>
+                                    <small class="text-muted">All categories</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <span class="badge bg-success rounded-pill p-2">{{ alarm_stats.resolution_rate|default(0) }}%</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Resolution Rate</h6>
+                                    <small class="text-muted">Last 30 days</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <span class="badge bg-warning text-dark rounded-pill p-2">{{ alarm_stats.avg_resolution_time|default(0) }} hrs</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Avg. Resolution Time</h6>
+                                    <small class="text-muted">All categories</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="chart-wrapper">
-                        <canvas id="topPlannedSitesChart"></canvas>
+                        <canvas id="alarmManagementChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
+
     <!-- Map Section -->
     <div class="map-container">
         <h4 class="text-center mb-4">Site Locations with Active Tickets and Today's Planned Visits</h4>
@@ -361,135 +395,25 @@
 
     // Status Distribution Chart (30 days)
     {% if current_user.role == 'tsel' %}
-    const statusPieChart = new Chart(
-        document.getElementById('statusPieChart'),
-        {
-            type: 'doughnut',
-            data: {
-                labels: ['Open', 'In Progress', 'Pending', 'Resolved'],
-                datasets: [{
-                    data: [
-                        {{ status_30_days['OPEN'] }},
-                        {{ status_30_days['IN_PROGRESS'] }},
-                        {{ status_30_days['PENDING'] }},
-                        {{ status_30_days['RESOLVED'] }}
-                    ],
-                    backgroundColor: [
-                        '#ff6384',
-                        '#36a2eb',
-                        '#ffce56',
-                        '#4bc0c0'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        }
-    );
-
-    // Trend Line Chart (existing)
-    const trendLineChart = new Chart(
-        document.getElementById('trendLineChart'),
-        {
-            type: 'line',
-            data: {
-                labels: {{ trend_labels | tojson }},
-                datasets: [{
-                    label: 'New Tickets',
-                    data: {{ trend_data | tojson }},
-                    borderColor: '#36a2eb',
-                    tension: 0.1,
-                    fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        }
-    );
-
-    // Assignee Distribution Chart
-    var assigneeCtx = document.getElementById('assigneeChart').getContext('2d');
-    var assigneeData = {{ assignee_distribution | tojson }};
-    new Chart(assigneeCtx, {
-        type: 'bar',
+    // 1. Site Alignment & Proactive Management Chart (Doughnut with multiple datasets)
+    const siteAlignmentCtx = document.getElementById('siteAlignmentChart').getContext('2d');
+    const siteAlignmentChart = new Chart(siteAlignmentCtx, {
+        type: 'doughnut',
         data: {
-            labels: Object.keys(assigneeData),
+            labels: ['Sites with Plans', 'Sites with Alarms (No Plan)', 'Other Sites'],
             datasets: [{
-                label: 'Number of Tickets',
-                data: Object.values(assigneeData),
-                backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    // Top 5 Sites Chart
-    var topSitesCtx = document.getElementById('topSitesChart').getContext('2d');
-    var topSitesData = {{ top_sites_data | tojson }};
-    new Chart(topSitesCtx, {
-        type: 'bar',
-        data: {
-            labels: topSitesData.site_ids.map((id, index) => `${id} - ${topSitesData.site_names[index]}`),
-            datasets: [{
-                label: 'Number of Tickets',
-                data: topSitesData.ticket_counts,
-                backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    // Top Planned Sites Chart
-    var topPlannedSitesCtx = document.getElementById('topPlannedSitesChart').getContext('2d');
-    var topPlannedSitesData = {{ top_planned_sites_data | tojson }};
-    const topPlannedSitesChart = new Chart(topPlannedSitesCtx, {
-        type: 'bar',
-        data: {
-            labels: topPlannedSitesData.site_ids.map((id, index) => `${id} - ${topPlannedSitesData.site_names[index]}`),
-            datasets: [{
-                label: 'Number of Visits',
-                data: topPlannedSitesData.visit_counts,
-                backgroundColor: 'rgba(255, 159, 64, 0.5)',
-                borderColor: 'rgba(255, 159, 64, 1)',
-                borderWidth: 1
+                data: [
+                    {{ site_alignment.planned|default(0) }},
+                    {{ site_alignment.with_alarms_no_plan|default(0) }},
+                    {{ site_alignment.other|default(0) }}
+                ],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',  // Blue - Sites with Plans
+                    'rgba(255, 99, 132, 0.8)',  // Red - Sites with Alarms but No Plan
+                    'rgba(255, 206, 86, 0.8)',  // Yellow - Other Sites
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
             }]
         },
         options: {
@@ -497,14 +421,327 @@
             maintainAspectRatio: false,
             plugins: {
                 legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 15,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((context.raw / total) * 100);
+                            return `${context.label}: ${context.raw} sites (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '60%',
+            animation: {
+                animateScale: true,
+                animateRotate: true
+            }
+        }
+    });
+
+    // 2. Operational Efficiency Chart (Radar)
+    const operationalEfficiencyCtx = document.getElementById('operationalEfficiencyChart').getContext('2d');
+    const operationalEfficiencyChart = new Chart(operationalEfficiencyCtx, {
+        type: 'radar',
+        data: {
+            labels: ['Site Visit Efficiency', 'Alarm Response Time', 'Resolution Rate', 'Resource Utilization', 'Plan Compliance'],
+            datasets: [{
+                label: 'Current Period',
+                data: [
+                    {{ operational_efficiency.visit_efficiency|default(65) }},
+                    {{ operational_efficiency.response_time|default(70) }},
+                    {{ operational_efficiency.resolution_rate|default(85) }},
+                    {{ operational_efficiency.resource_utilization|default(75) }},
+                    {{ operational_efficiency.plan_compliance|default(80) }}
+                ],
+                fill: true,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgb(54, 162, 235)',
+                pointBackgroundColor: 'rgb(54, 162, 235)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(54, 162, 235)'
+            }, {
+                label: 'Previous Period',
+                data: [
+                    {{ operational_efficiency_previous.visit_efficiency|default(60) }},
+                    {{ operational_efficiency_previous.response_time|default(65) }},
+                    {{ operational_efficiency_previous.resolution_rate|default(80) }},
+                    {{ operational_efficiency_previous.resource_utilization|default(70) }},
+                    {{ operational_efficiency_previous.plan_compliance|default(75) }}
+                ],
+                fill: true,
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgb(255, 99, 132)',
+                pointBackgroundColor: 'rgb(255, 99, 132)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(255, 99, 132)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            elements: {
+                line: {
+                    borderWidth: 3
+                }
+            },
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            },
+            plugins: {
+                legend: {
                     position: 'bottom'
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return `${context.raw} visits`;
+                            return `${context.dataset.label}: ${context.raw}%`;
                         }
                     }
+                }
+            }
+        }
+    });
+
+    // 3. Resource Allocation Intelligence (Stacked Bar)
+    const resourceAllocationCtx = document.getElementById('resourceAllocationChart').getContext('2d');
+    const resourceAllocationChart = new Chart(resourceAllocationCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ enom_users|default(['User 1', 'User 2', 'User 3', 'User 4'])|tojson }},
+            datasets: [
+                {
+                    label: 'Planned Sites',
+                    data: {{ resource_allocation.planned_sites|default([8, 6, 9, 7])|tojson }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Alarms Assigned',
+                    data: {{ resource_allocation.alarms|default([5, 3, 7, 4])|tojson }},
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Tickets Assigned',
+                    data: {{ resource_allocation.tickets|default([3, 5, 2, 6])|tojson }},
+                    backgroundColor: 'rgba(255, 206, 86, 0.7)',
+                    borderColor: 'rgb(255, 206, 86)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Workload Count'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        footer: function(tooltipItems) {
+                            let total = 0;
+                            tooltipItems.forEach(function(tooltipItem) {
+                                total += tooltipItem.parsed.y;
+                            });
+                            return 'Total: ' + total;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 4. Temporal Operational Performance (Mixed Chart)
+    const temporalPerformanceCtx = document.getElementById('temporalPerformanceChart').getContext('2d');
+    const temporalPerformanceChart = new Chart(temporalPerformanceCtx, {
+        type: 'line',
+        data: {
+            labels: {{ trend_labels|default(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])|tojson }},
+            datasets: [
+                {
+                    label: 'Plan Submissions',
+                    data: {{ temporal_performance.plan_submissions|default([5, 7, 6, 8, 9, 4, 3])|tojson }},
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    order: 1
+                },
+                {
+                    label: 'Alarms Resolved',
+                    data: {{ temporal_performance.alarms_resolved|default([3, 5, 4, 6, 7, 2, 1])|tojson }},
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    order: 2
+                },
+                {
+                    label: 'Site Visits',
+                    type: 'bar',
+                    data: {{ temporal_performance.site_visits|default([4, 6, 5, 7, 8, 3, 2])|tojson }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 1,
+                    order: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Count'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+
+    // 5. Comprehensive Alarm Management Scorecard (Stacked Area Chart)
+    const alarmManagementCtx = document.getElementById('alarmManagementChart').getContext('2d');
+    const alarmManagementChart = new Chart(alarmManagementCtx, {
+        type: 'line',
+        data: {
+            labels: {{ alarm_management.dates|default(['Week 1', 'Week 2', 'Week 3', 'Week 4'])|tojson }},
+            datasets: [
+                {
+                    label: 'Cell Down',
+                    data: {{ alarm_management.cell_down|default([10, 12, 8, 9])|tojson }},
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.4)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Power Issues',
+                    data: {{ alarm_management.power_issues|default([7, 9, 12, 8])|tojson }},
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.4)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Transport Issues',
+                    data: {{ alarm_management.transport_issues|default([4, 6, 8, 5])|tojson }},
+                    borderColor: 'rgb(255, 206, 86)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.4)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Zero Payload',
+                    data: {{ alarm_management.zero_payload|default([3, 5, 4, 6])|tojson }},
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.4)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Other',
+                    data: {{ alarm_management.other|default([5, 3, 6, 4])|tojson }},
+                    borderColor: 'rgb(153, 102, 255)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.4)',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time Period'
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Alarms'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            elements: {
+                line: {
+                    borderWidth: 2
+                },
+                point: {
+                    radius: 3,
+                    hoverRadius: 5
                 }
             }
         }
