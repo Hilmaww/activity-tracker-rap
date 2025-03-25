@@ -240,6 +240,13 @@ $(document).ready(() => {
         placeholder: 'Search for a site...'
     });
 
+    // Add event listeners for plan action buttons
+    $(document).on('click', '.plan-action-btn', function() {
+        const planId = $(this).data('plan-id');
+        const action = $(this).data('action');
+        handlePlanAction(planId, action);
+    });
+
     $('#add-site').off('click').on('click', function() {
         const newSite = $('.planned-site:first').clone();
         newSite.find('input, textarea').val(''); // Clear input values
