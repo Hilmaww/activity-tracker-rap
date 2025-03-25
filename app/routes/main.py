@@ -554,7 +554,8 @@ def index():
     
     # 3. Resource Allocation Intelligence
     # Get list of ENOM users for the chart
-    enom_users_list = User.query.filter_by(role='enom').all()
+    enom_users_list = [u for u in User.query.filter_by(role='enom') if u.username != 'enom_user']
+    # enom_users_list = User.query.filter_by(role='enom').all()
     enom_usernames = [user.username for user in enom_users_list]
     
     # Calculate workload per user
