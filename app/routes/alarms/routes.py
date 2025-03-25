@@ -63,6 +63,21 @@ def calculate_priority_score(site_id):
     # Formula: (alarm_count * 2) + plan_count
     return (alarm_count * 2) + plan_count
 
+def update_alarm_status_for_planned_site(site_id):
+    """Update alarm status to SCHEDULED for all open alarms of a planned site."""
+    # Get all open alarms for this site
+    open_alarms = AlarmRecord.query.filter(
+        AlarmRecord.site_id == site_id,
+        AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED]),
+        AlarmRecord.is_deleted == False
+    ).all()
+    
+    # Update each alarm's status
+    for alarm in open_alarms:
+        alarm.status = AlarmStatus.SCHEDULED
+    
+    db.session.commit()
+
 # Routes
 @bp.route('/upload', methods=['GET', 'POST'])
 @login_required
@@ -691,20 +706,14 @@ def view_site_alarms(site_id):
             DailyPlan.plan_date >= datetime.now().date()
         ).order_by(DailyPlan.plan_date.asc()).first()
     
-    # Update alarm statuses to SCHEDULED if there's a planned visit
+    # If site is planned, update alarm statuses
     if planned_visit:
-        # Get all open alarms for this site
-        open_alarms = AlarmRecord.query.filter(
+        update_alarm_status_for_planned_site(site_id)
+        # Refresh alarms to get updated statuses
+        alarms = AlarmRecord.query.filter(
             AlarmRecord.site_id == site_id,
-            AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED]),
             AlarmRecord.is_deleted == False
-        ).all()
-        
-        # Update their status to SCHEDULED
-        for alarm in open_alarms:
-            alarm.status = AlarmStatus.SCHEDULED
-        
-        db.session.commit()
+        ).order_by(desc(AlarmRecord.created_at)).all()
     
     return render_template(
         'alarms/site_view.html',
@@ -718,8 +727,7 @@ def view_site_alarms(site_id):
         resolved_alarms=resolved_alarms,
         resolved_alarms_count=resolved_alarms_count,
         closed_alarms=closed_alarms,
-        closed_alarms_count=closed_alarms_count,
-        all_remarks=all_remarks
+        closed_alarms_count=closed_alarms_count
     )
 
 @bp.route('/api/resolve-site-alarms/<int:site_id>', methods=['POST'])
