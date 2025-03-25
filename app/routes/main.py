@@ -1,11 +1,11 @@
 from flask import Blueprint, render_template, request, current_app, redirect, url_for, flash, Flask, Response
-from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User, DailyPlan, PlannedSite, PlanComment, PlanStatus
+from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User, DailyPlan, PlannedSite, PlanComment, PlanStatus, AlarmRecord, AlarmStatus
 from app import db, logger
 from datetime import datetime, timedelta
 import pytz
 from werkzeug.utils import secure_filename
 import os
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, desc
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
 from flask import jsonify, abort
@@ -276,6 +276,39 @@ def index():
             db.joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site)
         ).all()
 
+    # For ENOM users, get sites that need planning
+    unplanned_sites = []
+    unplanned_site_ids = []
+    
+    if current_user.is_authenticated and current_user.role == 'enom':
+        # First, get all sites with active alarms
+        sites_with_active_alarms = db.session.query(
+            Site,
+            func.count(AlarmRecord.id).label('alarm_count'),
+            func.max(AlarmRecord.priority_score).label('priority_score')
+        ).join(
+            AlarmRecord, Site.id == AlarmRecord.site_id
+        ).filter(
+            AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED]),
+            AlarmRecord.is_deleted == False
+        ).group_by(Site.id).order_by(desc('priority_score')).all()
+        
+        # For each site, check if it's already planned
+        for site, alarm_count, priority_score in sites_with_active_alarms:
+            # Check if site is in any active plan
+            planned = db.session.query(PlannedSite).join(
+                DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+            ).filter(
+                PlannedSite.site_id == site.id,
+                DailyPlan.plan_date >= datetime.now().date()
+            ).first()
+            
+            if not planned:
+                site.alarm_count = alarm_count
+                site.priority_score = priority_score
+                unplanned_sites.append(site)
+                unplanned_site_ids.append(site.id)
+
     return render_template('index.html',
                        open_tickets=open_tickets,
                        in_progress_tickets=in_progress_tickets,
@@ -295,7 +328,9 @@ def index():
                        top_planned_sites_data=top_planned_sites_data,
                        mapbox_token=os.getenv('MAPBOX_TOKEN'),
                        today=today,
-                       todays_plans=todays_plans)
+                       todays_plans=todays_plans,
+                       unplanned_sites=unplanned_sites,
+                       unplanned_site_ids=unplanned_site_ids)
 
 @bp.route('/tickets', methods=['GET'])
 @login_required

@@ -89,10 +89,10 @@
                                    class="btn btn-sm btn-success action-btn w-100">
                                     <i class="fas fa-calendar-alt me-1"></i> View Plan
                                 </a>
-                            {% elif current_user.role == 'enom' %}
-                                <a href="{{ url_for('main.create_plan', site_id=site.id) }}" 
+                            {% elif has_open_alarms and current_user.role == 'enom' %}
+                                <a href="{{ url_for('alarms.add_site_remark', site_id=site.id) }}" 
                                    class="btn btn-sm btn-warning action-btn w-100">
-                                    <i class="fas fa-calendar-plus me-1"></i> Create Plan
+                                    <i class="fas fa-comment me-1"></i> Give Remark
                                 </a>
                             {% endif %}
                             
@@ -103,13 +103,6 @@
                                     <i class="fas fa-cog me-1"></i> Quick Actions
                                 </button>
                                 <ul class="dropdown-menu">
-                                    {% if has_open_alarms and current_user.role == 'enom' %}
-                                        <li>
-                                            <a class="dropdown-item text-warning" href="{{ url_for('alarms.add_site_remark', site_id=site.id) }}">
-                                                <i class="fas fa-comment me-1"></i> Add Remark to All Alarms
-                                            </a>
-                                        </li>
-                                    {% endif %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('alarms.view_site_alarms', site_id=site.id) }}">
                                             <i class="fas fa-bell me-1"></i> Manage Alarms
