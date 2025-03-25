@@ -117,59 +117,155 @@
             color: #666;
         }
         
-        /* Status Badge Colors */
+        /* Open - Vibrant Red with Subtle Gradient */
         .badge.bg-open {
-            background-color: var(--bs-danger) !important;
+            background: linear-gradient(to right, var(--bs-danger), #dc3545);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
         }
-        
+
+        /* In Progress - Warm Orange with Soft Glow */
         .badge.bg-in-progress {
-            background-color: var(--bs-warning) !important;
-            color: black;
+            background: linear-gradient(to right, var(--bs-warning), #ffc107);
+            color: #212529;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+            box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
         }
-        
+
+        /* Pending - Deep Charcoal with Subtle Texture */
         .badge.bg-pending {
-            background-color: var(--bs-dark) !important;
+            background: linear-gradient(to right, var(--bs-dark), #343a40);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(52, 58, 64, 0.3);
         }
-        
+
+        /* Resolved - Soft Blue with Gradient */
         .badge.bg-resolved {
-            background-color: var(--bs-info) !important;
+            background: linear-gradient(to right, var(--bs-info), #17a2b8);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3);
         }
 
+        /* Closed - Vibrant Green with Gradient */
         .badge.bg-closed {
-            background-color: var(--bs-success) !important;
+            background: linear-gradient(to right, var(--bs-success), #28a745);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
         }
 
+        /* Submitted - Deep Blue with Gradient */
         .badge.bg-submitted {
-            background-color: var(--bs-primary) !important;
+            background: linear-gradient(to right, var(--bs-primary), #007bff);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
         }
 
+        /* Draft - Soft Gray with Gradient */
         .badge.bg-draft {
-            background-color: var(--bs-secondary) !important;
+            background: linear-gradient(to right, var(--bs-secondary), #6c757d);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
         }
 
+        /* Approved - Vibrant Green with Checkmark Overlay */
         .badge.bg-approved {
-            background-color: var(--bs-success) !important;
+            background: linear-gradient(to right, var(--bs-success), #28a745);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .badge.bg-approved::after {
+            content: '✓';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 2em;
+            color: rgba(255,255,255,0.2);
+            transform: rotate(30deg);
         }
 
+        /* Rejected - Deep Red with Crossmark Overlay */
         .badge.bg-rejected {
-            background-color: var(--bs-danger) !important;
+            background: linear-gradient(to right, var(--bs-danger), #dc3545);
             color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .badge.bg-rejected::after {
+            content: '✕';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 2em;
+            color: rgba(255,255,255,0.2);
+            transform: rotate(45deg);
+        }
+
+        /* New: Acknowledged - Warm Purple with Gradient */
+        .badge.bg-acknowledged {
+            background: linear-gradient(to right, #8a4fff, #7a3eaf);
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(138, 79, 255, 0.3);
+            position: relative;
+        }
+        .badge.bg-acknowledged::before {
+            content: '👀';
+            position: absolute;
+            top: -2px;
+            right: -5px;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        /* New: Scheduled - Teal with Clock Overlay */
+        .badge.bg-scheduled {
+            background: linear-gradient(to right, #20c997, #17a2b8);
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(32, 201, 151, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .badge.bg-scheduled::after {
+            content: '⏰';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 1.2em;
+            color: rgba(255,255,255,0.2);
+            transform: rotate(15deg);
         }
 
         /* Make badges more prominent */
-        .badge {
+        /* .badge {
             padding: 0.5em 0.8em;
             font-weight: 500;
             font-size: 0.85em;
             border-radius: 20px;
-        }
+        } */
+        .badge {
+        display: inline-block;
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+        font-weight: 600;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
         .drag-handle {
             cursor: move; /* Change cursor to indicate dragging */
             background-color: #f0f0f0; /* Light background color */
