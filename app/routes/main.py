@@ -404,7 +404,8 @@ def index():
     
     # Resource Utilization = Average workload distribution efficiency
     # Calculate how evenly workload is distributed among engineers
-    enom_users = User.query.filter_by(role='enom').all()
+    # enom_users = User.query.filter_by(role='enom').all()
+    enom_users = [u for u in User.query.filter_by(role='enom') if u.username != 'enom_user']
     workload_counts = []
     
     for user in enom_users:
