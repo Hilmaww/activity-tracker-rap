@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, current_app, redirect, url_for, flash, Flask, Response
-from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User, DailyPlan, PlannedSite, PlanComment, PlanStatus, AlarmRecord, AlarmStatus
+from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus, EnomAssignee, User, DailyPlan, PlannedSite, PlanComment, PlanStatus, AlarmRecord, AlarmStatus, AlarmRemark, AlarmCategory
 from app import db, logger
 from datetime import datetime, timedelta
 import pytz
