@@ -291,7 +291,7 @@
                     {% else %}
                         <p class="text-muted mb-3">No performance data available for the last 7 days.</p>
                     {% endif %}
-                    <canvas id="temporalPerformanceChart" width="400" height="200"></canvas>
+                    <canvas id="temporalPerformanceChart"></canvas>
                 </div>
             </div>
         </div>
@@ -1034,6 +1034,11 @@
 
     #topPlannedSitesChart {
         height: 300px;
+    }
+
+    #temporalPerformanceChart {
+        width: 100%;
+        height: 100%;
     }
 </style>
 {% endblock %}
