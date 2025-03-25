@@ -328,9 +328,21 @@ def index():
     ).filter(
         DailyPlan.plan_date >= datetime.now().date()
     ).scalar() or 0
-    
-    # Count sites with alarms but no plan
-    sites_with_alarms_no_plan_count = len(unplanned_site_ids)
+
+    # Calculate sites with alarms but no plan by subtracting planned sites with alarms from total sites with alarms
+    sites_with_alarms_no_plan_count = db.session.query(
+        func.count(func.distinct(AlarmRecord.site_id))
+    ).filter(
+        AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED]),
+        AlarmRecord.is_deleted == False,
+        AlarmRecord.site_id.notin_(
+            db.session.query(func.distinct(PlannedSite.site_id)).join(
+                DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+            ).filter(
+                DailyPlan.plan_date >= datetime.now().date()
+            )
+        )
+    ).scalar() or 0
     
     # Calculate sites without alarms or plans
     other_sites_count = total_sites - sites_in_plans_count - sites_with_alarms_no_plan_count
