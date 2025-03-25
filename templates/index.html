@@ -951,6 +951,65 @@
     map.whenReady(() => {
         mapLoading.style.display = 'none';
     });
+
+    // Handle plan approval/rejection
+    function handlePlanAction(planId, action) {
+        const url = `/plans/${planId}/${action}`;
+        const confirmMessages = {
+            approve: 'Are you sure you want to approve this plan?',
+            reject: 'Please provide a reason for rejection:'
+        };
+
+        if (action === 'reject') {
+            Swal.fire({
+                title: 'Reject Plan',
+                input: 'textarea',
+                inputLabel: confirmMessages[action],
+                showCancelButton: true,
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'You need to provide a reason!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitPlanAction(url, { reason: result.value }, true);
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Confirm Action',
+                text: confirmMessages[action],
+                icon: 'question',
+                showCancelButton: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitPlanAction(url, {}, true);
+                }
+            });
+        }
+    }
+
+    function submitPlanAction(url, data = {}, shouldReload = true) {
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: data,
+            headers: {
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                toastr.success(response.message);
+                if (shouldReload) {
+                    setTimeout(() => window.location.reload(), 1500); // Delay reload for toastr message
+                }
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON?.message || "Something went wrong.");
+            }
+        });
+    }
+
 </script>
 
 <style>
