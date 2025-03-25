@@ -82,13 +82,6 @@ def create_app(config=None):
     # Ensure upload directory exists with secure permissions
     os.makedirs(app.config['UPLOAD_FOLDER'], mode=0o750, exist_ok=True)
 
-    # Add security headers
-    @app.after_request
-    def add_security_headers(response):
-        for header, value in app.config['SECURITY_HEADERS'].items():
-            response.headers[header] = value
-        return response
-
     # Register blueprints
     from app.routes.main import bp as main_bp
     from app.routes.auth import bp as auth_bp

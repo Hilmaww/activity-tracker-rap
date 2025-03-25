@@ -27,7 +27,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data" action="https://staging.pataro.hilmifawwaz.xyz:5002/alarms/upload"">
+                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('alarms.upload_alarm') }}"">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
                         <div class="mb-3">
