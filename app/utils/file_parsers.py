@@ -26,7 +26,7 @@ def parse_alarm_file(file_path, category, preview=True):
         if file_ext == '.csv':
             return parse_csv(file_path, preview)
         elif file_ext in ['.xlsx', '.xls']:
-            print("parse_alarm_file excel")
+            print("parse_alarm_file excel file path: ", file_path)
             return parse_excel(file_path, preview)
         elif file_ext == '.txt':
             return parse_txt(file_path, preview)
@@ -52,7 +52,6 @@ def parse_excel(file_path, preview=True):
     """Parse Excel file."""
     try:
         df = pd.read_excel(file_path)
-        print("parse_excel df")
         return process_dataframe(df, preview)
     except Exception as e:
         raise Exception(f"Failed to parse Excel: {str(e)}")
@@ -169,7 +168,6 @@ def process_dataframe(df, preview=True):
             'site_id': site_id,
             'description': str(row['description']) if pd.notna(row['description']) else f"Issue reported for {site_id}"
         })
-    print(result[:10])
     if preview:
         return result[:10]
     return result 

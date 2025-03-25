@@ -81,6 +81,7 @@ def upload_alarm():
                 'path': file_path,
                 'category': category
             }
+            print("session after upload: ", session)
             
             return render_template(
                 'alarms/preview.html', 
@@ -106,6 +107,7 @@ def process_alarm():
         flash('You do not have permission to access this page.', 'danger')
         return redirect(url_for('main.index'))
     
+    print("sesion for process: ", session)
     if 'uploads' not in session or 'alarm_file' not in session['uploads']:
         flash('No file to process. Please upload a file first.', 'danger')
         return redirect(url_for('alarms.upload_alarm'))
