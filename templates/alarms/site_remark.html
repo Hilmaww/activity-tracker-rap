@@ -119,8 +119,8 @@
                             <td>{{ site.kabupaten }}</td>
                         </tr>
                         <tr>
-                            <th>Type</th>
-                            <td>{{ site.site_type or 'N/A' }}</td>
+                            <th>Tower Owner</th>
+                            <td>{{ site.tower_owner or 'N/A' }}</td>
                         </tr>
                     </table>
                 </div>
@@ -153,7 +153,7 @@
                     </div>
                     
                     <div class="alert alert-warning mt-3">
-                        <i class="fas fa-exclamation-triangle"></i> Note: This action will add the same remark to all {{ alarms|length }} alarms and mark them as SCHEDULED.
+                        <i class="fas fa-exclamation-triangle"></i> Note: This action will add the same remark to all {{ alarms|length }} alarms and mark them as ACKNOWLEDGED.
                     </div>
                 </div>
             </div>
