@@ -288,7 +288,19 @@
                 <div class="card-body">
                     {% if trend_data %}
                         <p class="text-muted mb-3">
-                            Performance analytics show {{ trend_data|last }} operations yesterday compared to a 7-day average of {{ (trend_data|sum / trend_data|length)|round(1) }}.
+                            Business performance overview: 
+                            <span class="{% if trend_data.tickets|last < (trend_data.tickets|sum / trend_data.tickets|length) %}text-success{% else %}text-warning{% endif %}">
+                                {{ trend_data.tickets|last }} customer issues
+                            </span>, 
+                            <span class="{% if trend_data.site_visits|last > (trend_data.site_visits|sum / trend_data.site_visits|length) %}text-success{% else %}text-warning{% endif %}">
+                                {{ trend_data.site_visits|last }} site visits
+                            </span>, 
+                            <span class="{% if trend_data.alarms_resolved|last > (trend_data.alarms_resolved|sum / trend_data.alarms_resolved|length) %}text-success{% else %}text-warning{% endif %}">
+                                {{ trend_data.alarms_resolved|last }} alarms resolved
+                            </span>, 
+                            <span class="{% if trend_data.plan_efficiency|last > 85 %}text-success{% elif trend_data.plan_efficiency|last > 70 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ trend_data.plan_efficiency|last }}% plan efficiency
+                            </span>
                         </p>
                     {% else %}
                         <p class="text-muted mb-3">No performance data available for the last 7 days.</p>
@@ -595,11 +607,29 @@
     const temporalPerformanceChart = new Chart(temporalPerformanceCtx, {
         type: 'line',
         data: {
-            labels: {{ trend_labels|default(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])|tojson }},
+            labels: {{ trend_data.dates|default(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])|tojson }},
             datasets: [
                 {
-                    label: 'Plan Submissions',
-                    data: {{ temporal_performance.plan_submissions|default([5, 7, 6, 8, 9, 4, 3])|tojson }},
+                    label: 'Customer Issues',
+                    data: {{ trend_data.tickets|default([5, 7, 6, 8, 9, 4, 3])|tojson }},
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    order: 3
+                },
+                {
+                    label: 'Site Visits',
+                    data: {{ trend_data.site_visits|default([4, 6, 5, 7, 8, 3, 2])|tojson }},
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    order: 2
+                },
+                {
+                    label: 'Alarms Resolved',
+                    data: {{ trend_data.alarms_resolved|default([3, 5, 4, 6, 7, 2, 1])|tojson }},
                     borderColor: 'rgb(54, 162, 235)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
                     tension: 0.3,
@@ -607,22 +637,17 @@
                     order: 1
                 },
                 {
-                    label: 'Alarms Resolved',
-                    data: {{ temporal_performance.alarms_resolved|default([3, 5, 4, 6, 7, 2, 1])|tojson }},
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                    tension: 0.3,
-                    fill: true,
-                    order: 2
-                },
-                {
-                    label: 'Site Visits',
-                    type: 'bar',
-                    data: {{ temporal_performance.site_visits|default([4, 6, 5, 7, 8, 3, 2])|tojson }},
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                    borderColor: 'rgb(75, 192, 192)',
-                    borderWidth: 1,
-                    order: 0
+                    label: 'Plan Efficiency (%)',
+                    type: 'line',
+                    data: {{ trend_data.plan_efficiency|default([75, 80, 70, 85, 90, 80, 82])|tojson }},
+                    borderColor: 'rgb(153, 102, 255)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointBackgroundColor: 'rgb(153, 102, 255)',
+                    pointRadius: 4,
+                    fill: false,
+                    order: 0,
+                    yAxisID: 'y1'
                 }
             ]
         },
@@ -635,6 +660,18 @@
                     title: {
                         display: true,
                         text: 'Count'
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Efficiency %'
+                    },
+                    grid: {
+                        drawOnChartArea: false
                     }
                 }
             },

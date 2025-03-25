@@ -26,7 +26,6 @@ def parse_alarm_file(file_path, category, preview=True):
         if file_ext == '.csv':
             return parse_csv(file_path, preview)
         elif file_ext in ['.xlsx', '.xls']:
-            print("parse_alarm_file excel file path: ", file_path)
             return parse_excel(file_path, preview)
         elif file_ext == '.txt':
             return parse_txt(file_path, preview)

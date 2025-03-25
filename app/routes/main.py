@@ -143,25 +143,99 @@ def index():
     }
 
     # Get trend data for the last 7 days
-    trend_data = []
-    trend_labels = []
+    trend_data = {
+        'dates': [],
+        'tickets': [],  # Customer issues
+        'site_visits': [],  # Planned activities and site visits
+        'alarms_resolved': [],  # Alarm resolutions (infrastructure health)
+        'plan_efficiency': []  # Ratio of planned vs executed activities
+    }
+    
+    # Helper function to calculate trend (1=improving, 0=stable, -1=declining)
+    def calculate_trend(data_series):
+        if len(data_series) < 2:
+            return 0
+            
+        # Get 3-day averages to smooth out daily fluctuations
+        recent_avg = sum(data_series[-3:]) / 3 if len(data_series) >= 3 else data_series[-1]
+        earlier_avg = sum(data_series[:-3]) / (len(data_series)-3) if len(data_series) > 3 else data_series[0]
+        
+        # Determine if the trend is improving or declining
+        # For metrics where higher is better (site_visits, alarms_resolved, plan_efficiency)
+        if recent_avg > earlier_avg * 1.05:  # 5% improvement threshold
+            return 1  # Improving
+        elif recent_avg < earlier_avg * 0.95:  # 5% decline threshold
+            return -1  # Declining
+        else:
+            return 0  # Stable
     
     for i in range(6, -1, -1):
         date = current_date - timedelta(days=i)
+        trend_data['dates'].append(date.strftime('%d-%m-%Y'))
         
         # Create start and end timestamps for Jakarta date
         start_of_day = datetime.combine(date, datetime.min.time()).astimezone(jakarta_tz)
         end_of_day = datetime.combine(date, datetime.max.time()).astimezone(jakarta_tz)
         
-        # Query using AT TIME ZONE to convert timestamps to Jakarta time before comparison
+        # 1. Count tickets created (customer reported issues)
         tickets = Ticket.query.filter(
             Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
             Ticket.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1)
-        ).all()
+        ).count()
+        trend_data['tickets'].append(tickets)
         
-        count = len(tickets)
-        trend_data.append(count)
-        trend_labels.append(date.strftime('%d-%m-%Y'))
+        # 2. Count site visits planned/executed (operational activity)
+        site_visits = db.session.query(PlannedSite).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date == date,
+            DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED])
+        ).count()
+        trend_data['site_visits'].append(site_visits)
+        
+        # 3. Count alarms resolved (infrastructure health improvements)
+        alarms_resolved = AlarmRecord.query.filter(
+            AlarmRecord.resolved_at.isnot(None),
+            AlarmRecord.resolved_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
+            AlarmRecord.resolved_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1)
+        ).count()
+        trend_data['alarms_resolved'].append(alarms_resolved)
+        
+        # 4. Calculate plan efficiency (actual vs planned ratio)
+        # Count plans scheduled for this day
+        planned_activities = db.session.query(PlannedSite).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date == date
+        ).count()
+        
+        # Count plans that were actually done (updated_actions not 'Not Done Yet')
+        executed_activities = db.session.query(PlannedSite).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date == date,
+            PlannedSite.updated_actions != 'Not Done Yet'
+        ).count()
+        
+        # Calculate efficiency percentage (avoid division by zero)
+        if planned_activities > 0:
+            plan_efficiency = round((executed_activities / planned_activities) * 100)
+        else:
+            plan_efficiency = 0
+            
+        trend_data['plan_efficiency'].append(plan_efficiency)
+
+    # Calculate trend indicators for the business summary
+    # These metrics show if things are improving or declining
+    trend_indicators = {
+        'tickets': calculate_trend(trend_data['tickets']),
+        'site_visits': calculate_trend(trend_data['site_visits']),
+        'alarms_resolved': calculate_trend(trend_data['alarms_resolved']),
+        'plan_efficiency': calculate_trend(trend_data['plan_efficiency'])
+    }
+    
+    # For tickets, lower is better, so inverse the trend
+    trend_indicators['tickets'] = -trend_indicators['tickets']
 
     # Get sites with tickets for map
     sites_with_tickets = db.session.query(
@@ -735,7 +809,7 @@ def index():
                        category_distribution=category_distribution,
                        avg_resolution_time=round(avg_resolution_time, 1),
                        trend_data=trend_data,
-                       trend_labels=trend_labels,
+                       trend_indicators=trend_indicators,
                        statuses=TicketStatus,
                        site_markers=site_markers,
                        planned_site_markers=planned_site_markers,
