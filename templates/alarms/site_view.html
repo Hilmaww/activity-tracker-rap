@@ -3,6 +3,12 @@
 {% block title %}{{ site.site_id }} - Site Alarms - {{ super() }}{% endblock %}
 
 {% block content %}
+{% set open_alarms = alarms|selectattr('status', 'in', ['OPEN', 'ACKNOWLEDGED', 'SCHEDULED'])|list %}
+{% set open_alarms_count = open_alarms|length %}
+{% set resolved_alarms = alarms|selectattr('status', 'eq', 'RESOLVED')|list %}
+{% set resolved_alarms_count = resolved_alarms|length %}
+{% set closed_alarms = alarms|selectattr('status', 'eq', 'CLOSED')|list %}
+{% set closed_alarms_count = closed_alarms|length %}
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-md-12">
@@ -44,14 +50,7 @@
                         <div class="col-md-6">
                             <div class="site-stats">
                                 <h6>Alarm Statistics</h6>
-                                <div class="row mt-3">
-                                    {% set open_alarms = alarms|selectattr('status', 'in', ['OPEN', 'ACKNOWLEDGED', 'SCHEDULED'])|list %}
-                                    {% set open_alarms_count = open_alarms|length %}
-                                    {% set resolved_alarms = alarms|selectattr('status', 'eq', 'RESOLVED')|list %}
-                                    {% set resolved_alarms_count = resolved_alarms|length %}
-                                    {% set closed_alarms = alarms|selectattr('status', 'eq', 'CLOSED')|list %}
-                                    {% set closed_alarms_count = closed_alarms|length %}
-                                    
+                                <div class="row mt-3">                                    
                                     <div class="col-4 text-center">
                                         <div class="stat-box {% if open_alarms_count > 0 %}stat-box-warning{% endif %}">
                                             <div class="stat-value">{{ open_alarms_count }}</div>
