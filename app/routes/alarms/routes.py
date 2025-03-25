@@ -660,6 +660,14 @@ def view_site_alarms(site_id):
         AlarmRecord.is_deleted == False
     ).order_by(desc(AlarmRecord.created_at)).all()
     
+    # Pre-calculate alarm counts by status
+    open_alarms = [a for a in alarms if a.status in [AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED, AlarmStatus.SCHEDULED]]
+    open_alarms_count = len(open_alarms)
+    resolved_alarms = [a for a in alarms if a.status == AlarmStatus.RESOLVED]
+    resolved_alarms_count = len(resolved_alarms)
+    closed_alarms = [a for a in alarms if a.status == AlarmStatus.CLOSED]
+    closed_alarms_count = len(closed_alarms)
+    
     # Get all remarks for all alarms
     alarm_ids = [alarm.id for alarm in alarms]
     all_remarks = AlarmRemark.query.filter(
@@ -689,7 +697,13 @@ def view_site_alarms(site_id):
         alarms=alarms,
         remarks_by_alarm=remarks_by_alarm,
         planned_visit=planned_visit[0] if planned_visit else None,
-        planned_date=planned_visit[1].plan_date if planned_visit else None
+        planned_date=planned_visit[1].plan_date if planned_visit else None,
+        open_alarms=open_alarms,
+        open_alarms_count=open_alarms_count,
+        resolved_alarms=resolved_alarms,
+        resolved_alarms_count=resolved_alarms_count,
+        closed_alarms=closed_alarms,
+        closed_alarms_count=closed_alarms_count
     )
 
 @bp.route('/api/resolve-site-alarms/<int:site_id>', methods=['POST'])
