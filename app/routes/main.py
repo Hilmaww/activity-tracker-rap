@@ -689,54 +689,27 @@ def index():
         'other': []
     }
     
-    # Generate 4 week periods
-    for i in range(4):
+    # Generate 4 week periods in reverse order
+    for i in range(3, -1, -1):  # Loop in reverse
         week_end = current_date - timedelta(days=i*7)
         week_start = week_end - timedelta(days=6)
         week_label = f"{week_start.strftime('%d/%m')} - {week_end.strftime('%d/%m')}"
         alarm_management['dates'].append(week_label)
-        
+
         # Count alarms by category in this week
-        cell_down_count = AlarmRecord.query.filter(
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= datetime.combine(week_start, datetime.min.time()).astimezone(jakarta_tz),
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < datetime.combine(week_end, datetime.max.time()).astimezone(jakarta_tz) + timedelta(seconds=1),
-            AlarmRecord.category == AlarmCategory.CELL_DOWN,
-            AlarmRecord.is_deleted == False
-        ).count()
-        
-        power_issues_count = AlarmRecord.query.filter(
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= datetime.combine(week_start, datetime.min.time()).astimezone(jakarta_tz),
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < datetime.combine(week_end, datetime.max.time()).astimezone(jakarta_tz) + timedelta(seconds=1),
-            AlarmRecord.category == AlarmCategory.POWER_ISSUE,
-            AlarmRecord.is_deleted == False
-        ).count()
-        
-        transport_issues_count = AlarmRecord.query.filter(
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= datetime.combine(week_start, datetime.min.time()).astimezone(jakarta_tz),
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < datetime.combine(week_end, datetime.max.time()).astimezone(jakarta_tz) + timedelta(seconds=1),
-            AlarmRecord.category == AlarmCategory.TRANSPORT_ISSUE,
-            AlarmRecord.is_deleted == False
-        ).count()
-        
-        zero_payload_count = AlarmRecord.query.filter(
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= datetime.combine(week_start, datetime.min.time()).astimezone(jakarta_tz),
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < datetime.combine(week_end, datetime.max.time()).astimezone(jakarta_tz) + timedelta(seconds=1),
-            AlarmRecord.category == AlarmCategory.ZERO_PAYLOAD,
-            AlarmRecord.is_deleted == False
-        ).count()
-        
-        other_count = AlarmRecord.query.filter(
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= datetime.combine(week_start, datetime.min.time()).astimezone(jakarta_tz),
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < datetime.combine(week_end, datetime.max.time()).astimezone(jakarta_tz) + timedelta(seconds=1),
-            AlarmRecord.category == AlarmCategory.OTHER,
-            AlarmRecord.is_deleted == False
-        ).count()
-        
-        alarm_management['cell_down'].append(cell_down_count)
-        alarm_management['power_issues'].append(power_issues_count)
-        alarm_management['transport_issues'].append(transport_issues_count)
-        alarm_management['zero_payload'].append(zero_payload_count)
-        alarm_management['other'].append(other_count)
+        def count_alarms(category):
+            return AlarmRecord.query.filter(
+                AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= datetime.combine(week_start, datetime.min.time()).astimezone(jakarta_tz),
+                AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < datetime.combine(week_end, datetime.max.time()).astimezone(jakarta_tz) + timedelta(seconds=1),
+                AlarmRecord.category == category,
+                AlarmRecord.is_deleted == False
+            ).count()
+
+        alarm_management['cell_down'].append(count_alarms(AlarmCategory.CELL_DOWN))
+        alarm_management['power_issues'].append(count_alarms(AlarmCategory.POWER_ISSUE))
+        alarm_management['transport_issues'].append(count_alarms(AlarmCategory.TRANSPORT_ISSUE))
+        alarm_management['zero_payload'].append(count_alarms(AlarmCategory.ZERO_PAYLOAD))
+        alarm_management['other'].append(count_alarms(AlarmCategory.OTHER))
 
     return render_template('index.html',
                        open_tickets=open_tickets,
