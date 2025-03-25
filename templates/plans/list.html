@@ -76,8 +76,8 @@
                                    class="btn btn-sm btn-warning">Edit</a>
                                 {% if current_user.role == 'tsel' %}
                                 <button type="button" 
-                                        class="btn btn-sm btn-danger"
-                                        onclick="confirmDelete({{ plan.id }})">
+                                        class="btn btn-sm btn-danger delete-plan-btn"
+                                        data-plan-id="{{ plan.id }}">
                                     Delete
                                 </button>
                                 {% endif %}
@@ -137,6 +137,16 @@
 
 <!-- Add JavaScript for delete confirmation -->
 <script nonce="{{ nonce_value | default('') }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle delete plan button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-plan-btn')) {
+            const planId = e.target.closest('.delete-plan-btn').dataset.planId;
+            confirmDelete(planId);
+        }
+    });
+});
+
 function confirmDelete(planId) {
     const modal = new bootstrap.Modal(document.getElementById('deletePlanModal'));
     const form = document.getElementById('deletePlanForm');

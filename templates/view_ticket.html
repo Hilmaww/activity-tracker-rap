@@ -53,12 +53,12 @@
                                 <textarea class="form-control" name="description" rows="4">{{ ticket.description }}</textarea>
                             </div>
                             <button type="submit" class="btn btn-primary mt-2">Save</button>
-                            <button type="button" class="btn btn-secondary mt-2" onclick="toggleEditDescription()">Cancel</button>
+                            <button type="button" class="btn btn-secondary mt-2 toggle-description-btn">Cancel</button>
                         </form>
                         
                         <div id="descriptionDisplay">
                             <p class="card-text">{{ ticket.description }}</p>
-                            <button class="btn btn-sm btn-outline-primary" onclick="toggleEditDescription()">Edit Description</button>
+                            <button class="btn btn-sm btn-outline-primary toggle-description-btn">Edit Description</button>
                         </div>
                     </div>
                 </div>
@@ -163,6 +163,61 @@
 </div>
 
 <script nonce="{{ nonce_value | default('') }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle description toggle
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.toggle-description-btn')) {
+            toggleEditDescription();
+        }
+    });
+
+    // Handle action form interaction
+    const actionText = document.getElementById('action_text');
+    const photoInput = document.getElementById('photo');
+    const submitReminder = document.getElementById('submitReminder');
+    const submitBtn = document.getElementById('submitActionBtn');
+    let reminderTimeout;
+
+    function showSubmitReminder() {
+        clearTimeout(reminderTimeout);
+        reminderTimeout = setTimeout(() => {
+            submitReminder.style.display = 'block';
+            submitReminder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 2000);
+    }
+
+    if (actionText) {
+        actionText.addEventListener('input', showSubmitReminder);
+    }
+    if (photoInput) {
+        photoInput.addEventListener('change', showSubmitReminder);
+    }
+
+    // Hide reminder when form is submitted
+    if (submitBtn) {
+        submitBtn.closest('form').addEventListener('submit', () => {
+            submitReminder.style.display = 'none';
+        });
+    }
+
+    // Make the reminder clickable to trigger form submission
+    if (submitReminder) {
+        const reminderBtn = submitReminder.querySelector('button');
+        if (reminderBtn) {
+            reminderBtn.addEventListener('click', () => {
+                submitBtn.click();
+            });
+        }
+    }
+
+    // Hide reminder when clicking outside the form
+    document.addEventListener('click', (e) => {
+        if (submitBtn && !submitBtn.closest('form').contains(e.target)) {
+            submitReminder.style.display = 'none';
+        }
+    });
+});
+
 function toggleEditDescription() {
     const form = document.getElementById('editDescriptionForm');
     const display = document.getElementById('descriptionDisplay');
@@ -175,42 +230,5 @@ function toggleEditDescription() {
         display.style.display = 'block';
     }
 }
-
-// Add this new code for the action form interaction
-document.addEventListener('DOMContentLoaded', function() {
-    const actionText = document.getElementById('action_text');
-    const photoInput = document.getElementById('photo');
-    const submitReminder = document.getElementById('submitReminder');
-    const submitBtn = document.getElementById('submitActionBtn');
-    let reminderTimeout;
-
-    function showSubmitReminder() {
-        clearTimeout(reminderTimeout);
-        reminderTimeout = setTimeout(() => {
-            submitReminder.style.display = 'block';
-            submitReminder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 2000); // Show reminder 2 seconds after user stops typing
-    }
-
-    actionText.addEventListener('input', showSubmitReminder);
-    photoInput.addEventListener('change', showSubmitReminder);
-
-    // Hide reminder when form is submitted
-    submitBtn.closest('form').addEventListener('submit', () => {
-        submitReminder.style.display = 'none';
-    });
-
-    // Make the reminder clickable to trigger form submission
-    submitReminder.querySelector('button').addEventListener('click', () => {
-        submitBtn.click();
-    });
-
-    // Hide reminder when clicking outside the form
-    document.addEventListener('click', (e) => {
-        if (!submitBtn.closest('form').contains(e.target)) {
-            submitReminder.style.display = 'none';
-        }
-    });
-});
 </script>
 {% endblock %} 

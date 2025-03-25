@@ -84,10 +84,7 @@
                         <hr>
                         
                         <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-secondary" 
-                                    onclick="window.location='{{ url_for('alarms.view_site_alarms', site_id=site.id) }}'">
-                                Cancel
-                            </button>
+                            <button type="button" class="btn btn-outline-secondary cancel-remark-btn">Cancel</button>
                             <button type="submit" class="btn btn-warning">
                                 <i class="fas fa-save"></i> Add Remarks to All Alarms
                             </button>
@@ -165,6 +162,13 @@
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
     document.addEventListener('DOMContentLoaded', function() {
+        // Handle cancel button click
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.cancel-remark-btn')) {
+                window.location.href = "{{ url_for('alarms.view_site_alarms', site_id=site.id) }}";
+            }
+        });
+
         // Set default visit date (tomorrow at 9:00 AM)
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);

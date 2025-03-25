@@ -64,7 +64,33 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+                                <div class="mt-4">
+                                    <h6>Related Daily Plans</h6>
+                                    {% if planned_visit %}
+                                        <div class="activity-timeline">
+                                            <div class="activity-item">
+                                                <div class="activity-icon bg-success">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </div>
+                                                <div class="activity-content">
+                                                    <div class="activity-time">{{ planned_date.strftime('%Y-%m-%d') }}</div>
+                                                    <div class="activity-title">
+                                                        <span class="badge bg-success">Planned Visit</span>
+                                                    </div>
+                                                    <div class="activity-desc">
+                                                        <strong>ENOM Team:</strong> {{ planned_visit.daily_plan.enom_user.username }}<br>
+                                                        <strong>Status:</strong> 
+                                                        <span class="badge bg-{{ planned_visit.daily_plan.status.lower() }}">
+                                                            {{ planned_visit.daily_plan.status.replace('_', ' ') }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">No related daily plans found</p>
+                                    {% endif %}
+                                </div>
                                 <div class="mt-4">
                                     <h6>Remarks</h6>
                                     {% if remarks_by_alarm %}
@@ -133,35 +159,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                
-                                <div class="mt-4">
-                                    <h6>Related Daily Plans</h6>
-                                    {% if planned_visit %}
-                                        <div class="activity-timeline">
-                                            <div class="activity-item">
-                                                <div class="activity-icon bg-success">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                </div>
-                                                <div class="activity-content">
-                                                    <div class="activity-time">{{ planned_date.strftime('%Y-%m-%d') }}</div>
-                                                    <div class="activity-title">
-                                                        <span class="badge bg-success">Planned Visit</span>
-                                                    </div>
-                                                    <div class="activity-desc">
-                                                        <strong>ENOM Team:</strong> {{ planned_visit.daily_plan.enom_user.username }}<br>
-                                                        <strong>Status:</strong> 
-                                                        <span class="badge bg-{{ planned_visit.daily_plan.status.lower() }}">
-                                                            {{ planned_visit.daily_plan.status.replace('_', ' ') }}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% else %}
-                                        <p class="text-muted">No related daily plans found</p>
-                                    {% endif %}
-                                </div>
-                                
+
                                 <div class="mt-4">
                                     <h6>Site Information</h6>
                                     <table class="table table-sm">
@@ -231,14 +229,14 @@
         </div>
     </div>
     
-    <!-- Alarms List -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
+    <!-- Second Row -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-bell"></i> All Alarms for this Site
-                        <span class="badge rounded-pill bg-secondary ms-2">{{ alarms|length }}</span>
+                        <span class="badge rounded-pill bg-light text-dark ms-2">{{ alarms|length }}</span>
                     </h5>
                 </div>
                 <div class="card-body">
@@ -328,6 +326,66 @@
                     {% else %}
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> No alarms found for this site.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comments"></i> Recent Remarks
+                        </h5>
+                        {% if current_user.role == 'enom' and open_alarms_count > 0 %}
+                            <a href="{{ url_for('alarms.add_site_remark', site_id=site.id) }}" 
+                               class="btn btn-sm btn-dark">
+                                <i class="fas fa-plus"></i> Add Remark
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if remarks_by_alarm %}
+                        <div class="remarks-timeline">
+                            {% for alarm_id, remarks in remarks_by_alarm.items() %}
+                                {% for remark in remarks[:5] %}
+                                    <div class="remark-item">
+                                        <div class="remark-icon">
+                                            <i class="fas fa-comment"></i>
+                                        </div>
+                                        <div class="remark-content">
+                                            <div class="remark-header">
+                                                <span class="badge bg-secondary">{{ remark.alarm.category.replace('_', ' ') }}</span>
+                                                <small class="text-muted ms-2">{{ remark.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</small>
+                                            </div>
+                                            <div class="remark-body">
+                                                <div class="remark-section">
+                                                    <strong>Initial Findings:</strong>
+                                                    <p>{{ remark.initial_findings }}</p>
+                                                </div>
+                                                <div class="remark-section">
+                                                    <strong>Planned Actions:</strong>
+                                                    <p>{{ remark.planned_actions }}</p>
+                                                </div>
+                                                {% if remark.assignee %}
+                                                    <div class="remark-footer">
+                                                        <span class="badge bg-info">
+                                                            <i class="fas fa-user"></i> {{ remark.assignee }}
+                                                        </span>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No remarks have been added yet.
                         </div>
                     {% endif %}
                 </div>
@@ -466,6 +524,93 @@
     
     .planning-status-date {
         font-size: 14px;
+    }
+    
+    /* New styles for remarks */
+    .remarks-timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .remarks-timeline:before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+        z-index: 1;
+    }
+    
+    .remark-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+    
+    .remark-icon {
+        position: absolute;
+        left: -30px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #ffc107;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #000;
+        font-size: 10px;
+        z-index: 2;
+    }
+    
+    .remark-content {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .remark-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .remark-body {
+        font-size: 0.9rem;
+    }
+    
+    .remark-section {
+        margin-bottom: 10px;
+    }
+    
+    .remark-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .remark-section p {
+        margin: 5px 0 0;
+        color: #495057;
+    }
+    
+    .remark-footer {
+        margin-top: 10px;
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    @media (max-width: 768px) {
+        .remarks-timeline {
+            padding-left: 20px;
+        }
+        
+        .remark-icon {
+            left: -20px;
+        }
+        
+        .remark-content {
+            padding: 10px;
+        }
     }
 </style>
 
