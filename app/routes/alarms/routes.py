@@ -699,12 +699,21 @@ def view_site_alarms(site_id):
     
     # Check if site is already planned
     from app.models import PlannedSite, DailyPlan
+    
+    # Get the next planned visit (for the planning status section)
     planned_visit = db.session.query(PlannedSite, DailyPlan)\
         .join(DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id)\
         .filter(
             PlannedSite.site_id == site_id,
             DailyPlan.plan_date >= datetime.now().date()
         ).order_by(DailyPlan.plan_date.asc()).first()
+    
+    # Get all planned visits for this site (for the table view)
+    all_planned_visits = db.session.query(PlannedSite)\
+        .join(DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id)\
+        .filter(
+            PlannedSite.site_id == site_id
+        ).order_by(DailyPlan.plan_date.desc()).all()
     
     # If site is planned, update alarm statuses
     if planned_visit:
@@ -722,6 +731,7 @@ def view_site_alarms(site_id):
         remarks_by_alarm=remarks_by_alarm,
         planned_visit=planned_visit[0] if planned_visit else None,
         planned_date=planned_visit[1].plan_date if planned_visit else None,
+        all_planned_visits=all_planned_visits,
         open_alarms=open_alarms,
         open_alarms_count=open_alarms_count,
         resolved_alarms=resolved_alarms,
