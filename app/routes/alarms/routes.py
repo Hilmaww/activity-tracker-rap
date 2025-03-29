@@ -112,6 +112,17 @@ def upload_alarm():
         
         # Parse file and get preview
         category = request.form.get('category', AlarmCategory.OTHER.value)
+        
+        # Get created date if provided, otherwise use current time
+        created_date_str = request.form.get('created_date')
+        created_date = None
+        if created_date_str:
+            try:
+                # Parse datetime-local format (YYYY-MM-DDThh:mm)
+                created_date = datetime.strptime(created_date_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                flash('Invalid date format. Using current time instead.', 'warning')
+        
         try:
             preview_data = parse_alarm_file(file_path, category)
             
@@ -144,7 +155,8 @@ def upload_alarm():
             
             session_data['uploads']['alarm_file'] = {
                 'path': file_path,
-                'category': category
+                'category': category,
+                'created_date': created_date.isoformat() if created_date else None
             }
             
             # Update the entire session with the modified dict
@@ -163,7 +175,8 @@ def upload_alarm():
                 planned_count=planned_count,
                 needs_plan_count=needs_plan_count,
                 unknown_count=unknown_count,
-                unplanned_site_ids=unplanned_site_ids
+                unplanned_site_ids=unplanned_site_ids,
+                created_date=created_date
             )
             
         except Exception as e:
@@ -194,6 +207,16 @@ def process_alarm():
     file_info = session_data['uploads']['alarm_file']
     file_path = file_info['path']
     category = file_info['category']
+    
+    # Get created date from session if available
+    created_date_str = file_info.get('created_date')
+    created_date = None
+    if created_date_str:
+        try:
+            created_date = datetime.fromisoformat(created_date_str)
+        except (ValueError, TypeError):
+            # If there's an error parsing the date, use current time
+            pass
     
     if not os.path.exists(file_path):
         flash('File not found. Please upload again.', 'danger')
@@ -226,6 +249,10 @@ def process_alarm():
                 source_file=os.path.basename(file_path),
                 uploaded_by_id=current_user.id
             )
+            
+            # Set custom created date if provided
+            if created_date:
+                new_alarm.created_at = created_date
             
             db.session.add(new_alarm)
             processed_count += 1

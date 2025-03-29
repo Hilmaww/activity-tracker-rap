@@ -41,6 +41,14 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label for="created_date" class="form-label">Created Date</label>
+                            <input type="datetime-local" class="form-control" id="created_date" name="created_date">
+                            <div class="form-text">
+                                Optional. If not specified, the current date and time will be used.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
                             <label for="file" class="form-label">Select File <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="file" name="file" required 
                                 accept=".csv,.xlsx,.xls,.txt">
@@ -136,6 +144,11 @@ GHI901 - Power issue - Battery failure</pre>
                 e.target.value = '';
             }
         });
+        
+        // Set default datetime to current time
+        const now = new Date();
+        const localISOString = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        document.getElementById('created_date').value = localISOString;
     });
 </script>
 {% endblock %} 
