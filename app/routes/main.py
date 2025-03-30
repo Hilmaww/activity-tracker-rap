@@ -393,7 +393,7 @@ def index():
 
             for site_id in plan_site_ids_in_a_day:
                 # Convert plan_date to Jakarta time for comparison
-                plan_date_jakarta = datetime.combine(plan_date[1], datetime.min.time()).astimezone(jakarta_tz)
+                plan_date_jakarta = datetime.combine(plan_date, datetime.min.time()).astimezone(jakarta_tz)
 
                 prior_alarms = db.session.query(AlarmRecord).filter(
                     AlarmRecord.site_id == site_id,
