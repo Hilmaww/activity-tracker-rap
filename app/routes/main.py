@@ -260,13 +260,10 @@ def index():
     workdays_in_week = 5  # Assuming 5 working days per week
     avg_sites_per_enom = round(weekly_planned_visits / (enom_count * workdays_in_week), 1) if enom_count > 0 else 0
     
-    # 2. Average alarms per week per site
-    all_sites_count = Site.query.count()
     weekly_alarms_count = AlarmRecord.query.filter(
         AlarmRecord.created_at >= one_week_ago,
         AlarmRecord.is_deleted == False
     ).count()
-    avg_alarms_per_site = round(weekly_alarms_count / all_sites_count, 2) if all_sites_count > 0 else 0
     
     # 2. (REVISED) Average alarms per week per site by kabupaten
     # Get all kabupaten with their site counts
@@ -312,28 +309,11 @@ def index():
     completion_percentage = round((completed_visits / weekly_planned_visits * 100) if weekly_planned_visits > 0 else 0)
     
     # 4. Calculate alignment percentage (planned sites that appear in alarms)
-    # Get all planned sites in the last 7 days
-    planned_site_ids = db.session.query(PlannedSite.site_id).join(
-        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
-    ).filter(
-        DailyPlan.plan_date >= one_week_ago,
-        DailyPlan.plan_date <= current_date
-    ).all()
-    planned_site_ids = [site_id for (site_id,) in planned_site_ids]
-    
-    # Get all sites with alarms in the last 7 days
-    sites_with_alarms = db.session.query(AlarmRecord.site_id).filter(
-        AlarmRecord.created_at >= one_week_ago,
-        AlarmRecord.is_deleted == False
-    ).distinct().all()
-    sites_with_alarms = [site_id for (site_id,) in sites_with_alarms]
-    
-    # Count overlap between planned sites and sites with alarms
-    aligned_sites = set(planned_site_ids).intersection(set(sites_with_alarms))
-    alignment_percentage = round((len(aligned_sites) / len(planned_site_ids) * 100) if planned_site_ids else 0)
-    
-    # (REVISED) Calculate alignment percentage based on alarms before plan date
-    # Get all plans from the last 7 days
+    """
+    Calculates alignment percentage based on the proportion of aligned sites 
+    within each plan.
+    """
+
     recent_plans = db.session.query(
         DailyPlan.id,
         DailyPlan.plan_date
@@ -342,31 +322,31 @@ def index():
         DailyPlan.plan_date <= current_date
     ).all()
     
-    # Count aligned plans (plans that visited sites with pre-existing alarms)
-    aligned_plan_count = 0
-    total_plan_count = len(recent_plans)
+
     total_alarm_count = weekly_alarms_count  # Total count of alarms for Strategic Alignment card
     
     for plan_id, plan_date in recent_plans:
-        # Get sites in this plan
         plan_sites = db.session.query(PlannedSite.site_id).filter(
             PlannedSite.daily_plan_id == plan_id
         ).all()
         plan_site_ids = [site_id for (site_id,) in plan_sites]
-        
-        # Check if any of the plan's sites had alarms before the plan date
+
+        total_sites_planned += len(plan_site_ids)
+        aligned_sites_in_plan = 0
+
         for site_id in plan_site_ids:
-            prior_alarms = AlarmRecord.query.filter(
+            prior_alarms = db.session.query(AlarmRecord).filter(
                 AlarmRecord.site_id == site_id,
                 AlarmRecord.created_at < datetime.combine(plan_date, datetime.min.time()),
                 AlarmRecord.is_deleted == False
             ).first()
-            
+
             if prior_alarms:
-                aligned_plan_count += 1
-                break  # Count the plan as aligned if at least one site had prior alarms
-    
-    alignment_percentage = round((aligned_plan_count / total_plan_count * 100) if total_plan_count > 0 else 0)
+                aligned_sites_in_plan += 1
+
+        total_aligned_sites += aligned_sites_in_plan
+
+    alignment_percentage = round((total_aligned_sites / total_sites_planned * 100) if total_sites_planned > 0 else 0)
     
     # 5. Count unique sites visited in past 2 weeks
     unique_visited_sites = db.session.query(PlannedSite.site_id).join(
@@ -380,42 +360,51 @@ def index():
     # ========= NEW EXECUTIVE DASHBOARD CHARTS =========
     
     # 1. Alignment percentage trend chart
+    """
+    Calculates the daily trend of strategic planning alignment (pre-existing alarms)
+    based on the proportion of aligned sites, with timezone conversion.
+    """
+
+    jakarta_tz = pytz.timezone('Asia/Jakarta')
     alignment_trend = {
         'dates': [],
         'percentages': []
     }
-    
+
     for i in range(13, -1, -1):  # Last 14 days
         date = current_date - timedelta(days=i)
         alignment_trend['dates'].append(date.strftime('%d-%m-%Y'))
-        
-        # Get planned sites for this date
-        daily_planned_site_ids = db.session.query(PlannedSite.site_id).join(
-            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
-        ).filter(
+
+        daily_plans = db.session.query(DailyPlan.id, DailyPlan.plan_date).filter(
             DailyPlan.plan_date == date
-        ).distinct().all()
-        daily_planned_site_ids = [site_id for (site_id,) in daily_planned_site_ids]
-        
-        # Get alarm sites for this date
-        start_of_day = datetime.combine(date, datetime.min.time()).astimezone(jakarta_tz)
-        end_of_day = datetime.combine(date, datetime.max.time()).astimezone(jakarta_tz)
-        
-        daily_alarm_site_ids = db.session.query(AlarmRecord.site_id).filter(
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
-            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1),
-            AlarmRecord.is_deleted == False
-        ).distinct().all()
-        daily_alarm_site_ids = [site_id for (site_id,) in daily_alarm_site_ids]
-        
-        # Calculate daily alignment percentage
-        if daily_alarm_site_ids:
-            daily_aligned_sites = set(daily_planned_site_ids).intersection(set(daily_alarm_site_ids))
-            daily_alignment = round((len(daily_aligned_sites) / len(daily_alarm_site_ids) * 100))
-        else:
-            daily_alignment = 0
-            
-        alignment_trend['percentages'].append(daily_alignment)
+        ).all()
+
+        total_sites_planned = 0
+        total_aligned_sites = 0
+
+        for plan_id, plan_date in daily_plans:
+            plan_sites = db.session.query(PlannedSite.site_id).filter(
+                PlannedSite.daily_plan_id == plan_id[0]
+            ).all()
+            plan_site_ids = [site_id for (site_id,) in plan_sites]
+
+            total_sites_planned += len(plan_site_ids)
+
+            for site_id in plan_site_ids:
+                # Convert plan_date to Jakarta time for comparison
+                plan_date_jakarta = datetime.combine(plan_date[1], datetime.min.time()).astimezone(jakarta_tz)
+
+                prior_alarms = db.session.query(AlarmRecord).filter(
+                    AlarmRecord.site_id == site_id,
+                    AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < plan_date_jakarta,
+                    AlarmRecord.is_deleted == False
+                ).first()
+
+                if prior_alarms:
+                    total_aligned_sites += 1
+
+        day_alignment = round((total_aligned_sites / total_sites_planned * 100) if total_sites_planned > 0 else 0)
+        alignment_trend['percentages'].append(day_alignment)
     
     # 2. Scatter plot data: Visits vs Alarms with priority score
     scatter_data = []
@@ -455,40 +444,41 @@ def index():
                 'size': round(priority_score)  # Bubble size
             })
     
-    # 3. Assignee workload distribution (stacked bar)
-    assignee_workload = {
-        'assignees': [],
+    # 3. ENOM User Workload Distribution (Stacked Bar)
+    enom_user_workload = {
+        'enom_users': [],
         'draft': [],
         'submitted': [],
         'approved': [],
         'rejected': []
     }
-    
-    # Get unique assignees from planned sites in the last 2 weeks
-    assignees = db.session.query(PlannedSite.assignee).join(
-        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+
+    # Get unique ENOM users from daily plans in the last 2 weeks, excluding "enom_user"
+    enom_users = db.session.query(User.username).join(
+        DailyPlan, User.id == DailyPlan.enom_user_id
     ).filter(
         DailyPlan.plan_date >= two_weeks_ago,
-        DailyPlan.plan_date <= current_date
+        DailyPlan.plan_date <= current_date,
+        User.username != "enom_user"  # Add this filter to exclude "enom_user"
     ).distinct().all()
-    
-    assignees = [a[0] for a in assignees if a[0] is not None and a[0].strip()]
-    
-    for assignee in assignees:
-        assignee_workload['assignees'].append(assignee)
-        
+
+    enom_users = [u[0] for u in enom_users]
+
+    for enom_user in enom_users:
+        enom_user_workload['enom_users'].append(enom_user)
+
         for status in ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED']:
-            count = db.session.query(PlannedSite).join(
-                DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+            count = db.session.query(DailyPlan).join(
+                User, DailyPlan.enom_user_id == User.id
             ).filter(
                 DailyPlan.plan_date >= two_weeks_ago,
                 DailyPlan.plan_date <= current_date,
-                PlannedSite.assignee == assignee,
+                User.username == enom_user,
                 DailyPlan.status == status
             ).count()
-            
+
             status_key = status.lower()
-            assignee_workload[status_key].append(count)
+            enom_user_workload[status_key].append(count)
     
     # 4. Top 10 most frequently visited sites
     most_visited_sites = db.session.query(
@@ -550,7 +540,7 @@ def index():
     executive_charts = {
         'alignment_trend': alignment_trend,
         'scatter_data': scatter_data,
-        'assignee_workload': assignee_workload,
+        'assignee_workload': enom_user_workload,
         'top_visited_sites': top_visited_sites,
         'top_alarm_sites': top_alarm_sites_data
     }

@@ -599,6 +599,7 @@
                 <div class="card-header bg-light">
                     <h5 class="card-title">Visit Effectiveness</h5>
                     <small class="text-muted">Sites with alarms after visits (ineffective resolutions)</small>
+                    <small class="text-muted">{{ executive_charts.visited_sites_with_alarms|tojson|safe }}</small>
                 </div>
                 <div class="card-body">
                     <canvas id="visitEffectivenessChart" height="250"></canvas>
