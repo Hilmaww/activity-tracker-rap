@@ -3,6 +3,7 @@ from app.models import Site, Ticket, TicketAction, ProblemCategory, TicketStatus
 from app import db, logger
 from datetime import datetime, timedelta
 import pytz
+from collections import defaultdict 
 from werkzeug.utils import secure_filename
 import os
 from sqlalchemy import or_, func, desc
@@ -620,7 +621,7 @@ def index():
     
     # 3. Chart showing sites with post-visit alarms (inefficiencies)
     visited_sites_with_alarms = []
-    
+
     # Get all sites that were visited in the last 30 days
     visited_sites = db.session.query(
         Site.id,
@@ -637,20 +638,20 @@ def index():
         DailyPlan.plan_date <= current_date,
         PlannedSite.updated_actions != 'Not Done Yet'
     ).all()
-    
+
     # For each visited site, check if there were alarms after the visit
     site_alarm_data = {}
     for site in visited_sites:
         # Get the day after the plan date
         next_day = site.plan_date + timedelta(days=1)
-        
+
         # Check for alarms after the visit
         post_visit_alarms = AlarmRecord.query.filter(
             AlarmRecord.site_id == site.id,
             AlarmRecord.created_at >= datetime.combine(next_day, datetime.min.time()),
             AlarmRecord.is_deleted == False
         ).count()
-        
+
         # If there were alarms after the visit, add to data
         if post_visit_alarms > 0:
             if site.site_id not in site_alarm_data:
@@ -661,7 +662,7 @@ def index():
                     'alarm_count': post_visit_alarms,
                     'days_until_alarm': 0  # We'll calculate this next
                 }
-    
+
     # For each site with post-visit alarms, find the average time until first alarm
     for site_id, data in site_alarm_data.items():
         site = Site.query.filter_by(site_id=site_id).first()
@@ -669,22 +670,31 @@ def index():
             # Get visit date
             visit_date_parts = data['visit_date'].split('-')
             visit_date = datetime(int(visit_date_parts[2]), int(visit_date_parts[1]), int(visit_date_parts[0])).date()
-            
+
             # Find the first alarm after visit
             first_alarm = AlarmRecord.query.filter(
                 AlarmRecord.site_id == site.id,
                 AlarmRecord.created_at >= datetime.combine(visit_date + timedelta(days=1), datetime.min.time()),
                 AlarmRecord.is_deleted == False
             ).order_by(AlarmRecord.created_at.asc()).first()
-            
+
             if first_alarm and first_alarm.created_at:
                 # Calculate days between visit and alarm
                 alarm_date = first_alarm.created_at.date()
                 days_between = (alarm_date - visit_date).days
                 data['days_until_alarm'] = days_between
-    
-    # Convert dictionary to list
-    visited_sites_with_alarms = list(site_alarm_data.values())
+
+    # Group sites by alarm_count and count them
+    alarm_count_map = defaultdict(int)
+    for data in site_alarm_data.values():
+        alarm_count_map[data['alarm_count']] += 1
+
+    # Create the final list for the chart
+    visited_sites_with_alarms = [{
+        'alarm_count': alarm,
+        'site_count': count,
+        'days_until_alarm': next((d['days_until_alarm'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), 0)
+    } for alarm, count in alarm_count_map.items()]
     
     # Group sites by number of alarms (for the visit effectiveness chart)
     alarm_counts_distribution = {}
