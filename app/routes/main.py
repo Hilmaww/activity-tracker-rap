@@ -706,22 +706,22 @@ def index():
                 'avg_days_until_alarm': 0,
                 'total_days': 0
             }
-        
+
         alarm_counts_distribution[alarm_count]['count'] += 1
         alarm_counts_distribution[alarm_count]['total_days'] += site_data['days_until_alarm']
-    
+
     # Calculate average days for each alarm count
     for alarm_count, data in alarm_counts_distribution.items():
         if data['count'] > 0:
             data['avg_days_until_alarm'] = round(data['total_days'] / data['count'], 1)
-    
+
     # Convert to list format for chart
     visit_effectiveness_data = {
         'alarm_counts': [],
         'site_counts': [],
         'avg_days_until_alarm': []
     }
-    
+
     for alarm_count, data in sorted(alarm_counts_distribution.items()):
         visit_effectiveness_data['alarm_counts'].append(alarm_count)
         visit_effectiveness_data['site_counts'].append(data['count'])
