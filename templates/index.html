@@ -364,6 +364,215 @@
     </div>
     {% endif %}
 
+    <!-- Add this after the status cards section -->
+    {% if current_user.role == 'tsel' %}
+    <!-- Executive Dashboard KPI Cards -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Executive Business Intelligence
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-0 shadow-sm bg-gradient">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-subtitle text-muted">Daily Productivity</h6>
+                                            <h3 class="mt-2 mb-0">{{ executive_metrics.avg_sites_per_enom }}</h3>
+                                            <p class="text-muted mb-0">Sites per ENOM per day</p>
+                                        </div>
+                                        <div class="icon-box bg-primary bg-opacity-10 rounded p-3">
+                                            <i class="fas fa-user-hard-hat text-primary" style="font-size: 2rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div class="progress mt-3" style="height: 5px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ executive_metrics.avg_sites_per_enom * 10 }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-subtitle text-muted">Site Health</h6>
+                                            <h3 class="mt-2 mb-0">{{ executive_metrics.avg_alarms_per_site }}</h3>
+                                            <p class="text-muted mb-0">Alarms per site (weekly avg)</p>
+                                        </div>
+                                        <div class="icon-box bg-danger bg-opacity-10 rounded p-3">
+                                            <i class="fas fa-bell text-danger" style="font-size: 2rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div class="progress mt-3" style="height: 5px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ executive_metrics.avg_alarms_per_site * 10 }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-subtitle text-muted">Coverage</h6>
+                                            <h3 class="mt-2 mb-0">{{ executive_metrics.unique_visited_sites }}</h3>
+                                            <p class="text-muted mb-0">Unique sites visited (2 weeks)</p>
+                                        </div>
+                                        <div class="icon-box bg-info bg-opacity-10 rounded p-3">
+                                            <i class="fas fa-tower-cell text-info" style="font-size: 2rem;"></i>
+                                        </div>
+                                    </div>
+                                    <div class="progress mt-3" style="height: 5px;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ executive_metrics.unique_visited_sites / 5 }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-subtitle text-muted">Execution Excellence</h6>
+                                            <div class="d-flex align-items-center mt-2">
+                                                <h3 class="mb-0">{{ executive_metrics.completion_percentage }}%</h3>
+                                                <div class="ms-3">
+                                                    <span class="badge rounded-pill 
+                                                        {% if executive_metrics.completion_percentage > 85 %}bg-success
+                                                        {% elif executive_metrics.completion_percentage > 70 %}bg-warning
+                                                        {% else %}bg-danger{% endif %}">
+                                                        Completion Rate
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p class="text-muted mb-0">Of planned site visits completed</p>
+                                        </div>
+                                        <div class="progress-circle 
+                                            {% if executive_metrics.completion_percentage > 85 %}progress-circle-bg-success
+                                            {% elif executive_metrics.completion_percentage > 70 %}progress-circle-bg-warning
+                                            {% else %}progress-circle-bg-danger{% endif %}"
+                                            style="--percent: {{ executive_metrics.completion_percentage }}%">
+                                            <div class="progress-circle-inner">
+                                                <span class="fs-5 fw-bold">{{ executive_metrics.completion_percentage }}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="card-subtitle text-muted">Strategic Alignment</h6>
+                                            <div class="d-flex align-items-center mt-2">
+                                                <h3 class="mb-0">{{ executive_metrics.alignment_percentage }}%</h3>
+                                                <div class="ms-3">
+                                                    <span class="badge rounded-pill 
+                                                        {% if executive_metrics.alignment_percentage > 85 %}bg-success
+                                                        {% elif executive_metrics.alignment_percentage > 70 %}bg-warning
+                                                        {% else %}bg-danger{% endif %}">
+                                                        Alignment Rate
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p class="text-muted mb-0">Site planning aligned with alarms</p>
+                                        </div>
+                                        <div class="progress-circle 
+                                            {% if executive_metrics.alignment_percentage > 85 %}progress-circle-bg-success
+                                            {% elif executive_metrics.alignment_percentage > 70 %}progress-circle-bg-warning
+                                            {% else %}progress-circle-bg-danger{% endif %}"
+                                            style="--percent: {{ executive_metrics.alignment_percentage }}%">
+                                            <div class="progress-circle-inner">
+                                                <span class="fs-5 fw-bold">{{ executive_metrics.alignment_percentage }}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advanced Data Visualization Section -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Strategic Planning Alignment Trend</h5>
+                    <small class="text-muted">Tracking the alignment between site planning and alarm incidents</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="alignmentTrendChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Site Visit vs. Alarm Correlation</h5>
+                    <small class="text-muted">Bubble size represents priority score</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="visitAlarmScatterChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Assignee Workload Distribution</h5>
+                    <small class="text-muted">Site visit assignments by plan status (2 week period)</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="assigneeWorkloadChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Most Frequently Visited Sites</h5>
+                    <small class="text-muted">Top 10 sites with the most visits in the past 2 weeks</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="topVisitedSitesChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Sites with Most Alarms</h5>
+                    <small class="text-muted">Top 10 sites with the most alarms in the past 2 weeks</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="topAlarmSitesChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Map Section -->
     <div class="map-container">
         <h4 class="text-center mb-4">Site Locations with Active Tickets and Today's Planned Visits</h4>
@@ -787,6 +996,291 @@
     });
     {% endif %}
 
+    // Initialize new executive dashboard charts
+    {% if current_user.role == 'tsel' %}
+    // Alignment Trend Chart
+    const alignmentTrendCtx = document.getElementById('alignmentTrendChart').getContext('2d');
+    new Chart(alignmentTrendCtx, {
+        type: 'line',
+        data: {
+            labels: {{ executive_charts.alignment_trend.dates|tojson }},
+            datasets: [{
+                label: 'Alignment Percentage',
+                data: {{ executive_charts.alignment_trend.percentages|tojson }},
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgb(75, 192, 192)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 100,
+                    title: {
+                        display: true,
+                        text: 'Alignment %'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Alignment: ${context.parsed.y}%`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Visit vs Alarm Scatter Chart
+    const visitAlarmScatterCtx = document.getElementById('visitAlarmScatterChart').getContext('2d');
+    new Chart(visitAlarmScatterCtx, {
+        type: 'bubble',
+        data: {
+            datasets: [{
+                label: 'Sites',
+                data: {{ executive_charts.scatter_data|tojson }},
+                backgroundColor: function(context) {
+                    const value = context.raw;
+                    // Higher priority score = more red
+                    if (value && value.size > 7) return 'rgba(255, 0, 0, 0.7)';
+                    if (value && value.size > 5) return 'rgba(255, 165, 0, 0.7)';
+                    return 'rgba(0, 128, 255, 0.7)';
+                },
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Site Visits (2 week period)'
+                    },
+                    beginAtZero: true
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Number of Alarms (2 week period)'
+                    },
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const point = context.raw;
+                            return [
+                                `Site: ${point.site_id} - ${point.site_name}`,
+                                `Visits: ${point.x}`,
+                                `Alarms: ${point.y}`,
+                                `Priority Score: ${point.size}`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Assignee Workload Chart
+    const assigneeWorkloadCtx = document.getElementById('assigneeWorkloadChart').getContext('2d');
+    new Chart(assigneeWorkloadCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ executive_charts.assignee_workload.assignees|tojson }},
+            datasets: [
+                {
+                    label: 'Approved',
+                    data: {{ executive_charts.assignee_workload.approved|tojson }},
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                    borderColor: 'rgb(40, 167, 69)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Submitted',
+                    data: {{ executive_charts.assignee_workload.submitted|tojson }},
+                    backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                    borderColor: 'rgb(0, 123, 255)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Draft',
+                    data: {{ executive_charts.assignee_workload.draft|tojson }},
+                    backgroundColor: 'rgba(108, 117, 125, 0.7)',
+                    borderColor: 'rgb(108, 117, 125)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Rejected',
+                    data: {{ executive_charts.assignee_workload.rejected|tojson }},
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                    borderColor: 'rgb(220, 53, 69)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: 'Assignee'
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Site Visits'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        footer: function(tooltipItems) {
+                            let total = 0;
+                            tooltipItems.forEach(function(tooltipItem) {
+                                total += tooltipItem.parsed.y;
+                            });
+                            return 'Total: ' + total;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Top Visited Sites Chart
+    const topVisitedSitesCtx = document.getElementById('topVisitedSitesChart').getContext('2d');
+    new Chart(topVisitedSitesCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ executive_charts.top_visited_sites.site_ids|tojson }},
+            datasets: [{
+                label: 'Number of Visits',
+                data: {{ executive_charts.top_visited_sites.visit_counts|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgb(54, 162, 235)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Visits'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Site ID'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            return {{ executive_charts.top_visited_sites.site_names|tojson }}[index];
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Top Alarm Sites Chart
+    const topAlarmSitesCtx = document.getElementById('topAlarmSitesChart').getContext('2d');
+    new Chart(topAlarmSitesCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ executive_charts.top_alarm_sites.site_ids|tojson }},
+            datasets: [{
+                label: 'Number of Alarms',
+                data: {{ executive_charts.top_alarm_sites.alarm_counts|tojson }},
+                backgroundColor: function(context) {
+                    const value = context.raw;
+                    // Higher alarm count = more red
+                    const alpha = 0.7;
+                    if (value > 10) return `rgba(255, 0, 0, ${alpha})`;
+                    if (value > 5) return `rgba(255, 165, 0, ${alpha})`;
+                    return `rgba(255, 206, 86, ${alpha})`;
+                },
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Site ID'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Alarms'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            return {{ executive_charts.top_alarm_sites.site_names|tojson }}[index];
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
     // Initialize the map with loading state
     const mapContainer = document.getElementById('siteMap');
     const mapLoading = mapContainer.querySelector('.map-loading');
@@ -1069,7 +1563,8 @@
     }
 
     .site-popup p {
-        margin-bottom: 5px;
+        margin: 0;
+        color: #666;
     }
 
     #topPlannedSitesChart {
@@ -1079,6 +1574,61 @@
     #temporalPerformanceChart {
         width: 100%;
         height: 100%;
+    }
+
+    /* Executive Dashboard Styles */
+    .executive-card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: all 0.3s ease;
+    }
+    
+    .executive-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .icon-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+    }
+    
+    .progress-circle {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .progress-circle-inner {
+        position: absolute;
+        width: 70%;
+        height: 70%;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+    }
+    
+    .progress-circle-bg-success {
+        background: conic-gradient(#28a745 var(--percent), #e9ecef 0);
+    }
+    
+    .progress-circle-bg-warning {
+        background: conic-gradient(#ffc107 var(--percent), #e9ecef 0);
+    }
+    
+    .progress-circle-bg-danger {
+        background: conic-gradient(#dc3545 var(--percent), #e9ecef 0);
     }
 </style>
 {% endblock %}

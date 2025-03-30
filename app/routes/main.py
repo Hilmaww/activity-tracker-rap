@@ -9,7 +9,6 @@ from sqlalchemy import or_, func, desc
 from dotenv import load_dotenv
 from flask_login import login_required, current_user
 from flask import jsonify, abort
-import re
 import math
 
 bp = Blueprint('main', __name__, template_folder='../../templates')
@@ -236,6 +235,256 @@ def index():
     
     # For tickets, lower is better, so inverse the trend
     trend_indicators['tickets'] = -trend_indicators['tickets']
+    
+    # ========= NEW EXECUTIVE DASHBOARD METRICS =========
+    
+    # 1. Average sites visited per day per ENOM in the last week
+    two_weeks_ago = current_date - timedelta(days=14)
+    one_week_ago = current_date - timedelta(days=7)
+    
+    # Get all ENOMs who have planned sites
+    enom_users_query = db.session.query(User).filter(User.role == 'enom').all()
+    active_enoms = [user for user in enom_users_query if user.daily_plans]
+    enom_count = len(active_enoms)
+    
+    # Count total planned sites in the last 7 days
+    weekly_planned_visits = db.session.query(PlannedSite).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= one_week_ago,
+        DailyPlan.plan_date <= current_date,
+        DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED])
+    ).count()
+    
+    # Calculate average sites visited per ENOM per day
+    workdays_in_week = 5  # Assuming 5 working days per week
+    avg_sites_per_enom = round(weekly_planned_visits / (enom_count * workdays_in_week), 1) if enom_count > 0 else 0
+    
+    # 2. Average alarms per week per site
+    all_sites_count = Site.query.count()
+    weekly_alarms_count = AlarmRecord.query.filter(
+        AlarmRecord.created_at >= one_week_ago,
+        AlarmRecord.is_deleted == False
+    ).count()
+    avg_alarms_per_site = round(weekly_alarms_count / all_sites_count, 2) if all_sites_count > 0 else 0
+    
+    # 3. Calculate completion percentage for planned activities
+    completed_visits = db.session.query(PlannedSite).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= one_week_ago,
+        DailyPlan.plan_date <= current_date,
+        PlannedSite.updated_actions != 'Not Done Yet'
+    ).count()
+    
+    completion_percentage = round((completed_visits / weekly_planned_visits * 100) if weekly_planned_visits > 0 else 0)
+    
+    # 4. Calculate alignment percentage (planned sites that appear in alarms)
+    # Get all planned sites in the last 7 days
+    planned_site_ids = db.session.query(PlannedSite.site_id).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= one_week_ago,
+        DailyPlan.plan_date <= current_date
+    ).distinct().all()
+    planned_site_ids = [site_id for (site_id,) in planned_site_ids]
+    
+    # Get all sites with alarms in the last 7 days
+    alarm_site_ids = db.session.query(AlarmRecord.site_id).filter(
+        AlarmRecord.created_at >= one_week_ago,
+        AlarmRecord.is_deleted == False
+    ).distinct().all()
+    alarm_site_ids = [site_id for (site_id,) in alarm_site_ids]
+    
+    # Find the intersection
+    aligned_sites = set(planned_site_ids).intersection(set(alarm_site_ids))
+    alignment_percentage = round((len(aligned_sites) / len(alarm_site_ids) * 100) if alarm_site_ids else 0)
+    
+    # 5. Count unique sites visited in past 2 weeks
+    unique_visited_sites = db.session.query(PlannedSite.site_id).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= two_weeks_ago,
+        DailyPlan.plan_date <= current_date,
+        PlannedSite.updated_actions != 'Not Done Yet'
+    ).distinct().count()
+    
+    # ========= NEW EXECUTIVE DASHBOARD CHARTS =========
+    
+    # 1. Alignment percentage trend chart
+    alignment_trend = {
+        'dates': [],
+        'percentages': []
+    }
+    
+    for i in range(13, -1, -1):  # Last 14 days
+        date = current_date - timedelta(days=i)
+        alignment_trend['dates'].append(date.strftime('%d-%m-%Y'))
+        
+        # Get planned sites for this date
+        daily_planned_site_ids = db.session.query(PlannedSite.site_id).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date == date
+        ).distinct().all()
+        daily_planned_site_ids = [site_id for (site_id,) in daily_planned_site_ids]
+        
+        # Get alarm sites for this date
+        start_of_day = datetime.combine(date, datetime.min.time()).astimezone(jakarta_tz)
+        end_of_day = datetime.combine(date, datetime.max.time()).astimezone(jakarta_tz)
+        
+        daily_alarm_site_ids = db.session.query(AlarmRecord.site_id).filter(
+            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
+            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1),
+            AlarmRecord.is_deleted == False
+        ).distinct().all()
+        daily_alarm_site_ids = [site_id for (site_id,) in daily_alarm_site_ids]
+        
+        # Calculate daily alignment percentage
+        if daily_alarm_site_ids:
+            daily_aligned_sites = set(daily_planned_site_ids).intersection(set(daily_alarm_site_ids))
+            daily_alignment = round((len(daily_aligned_sites) / len(daily_alarm_site_ids) * 100))
+        else:
+            daily_alignment = 0
+            
+        alignment_trend['percentages'].append(daily_alignment)
+    
+    # 2. Scatter plot data: Visits vs Alarms with priority score
+    scatter_data = []
+    
+    # Get all sites
+    all_sites = Site.query.all()
+    
+    for site in all_sites:
+        # Count visits for this site in the last 2 weeks
+        visit_count = db.session.query(PlannedSite).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date >= two_weeks_ago,
+            DailyPlan.plan_date <= current_date,
+            PlannedSite.site_id == site.id
+        ).count()
+        
+        # Count alarms for this site in the last 2 weeks
+        alarm_count = AlarmRecord.query.filter(
+            AlarmRecord.created_at >= two_weeks_ago,
+            AlarmRecord.site_id == site.id,
+            AlarmRecord.is_deleted == False
+        ).count()
+        
+        # Calculate average priority score
+        priority_score = db.session.query(func.avg(AlarmRecord.priority_score)).filter(
+            AlarmRecord.site_id == site.id,
+            AlarmRecord.is_deleted == False
+        ).scalar() or 0
+        
+        if visit_count > 0 or alarm_count > 0:
+            scatter_data.append({
+                'site_id': site.site_id,
+                'site_name': site.name,
+                'x': visit_count,  # Visits on x-axis
+                'y': alarm_count,  # Alarms on y-axis
+                'size': round(priority_score)  # Bubble size
+            })
+    
+    # 3. Assignee workload distribution (stacked bar)
+    assignee_workload = {
+        'assignees': [],
+        'draft': [],
+        'submitted': [],
+        'approved': [],
+        'rejected': []
+    }
+    
+    # Get unique assignees from planned sites in the last 2 weeks
+    assignees = db.session.query(PlannedSite.assignee).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= two_weeks_ago,
+        DailyPlan.plan_date <= current_date
+    ).distinct().all()
+    
+    assignees = [a[0] for a in assignees if a[0] is not None and a[0].strip()]
+    
+    for assignee in assignees:
+        assignee_workload['assignees'].append(assignee)
+        
+        for status in ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED']:
+            count = db.session.query(PlannedSite).join(
+                DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+            ).filter(
+                DailyPlan.plan_date >= two_weeks_ago,
+                DailyPlan.plan_date <= current_date,
+                PlannedSite.assignee == assignee,
+                DailyPlan.status == status
+            ).count()
+            
+            status_key = status.lower()
+            assignee_workload[status_key].append(count)
+    
+    # 4. Top 10 most frequently visited sites
+    most_visited_sites = db.session.query(
+        Site.site_id,
+        Site.name,
+        func.count(PlannedSite.id).label('visit_count')
+    ).join(
+        PlannedSite, Site.id == PlannedSite.site_id
+    ).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= two_weeks_ago,
+        DailyPlan.plan_date <= current_date
+    ).group_by(
+        Site.id
+    ).order_by(
+        func.count(PlannedSite.id).desc()
+    ).limit(10).all()
+    
+    top_visited_sites = {
+        'site_ids': [site.site_id for site in most_visited_sites],
+        'site_names': [site.name for site in most_visited_sites],
+        'visit_counts': [site.visit_count for site in most_visited_sites]
+    }
+    
+    # 5. Sites with most alarms
+    top_alarm_sites = db.session.query(
+        Site.site_id,
+        Site.name,
+        func.count(AlarmRecord.id).label('alarm_count')
+    ).join(
+        AlarmRecord, Site.id == AlarmRecord.site_id
+    ).filter(
+        AlarmRecord.created_at >= two_weeks_ago,
+        AlarmRecord.is_deleted == False
+    ).group_by(
+        Site.id
+    ).order_by(
+        func.count(AlarmRecord.id).desc()
+    ).limit(10).all()
+    
+    top_alarm_sites_data = {
+        'site_ids': [site.site_id for site in top_alarm_sites],
+        'site_names': [site.name for site in top_alarm_sites],
+        'alarm_counts': [site.alarm_count for site in top_alarm_sites]
+    }
+    
+    # Executive summary metrics
+    executive_metrics = {
+        'avg_sites_per_enom': avg_sites_per_enom,
+        'avg_alarms_per_site': avg_alarms_per_site,
+        'completion_percentage': completion_percentage,
+        'alignment_percentage': alignment_percentage,
+        'unique_visited_sites': unique_visited_sites
+    }
+    
+    # Executive dashboard charts
+    executive_charts = {
+        'alignment_trend': alignment_trend,
+        'scatter_data': scatter_data,
+        'assignee_workload': assignee_workload,
+        'top_visited_sites': top_visited_sites,
+        'top_alarm_sites': top_alarm_sites_data
+    }
 
     # Get sites with tickets for map
     sites_with_tickets = db.session.query(
@@ -385,7 +634,7 @@ def index():
                 unplanned_site_ids.append(site.id)
 
     # -------------------------------------------------------------
-    # NEW BUSINESS DASHBOARD METRICS CALCULATION
+    # BUSINESS DASHBOARD METRICS CALCULATION
     # -------------------------------------------------------------
     
     # 1. Site Alignment & Proactive Management
@@ -641,7 +890,6 @@ def index():
     # 3. Resource Allocation Intelligence
     # Get list of ENOM users for the chart
     enom_users_list = [u for u in User.query.filter_by(role='enom') if u.username != 'enom_user']
-    # enom_users_list = User.query.filter_by(role='enom').all()
     enom_usernames = [user.username for user in enom_users_list]
     
     # Calculate workload per user
@@ -684,6 +932,10 @@ def index():
         ).count()
         
         resource_allocation['tickets'].append(tickets_count)
+        
+        # Count alarms - simplified
+        alarms_count = 3  # Placeholder
+        resource_allocation['alarms'].append(alarms_count)
     
     # 4. Temporal Operational Performance
     # Get data for the last 7 days
@@ -827,7 +1079,9 @@ def index():
                        resource_allocation=resource_allocation,
                        temporal_performance=temporal_performance,
                        alarm_stats=alarm_stats,
-                       alarm_management=alarm_management)
+                       alarm_management=alarm_management,
+                       executive_metrics=executive_metrics,
+                       executive_charts=executive_charts)
 
 @bp.route('/tickets', methods=['GET'])
 @login_required
