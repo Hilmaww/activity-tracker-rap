@@ -268,6 +268,38 @@ def index():
     ).count()
     avg_alarms_per_site = round(weekly_alarms_count / all_sites_count, 2) if all_sites_count > 0 else 0
     
+    # 2. (REVISED) Average alarms per week per site by kabupaten
+    # Get all kabupaten with their site counts
+    kabupaten_site_counts = db.session.query(
+        Site.kabupaten, 
+        func.count(Site.id).label('site_count')
+    ).group_by(Site.kabupaten).all()
+    
+    # Calculate alarms per kabupaten
+    kabupaten_alarm_rates = []
+    for kabupaten_data in kabupaten_site_counts:
+        kabupaten = kabupaten_data.kabupaten
+        site_count = kabupaten_data.site_count
+        
+        # Get sites in this kabupaten
+        sites_in_kabupaten = Site.query.filter(Site.kabupaten == kabupaten).all()
+        site_ids = [site.id for site in sites_in_kabupaten]
+        
+        # Count alarms in this kabupaten for the last week
+        if site_ids:
+            alarms_count = AlarmRecord.query.filter(
+                AlarmRecord.site_id.in_(site_ids),
+                AlarmRecord.created_at >= one_week_ago,
+                AlarmRecord.is_deleted == False
+            ).count()
+            
+            # Calculate rate for this kabupaten
+            if site_count > 0:
+                kabupaten_alarm_rates.append(alarms_count / site_count)
+    
+    # Average the rates across all kabupaten
+    avg_alarms_per_site = round(sum(kabupaten_alarm_rates) / len(kabupaten_alarm_rates), 2) if kabupaten_alarm_rates else 0
+
     # 3. Calculate completion percentage for planned activities
     completed_visits = db.session.query(PlannedSite).join(
         DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
@@ -286,19 +318,55 @@ def index():
     ).filter(
         DailyPlan.plan_date >= one_week_ago,
         DailyPlan.plan_date <= current_date
-    ).distinct().all()
+    ).all()
     planned_site_ids = [site_id for (site_id,) in planned_site_ids]
     
     # Get all sites with alarms in the last 7 days
-    alarm_site_ids = db.session.query(AlarmRecord.site_id).filter(
+    sites_with_alarms = db.session.query(AlarmRecord.site_id).filter(
         AlarmRecord.created_at >= one_week_ago,
         AlarmRecord.is_deleted == False
     ).distinct().all()
-    alarm_site_ids = [site_id for (site_id,) in alarm_site_ids]
+    sites_with_alarms = [site_id for (site_id,) in sites_with_alarms]
     
-    # Find the intersection
-    aligned_sites = set(planned_site_ids).intersection(set(alarm_site_ids))
-    alignment_percentage = round((len(aligned_sites) / len(alarm_site_ids) * 100) if alarm_site_ids else 0)
+    # Count overlap between planned sites and sites with alarms
+    aligned_sites = set(planned_site_ids).intersection(set(sites_with_alarms))
+    alignment_percentage = round((len(aligned_sites) / len(planned_site_ids) * 100) if planned_site_ids else 0)
+    
+    # (REVISED) Calculate alignment percentage based on alarms before plan date
+    # Get all plans from the last 7 days
+    recent_plans = db.session.query(
+        DailyPlan.id,
+        DailyPlan.plan_date
+    ).filter(
+        DailyPlan.plan_date >= one_week_ago,
+        DailyPlan.plan_date <= current_date
+    ).all()
+    
+    # Count aligned plans (plans that visited sites with pre-existing alarms)
+    aligned_plan_count = 0
+    total_plan_count = len(recent_plans)
+    total_alarm_count = weekly_alarms_count  # Total count of alarms for Strategic Alignment card
+    
+    for plan_id, plan_date in recent_plans:
+        # Get sites in this plan
+        plan_sites = db.session.query(PlannedSite.site_id).filter(
+            PlannedSite.daily_plan_id == plan_id
+        ).all()
+        plan_site_ids = [site_id for (site_id,) in plan_sites]
+        
+        # Check if any of the plan's sites had alarms before the plan date
+        for site_id in plan_site_ids:
+            prior_alarms = AlarmRecord.query.filter(
+                AlarmRecord.site_id == site_id,
+                AlarmRecord.created_at < datetime.combine(plan_date, datetime.min.time()),
+                AlarmRecord.is_deleted == False
+            ).first()
+            
+            if prior_alarms:
+                aligned_plan_count += 1
+                break  # Count the plan as aligned if at least one site had prior alarms
+    
+    alignment_percentage = round((aligned_plan_count / total_plan_count * 100) if total_plan_count > 0 else 0)
     
     # 5. Count unique sites visited in past 2 weeks
     unique_visited_sites = db.session.query(PlannedSite.site_id).join(
@@ -474,7 +542,8 @@ def index():
         'avg_alarms_per_site': avg_alarms_per_site,
         'completion_percentage': completion_percentage,
         'alignment_percentage': alignment_percentage,
-        'unique_visited_sites': unique_visited_sites
+        'unique_visited_sites': unique_visited_sites,
+        'total_alarm_count': total_alarm_count
     }
     
     # Executive dashboard charts
@@ -579,6 +648,7 @@ def index():
     ).all()
     
     # For each visited site, check if there were alarms after the visit
+    site_alarm_data = {}
     for site in visited_sites:
         # Get the day after the plan date
         next_day = site.plan_date + timedelta(days=1)
@@ -590,22 +660,23 @@ def index():
             AlarmRecord.is_deleted == False
         ).count()
         
-        # If there were alarms after the visit, add to list
+        # If there were alarms after the visit, add to data
         if post_visit_alarms > 0:
-            visited_sites_with_alarms.append({
-                'site_id': site.site_id,
-                'site_name': site.name,
-                'visit_date': site.plan_date.strftime('%d-%m-%Y'),
-                'alarm_count': post_visit_alarms,
-                'days_until_alarm': 0  # We'll calculate this next
-            })
+            if site.site_id not in site_alarm_data:
+                site_alarm_data[site.site_id] = {
+                    'site_id': site.site_id,
+                    'site_name': site.name,
+                    'visit_date': site.plan_date.strftime('%d-%m-%Y'),
+                    'alarm_count': post_visit_alarms,
+                    'days_until_alarm': 0  # We'll calculate this next
+                }
     
     # For each site with post-visit alarms, find the average time until first alarm
-    for site_data in visited_sites_with_alarms:
-        site = Site.query.filter_by(site_id=site_data['site_id']).first()
+    for site_id, data in site_alarm_data.items():
+        site = Site.query.filter_by(site_id=site_id).first()
         if site:
             # Get visit date
-            visit_date_parts = site_data['visit_date'].split('-')
+            visit_date_parts = data['visit_date'].split('-')
             visit_date = datetime(int(visit_date_parts[2]), int(visit_date_parts[1]), int(visit_date_parts[0])).date()
             
             # Find the first alarm after visit
@@ -619,13 +690,48 @@ def index():
                 # Calculate days between visit and alarm
                 alarm_date = first_alarm.created_at.date()
                 days_between = (alarm_date - visit_date).days
-                site_data['days_until_alarm'] = days_between
+                data['days_until_alarm'] = days_between
     
+    # Convert dictionary to list
+    visited_sites_with_alarms = list(site_alarm_data.values())
+    
+    # Group sites by number of alarms (for the visit effectiveness chart)
+    alarm_counts_distribution = {}
+    for site_data in visited_sites_with_alarms:
+        alarm_count = site_data['alarm_count']
+        if alarm_count not in alarm_counts_distribution:
+            alarm_counts_distribution[alarm_count] = {
+                'count': 0,
+                'avg_days_until_alarm': 0,
+                'total_days': 0
+            }
+        
+        alarm_counts_distribution[alarm_count]['count'] += 1
+        alarm_counts_distribution[alarm_count]['total_days'] += site_data['days_until_alarm']
+    
+    # Calculate average days for each alarm count
+    for alarm_count, data in alarm_counts_distribution.items():
+        if data['count'] > 0:
+            data['avg_days_until_alarm'] = round(data['total_days'] / data['count'], 1)
+    
+    # Convert to list format for chart
+    visit_effectiveness_data = {
+        'alarm_counts': [],
+        'site_counts': [],
+        'avg_days_until_alarm': []
+    }
+    
+    for alarm_count, data in sorted(alarm_counts_distribution.items()):
+        visit_effectiveness_data['alarm_counts'].append(alarm_count)
+        visit_effectiveness_data['site_counts'].append(data['count'])
+        visit_effectiveness_data['avg_days_until_alarm'].append(data['avg_days_until_alarm'])
+
     # Add the new charts to the executive_charts dictionary
     executive_charts.update({
         'execution_by_date': execution_by_date,
         'alarm_remark_trend': alarm_remark_trend,
-        'visited_sites_with_alarms': visited_sites_with_alarms
+        'visited_sites_with_alarms': visited_sites_with_alarms,
+        'visit_effectiveness_data': visit_effectiveness_data
     })
 
     # Get sites with tickets for map
@@ -1190,6 +1296,52 @@ def index():
         alarm_management['transport_issues'].append(count_alarms(AlarmCategory.TRANSPORT_ISSUE))
         alarm_management['zero_payload'].append(count_alarms(AlarmCategory.ZERO_PAYLOAD))
         alarm_management['other'].append(count_alarms(AlarmCategory.OTHER))
+
+    # 1. Strategic Planning Alignment Trend (last 14 days)
+    alignment_trend = {
+        'dates': [],
+        'percentages': []
+    }
+    
+    for i in range(13, -1, -1):
+        date = current_date - timedelta(days=i)
+        alignment_trend['dates'].append(date.strftime('%d-%m-%Y'))
+        
+        # Get plans for this day
+        daily_plans = DailyPlan.query.filter(
+            DailyPlan.plan_date == date
+        ).all()
+        
+        # Count aligned plans (that visit sites with pre-existing alarms)
+        day_plan_count = len(daily_plans)
+        aligned_count = 0
+        
+        for plan in daily_plans:
+            # Get sites in this plan
+            plan_sites = db.session.query(PlannedSite.site_id).filter(
+                PlannedSite.daily_plan_id == plan.id
+            ).all()
+            plan_site_ids = [site_id for (site_id,) in plan_sites]
+            
+            # Check if any of the plan's sites had alarms before the plan date
+            has_prior_alarms = False
+            for site_id in plan_site_ids:
+                prior_alarms = AlarmRecord.query.filter(
+                    AlarmRecord.site_id == site_id,
+                    AlarmRecord.created_at < datetime.combine(date, datetime.min.time()),
+                    AlarmRecord.is_deleted == False
+                ).first()
+                
+                if prior_alarms:
+                    has_prior_alarms = True
+                    break
+            
+            if has_prior_alarms:
+                aligned_count += 1
+        
+        # Calculate alignment percentage for this day
+        day_alignment = round((aligned_count / day_plan_count * 100) if day_plan_count > 0 else 0)
+        alignment_trend['percentages'].append(day_alignment)
 
     return render_template('index.html',
                        open_tickets=open_tickets,

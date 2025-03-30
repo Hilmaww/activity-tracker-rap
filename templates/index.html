@@ -487,6 +487,7 @@
                                                 </div>
                                             </div>
                                             <p class="text-muted mb-0">Site planning aligned with alarms</p>
+                                            <p class="text-muted small mb-0">Total alarms: {{ executive_metrics.total_alarm_count }}</p>
                                         </div>
                                         <div class="progress-circle 
                                             {% if executive_metrics.alignment_percentage > 85 %}progress-circle-bg-success
@@ -513,7 +514,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
                     <h5 class="card-title">Strategic Planning Alignment Trend</h5>
-                    <small class="text-muted">Tracking the alignment between site planning and alarm incidents</small>
+                    <small class="text-muted">Tracking plans that include sites with pre-existing alarms</small>
                 </div>
                 <div class="card-body">
                     <canvas id="alignmentTrendChart" height="250"></canvas>
@@ -537,8 +538,8 @@
         <div class="col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="card-title">Assignee Workload</h5>
-                    <small class="text-muted">Planned site records by assignee and status</small>
+                    <h5 class="card-title">ENOM Workload Distribution</h5>
+                    <small class="text-muted">Planned site records by ENOM and status</small>
                 </div>
                 <div class="card-body">
                     <canvas id="assigneeWorkloadChart" height="250"></canvas>
@@ -1231,21 +1232,24 @@
             }]
         },
         options: {
-            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             scales: {
                 x: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Number of Visits'
-                    }
-                },
-                y: {
                     title: {
                         display: true,
                         text: 'Site ID'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Visit Count'
                     }
                 }
             },
@@ -1261,7 +1265,7 @@
             }
         }
     });
-
+    
     // Top Alarm Sites Chart
     const topAlarmSitesCtx = document.getElementById('topAlarmSitesChart').getContext('2d');
     new Chart(topAlarmSitesCtx, {
@@ -1275,7 +1279,8 @@
                     const value = context.raw;
                     // Higher alarm count = more red
                     const alpha = 0.7;
-                    
+                    if (value > 10) return `rgba(255, 0, 0, ${alpha})`;
+                    if (value > 5) return `rgba(255, 165, 0, ${alpha})`;
                     return `rgba(255, 206, 86, ${alpha})`;
                 },
                 borderColor: 'rgba(0, 0, 0, 0.1)',
@@ -1436,15 +1441,16 @@
             datasets: [{
                 label: 'Sites with Post-Visit Alarms',
                 data: {{ executive_charts.visited_sites_with_alarms|tojson|safe }}.map(site => ({
-                    x: parseInt(site.days_until_alarm), // Days until alarm on x-axis
-                    y: parseInt(site.alarm_count),      // Number of alarms on y-axis
-                    r: 10,                              // Constant bubble size for clarity
+                    x: parseInt(site.alarm_count), // Number of alarms on x-axis
+                    y: parseInt(site.site_count),    // Number of sites on y-axis
+                    r: 10,                          // Constant bubble size for clarity
                     site_id: site.site_id,
                     site_name: site.site_name,
-                    visit_date: site.visit_date
+                    visit_date: site.visit_date,
+                    days_until_alarm: site.days_until_alarm
                 })),
                 backgroundColor: function(context) {
-                    const value = context.raw?.x || 0;
+                    const value = context.raw?.days_until_alarm || 0;
                     // Color based on days until alarm (faster is worse)
                     if (value <= 3) return 'rgba(220, 53, 69, 0.7)'; // Red for quick recurrence
                     if (value <= 7) return 'rgba(255, 193, 7, 0.7)'; // Yellow for medium
@@ -1462,14 +1468,14 @@
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Days Until New Alarm'
+                        text: 'Number of New Alarms'
                     }
                 },
                 y: {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Number of New Alarms'
+                        text: 'Number of Sites'
                     }
                 }
             },
@@ -1481,8 +1487,8 @@
                             return [
                                 `Site: ${data.site_name} (${data.site_id})`,
                                 `Visit Date: ${data.visit_date}`,
-                                `Days Until Alarm: ${data.x}`,
-                                `New Alarms: ${data.y}`
+                                `Days Until Alarm: ${data.days_until_alarm}`,
+                                `New Alarms: ${data.x}`
                             ];
                         }
                     }
@@ -1493,7 +1499,6 @@
             }
         }
     });
-    {% endif %}
 
     // Initialize the map with loading state
     const mapContainer = document.getElementById('siteMap');
