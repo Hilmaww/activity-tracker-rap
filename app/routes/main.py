@@ -378,8 +378,8 @@ def index():
             DailyPlan.plan_date == date
         ).all()
 
-        total_sites_planned = 0
-        total_aligned_sites = 0
+        total_sites_planned_in_a_day = 0
+        total_aligned_sites_in_a_day = 0
 
         for plan_id, plan_date in daily_plans:
             plan_sites = db.session.query(PlannedSite.site_id).filter(
@@ -387,7 +387,7 @@ def index():
             ).all()
             plan_site_ids = [site_id for (site_id,) in plan_sites]
 
-            total_sites_planned += len(plan_site_ids)
+            total_sites_planned_in_a_day += len(plan_site_ids)
 
             for site_id in plan_site_ids:
                 # Convert plan_date to Jakarta time for comparison
@@ -400,9 +400,9 @@ def index():
                 ).first()
 
                 if prior_alarms:
-                    total_aligned_sites += 1
+                    total_aligned_sites_in_a_day += 1
 
-        day_alignment = round((total_aligned_sites / total_sites_planned * 100) if total_sites_planned > 0 else 0)
+        day_alignment = round((total_aligned_sites_in_a_day / total_sites_planned_in_a_day * 100) if total_sites_planned_in_a_day > 0 else 0)
         alignment_trend['percentages'].append(day_alignment)
     
     # 2. Scatter plot data: Visits vs Alarms with priority score
@@ -1286,51 +1286,6 @@ def index():
         alarm_management['zero_payload'].append(count_alarms(AlarmCategory.ZERO_PAYLOAD))
         alarm_management['other'].append(count_alarms(AlarmCategory.OTHER))
 
-    # 1. Strategic Planning Alignment Trend (last 14 days)
-    alignment_trend = {
-        'dates': [],
-        'percentages': []
-    }
-    
-    for i in range(13, -1, -1):
-        date = current_date - timedelta(days=i)
-        alignment_trend['dates'].append(date.strftime('%d-%m-%Y'))
-        
-        # Get plans for this day
-        daily_plans = DailyPlan.query.filter(
-            DailyPlan.plan_date == date
-        ).all()
-        
-        # Count aligned plans (that visit sites with pre-existing alarms)
-        day_plan_count = len(daily_plans)
-        aligned_count = 0
-        
-        for plan in daily_plans:
-            # Get sites in this plan
-            plan_sites = db.session.query(PlannedSite.site_id).filter(
-                PlannedSite.daily_plan_id == plan.id
-            ).all()
-            plan_site_ids = [site_id for (site_id,) in plan_sites]
-            
-            # Check if any of the plan's sites had alarms before the plan date
-            has_prior_alarms = False
-            for site_id in plan_site_ids:
-                prior_alarms = AlarmRecord.query.filter(
-                    AlarmRecord.site_id == site_id,
-                    AlarmRecord.created_at < datetime.combine(date, datetime.min.time()),
-                    AlarmRecord.is_deleted == False
-                ).first()
-                
-                if prior_alarms:
-                    has_prior_alarms = True
-                    break
-            
-            if has_prior_alarms:
-                aligned_count += 1
-        
-        # Calculate alignment percentage for this day
-        day_alignment = round((aligned_count / day_plan_count * 100) if day_plan_count > 0 else 0)
-        alignment_trend['percentages'].append(day_alignment)
 
     return render_template('index.html',
                        open_tickets=open_tickets,
