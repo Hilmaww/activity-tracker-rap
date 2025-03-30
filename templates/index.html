@@ -1324,8 +1324,8 @@
     
     // Top Visited Sites Per Kabupaten Chart - Create a tabbed interface
     // First add the container structure
-    const chartRow = document.querySelector('#topAlarmSitesChart').closest('.row');
-    if (chartRow) {
+    const chartRowTopVisitedSites = document.querySelector('#topVisitedSitesChart').closest('.row');
+    if (chartRowTopVisitedSites) {
         // Create a new row for the kabupaten chart
         const kabupatensRow = document.createElement('div');
         kabupatensRow.className = 'row mt-4';
@@ -1405,7 +1405,7 @@
         kabupatensRow.appendChild(kabupatensCol);
         
         // Insert the new row after the current chart row
-        chartRow.parentNode.insertBefore(kabupatensRow, chartRow.nextSibling);
+        chartRowTopVisitedSites.parentNode.insertBefore(kabupatensRow, chartRowTopVisitedSites.nextSibling);
         
         // Create charts for each kabupaten
         setTimeout(() => {
@@ -1694,8 +1694,8 @@
     
     // Add a container for the heatmap chart
     // Create a new div for the heatmap next to the bubble chart
-    const chartRow = document.querySelector('#visitEffectivenessChart').closest('.row');
-    if (chartRow) {
+    const chartRowVisitEffectiveness = document.querySelector('#visitEffectivenessChart').closest('.row');
+    if (chartRowVisitEffectiveness) {
         // Find the parent of the visit effectiveness chart
         const chartCol = document.querySelector('#visitEffectivenessChart').closest('.col');
         // If we found it, change its class to make room for the heatmap
@@ -1717,7 +1717,7 @@
             `;
             
             // Add the new column after the bubble chart column
-            chartRow.appendChild(heatmapCol);
+            chartRowVisitEffectiveness.appendChild(heatmapCol);
             
             // Initialize the heatmap chart
             const heatmapData = {{ executive_charts.heatmap_data|tojson|safe }};
