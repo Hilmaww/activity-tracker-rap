@@ -385,11 +385,11 @@ def index():
             plan_sites = db.session.query(PlannedSite.site_id).filter(
                 PlannedSite.daily_plan_id == plan_id[0]
             ).all()
-            plan_site_ids = [site_id for (site_id,) in plan_sites]
+            plan_site_ids_in_a_day = [site_id for (site_id,) in plan_sites]
 
-            total_sites_planned_in_a_day += len(plan_site_ids)
+            total_sites_planned_in_a_day += len(plan_site_ids_in_a_day)
 
-            for site_id in plan_site_ids:
+            for site_id in plan_site_ids_in_a_day:
                 # Convert plan_date to Jakarta time for comparison
                 plan_date_jakarta = datetime.combine(plan_date[1], datetime.min.time()).astimezone(jakarta_tz)
 
