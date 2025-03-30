@@ -670,72 +670,117 @@ def index():
             # Get visit date
             visit_date_parts = data['visit_date'].split('-')
             visit_date = datetime(int(visit_date_parts[2]), int(visit_date_parts[1]), int(visit_date_parts[0])).date()
-
+            
             # Find the first alarm after visit
             first_alarm = AlarmRecord.query.filter(
                 AlarmRecord.site_id == site.id,
                 AlarmRecord.created_at >= datetime.combine(visit_date + timedelta(days=1), datetime.min.time()),
                 AlarmRecord.is_deleted == False
             ).order_by(AlarmRecord.created_at.asc()).first()
-
+            
             if first_alarm and first_alarm.created_at:
                 # Calculate days between visit and alarm
                 alarm_date = first_alarm.created_at.date()
                 days_between = (alarm_date - visit_date).days
                 data['days_until_alarm'] = days_between
-
-    # Group sites by alarm_count and count them
-    alarm_count_map = defaultdict(int)
-    for data in site_alarm_data.values():
-        alarm_count_map[data['alarm_count']] += 1
-
-    # Create the final list for the chart
-    visited_sites_with_alarms = [{
-        'alarm_count': alarm,
-        'site_count': count,
-        'days_until_alarm': next((d['days_until_alarm'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), 0),
-        'site_id': next((d['site_id'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), None),
-        'site_name': next((d['site_name'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), None),
-        'visit_date': next((d['visit_date'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), None)
-    } for alarm, count in alarm_count_map.items()]
-
-    # Group sites by number of alarms (for the visit effectiveness chart)
-    alarm_counts_distribution = {}
+    
+    # Convert dictionary to list
+    visited_sites_with_alarms = list(site_alarm_data.values())
+    
+    # Create data for improved bubble chart - showing days vs alarms correlation
+    # Group sites by days until alarm and alarm count
+    visit_alarm_matrix = {}
     for site_data in visited_sites_with_alarms:
-        alarm_count = site_data['alarm_count']
-        if alarm_count not in alarm_counts_distribution:
-            alarm_counts_distribution[alarm_count] = {
-                'count': 0,
-                'avg_days_until_alarm': 0,
-                'total_days': 0
+        days_key = site_data['days_until_alarm']
+        alarm_key = site_data['alarm_count']
+        
+        matrix_key = (days_key, alarm_key)
+        if matrix_key not in visit_alarm_matrix:
+            visit_alarm_matrix[matrix_key] = {
+                'days_until_alarm': days_key,
+                'alarm_count': alarm_key,
+                'site_count': 0,
+                'sites': []
             }
-
-        alarm_counts_distribution[alarm_count]['count'] += 1
-        alarm_counts_distribution[alarm_count]['total_days'] += site_data['days_until_alarm']
-
-    # Calculate average days for each alarm count
-    for alarm_count, data in alarm_counts_distribution.items():
-        if data['count'] > 0:
-            data['avg_days_until_alarm'] = round(data['total_days'] / data['count'], 1)
-
-    # Convert to list format for chart
+        
+        visit_alarm_matrix[matrix_key]['site_count'] += 1
+        visit_alarm_matrix[matrix_key]['sites'].append({
+            'site_id': site_data['site_id'],
+            'site_name': site_data['site_name'],
+            'visit_date': site_data['visit_date']
+        })
+    
+    # Convert to list for bubble chart
+    bubble_chart_data = []
+    for data in visit_alarm_matrix.values():
+        bubble_chart_data.append({
+            'x': data['days_until_alarm'],  # x-axis: days until alarm (speed of recurrence)
+            'y': data['alarm_count'],       # y-axis: alarm count (severity)
+            'r': min(data['site_count'] * 5, 30),  # bubble size based on site count, capped at 30
+            'site_count': data['site_count'],
+            'sites': data['sites']
+        })
+    
+    # Create data for heatmap chart - alternative visualization
+    # Define day ranges and alarm count ranges for clearer patterns
+    day_ranges = [(0, 3), (4, 7), (8, 14), (15, 30), (31, 90)]
+    alarm_ranges = [(1, 2), (3, 5), (6, 10), (11, 100)]
+    
+    heatmap_data = {
+        'day_ranges': [f"{r[0]}-{r[1]} days" for r in day_ranges],
+        'alarm_ranges': [f"{r[0]}-{r[1]} alarms" for r in alarm_ranges],
+        'counts': [[0 for _ in range(len(day_ranges))] for _ in range(len(alarm_ranges))],
+        'details': [[[] for _ in range(len(day_ranges))] for _ in range(len(alarm_ranges))]
+    }
+    
+    # Group sites into heatmap cells
+    for site_data in visited_sites_with_alarms:
+        days = site_data['days_until_alarm']
+        alarms = site_data['alarm_count']
+        
+        # Find which range this belongs to
+        day_idx = next((i for i, r in enumerate(day_ranges) if r[0] <= days <= r[1]), len(day_ranges) - 1)
+        alarm_idx = next((i for i, r in enumerate(alarm_ranges) if r[0] <= alarms <= r[1]), len(alarm_ranges) - 1)
+        
+        # Increment count and add to details
+        heatmap_data['counts'][alarm_idx][day_idx] += 1
+        heatmap_data['details'][alarm_idx][day_idx].append({
+            'site_id': site_data['site_id'],
+            'site_name': site_data['site_name'],
+            'days': days,
+            'alarms': alarms
+        })
+    
+    # Create data for bar chart (original approach but improved)
+    # Group sites by alarm_count and calculate average days
     visit_effectiveness_data = {
         'alarm_counts': [],
         'site_counts': [],
         'avg_days_until_alarm': []
     }
-
-    for alarm_count, data in sorted(alarm_counts_distribution.items()):
+    
+    # Use defaultdict to sum up the days and count sites per alarm count
+    alarm_count_stats = defaultdict(lambda: {'count': 0, 'total_days': 0})
+    for site_data in visited_sites_with_alarms:
+        alarm_count = site_data['alarm_count']
+        alarm_count_stats[alarm_count]['count'] += 1
+        alarm_count_stats[alarm_count]['total_days'] += site_data['days_until_alarm']
+    
+    # Calculate averages and prepare chart data
+    for alarm_count, stats in sorted(alarm_count_stats.items()):
         visit_effectiveness_data['alarm_counts'].append(alarm_count)
-        visit_effectiveness_data['site_counts'].append(data['count'])
-        visit_effectiveness_data['avg_days_until_alarm'].append(data['avg_days_until_alarm'])
+        visit_effectiveness_data['site_counts'].append(stats['count'])
+        avg_days = round(stats['total_days'] / stats['count'], 1) if stats['count'] > 0 else 0
+        visit_effectiveness_data['avg_days_until_alarm'].append(avg_days)
 
     # Add the new charts to the executive_charts dictionary
     executive_charts.update({
         'execution_by_date': execution_by_date,
         'alarm_remark_trend': alarm_remark_trend,
         'visited_sites_with_alarms': visited_sites_with_alarms,
-        'visit_effectiveness_data': visit_effectiveness_data
+        'visit_effectiveness_data': visit_effectiveness_data,
+        'bubble_chart_data': bubble_chart_data,
+        'heatmap_data': heatmap_data
     })
 
     # Get sites with tickets for map

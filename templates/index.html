@@ -1440,21 +1440,20 @@
         data: {
             datasets: [{
                 label: 'Sites with Post-Visit Alarms',
-                data: {{ executive_charts.visited_sites_with_alarms|tojson|safe }}.map(site => ({
-                    x: parseInt(site.alarm_count), // Number of alarms on x-axis
-                    y: parseInt(site.site_count),    // Number of sites on y-axis
-                    r: 10,                          // Constant bubble size for clarity
-                    site_id: site.site_id,
-                    site_name: site.site_name,
-                    visit_date: site.visit_date,
-                    days_until_alarm: site.days_until_alarm
+                data: {{ executive_charts.bubble_chart_data|tojson|safe }}.map(item => ({
+                    x: item.x,               // Days until alarm (faster is worse)
+                    y: item.y,               // Number of alarms (severity)
+                    r: item.r,               // Size based on number of sites
+                    site_count: item.site_count,
+                    sites: item.sites
                 })),
                 backgroundColor: function(context) {
-                    const value = context.raw?.days_until_alarm || 0;
+                    const days = context.raw?.x || 0;
                     // Color based on days until alarm (faster is worse)
-                    if (value <= 3) return 'rgba(220, 53, 69, 0.7)'; // Red for quick recurrence
-                    if (value <= 7) return 'rgba(255, 193, 7, 0.7)'; // Yellow for medium
-                    return 'rgba(40, 167, 69, 0.7)'; // Green for longer time before recurrence
+                    if (days <= 3) return 'rgba(220, 53, 69, 0.7)'; // Red for quick recurrence
+                    if (days <= 7) return 'rgba(255, 193, 7, 0.7)'; // Yellow for medium
+                    if (days <= 14) return 'rgba(40, 167, 69, 0.7)'; // Green for longer time
+                    return 'rgba(13, 110, 253, 0.7)'; // Blue for very long time
                 },
                 borderColor: 'rgba(0, 0, 0, 0.1)',
                 borderWidth: 1
@@ -1468,14 +1467,14 @@
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Number of New Alarms'
+                        text: 'Days Until New Alarm'
                     }
                 },
                 y: {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Number of Sites'
+                        text: 'Number of New Alarms'
                     }
                 }
             },
@@ -1484,13 +1483,48 @@
                     callbacks: {
                         label: function(context) {
                             const data = context.raw;
-                            return [
-                                `Site: ${data.site_name} (${data.site_id})`,
-                                `Visit Date: ${data.visit_date}`,
-                                `Days Until Alarm: ${data.days_until_alarm}`,
-                                `New Alarms: ${data.x}`
+                            const labels = [
+                                `${data.site_count} site(s)`,
+                                `Days until alarm: ${data.x}`,
+                                `Alarm count: ${data.y}`
                             ];
+                            
+                            // Add site names if there aren't too many
+                            if (data.sites && data.sites.length <= 5) {
+                                labels.push('');
+                                labels.push('Sites:');
+                                data.sites.forEach(site => {
+                                    labels.push(`- ${site.site_name} (${site.site_id})`);
+                                });
+                            } else if (data.sites && data.sites.length > 5) {
+                                labels.push('');
+                                labels.push(`Sites: ${data.sites.length} sites`);
+                                labels.push('(Hover for exact counts)');
+                            }
+                            
+                            return labels;
+                        },
+                        title: function(context) {
+                            const item = context[0];
+                            return `Post-Visit Alarm Pattern`;
                         }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Correlation: Time Until Alarms vs Alarm Count',
+                    font: {
+                        size: 14
+                    }
+                },
+                subtitle: {
+                    display: true,
+                    text: 'Bubble size represents number of sites with pattern',
+                    font: {
+                        size: 12
+                    },
+                    padding: {
+                        bottom: 10
                     }
                 },
                 legend: {
@@ -1499,6 +1533,161 @@
             }
         }
     });
+    
+    // Add a container for the heatmap chart
+    // Create a new div for the heatmap next to the bubble chart
+    const chartRow = document.querySelector('#visitEffectivenessChart').closest('.row');
+    if (chartRow) {
+        // Find the parent of the visit effectiveness chart
+        const chartCol = document.querySelector('#visitEffectivenessChart').closest('.col');
+        // If we found it, change its class to make room for the heatmap
+        if (chartCol) {
+            chartCol.className = 'col-lg-6';
+            
+            // Create new column for heatmap
+            const heatmapCol = document.createElement('div');
+            heatmapCol.className = 'col-lg-6';
+            heatmapCol.innerHTML = `
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Post-Visit Alarm Distribution</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="postVisitHeatmapChart" height="300"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            // Add the new column after the bubble chart column
+            chartRow.appendChild(heatmapCol);
+            
+            // Initialize the heatmap chart
+            const heatmapData = {{ executive_charts.heatmap_data|tojson|safe }};
+            
+            // Create the heatmap chart once the DOM is ready
+            setTimeout(() => {
+                const postVisitHeatmapCtx = document.getElementById('postVisitHeatmapChart');
+                if (postVisitHeatmapCtx) {
+                    // Create datasets for each cell that has data
+                    const datasets = [];
+                    for (let i = 0; i < heatmapData.counts.length; i++) {
+                        for (let j = 0; j < heatmapData.counts[i].length; j++) {
+                            if (heatmapData.counts[i][j] > 0) {
+                                // Calculate color intensity based on count
+                                const count = heatmapData.counts[i][j];
+                                const alpha = Math.min(0.2 + (count / 10) * 0.8, 1);
+                                
+                                datasets.push({
+                                    label: `${heatmapData.alarm_ranges[i]} at ${heatmapData.day_ranges[j]}`,
+                                    data: [{
+                                        x: j,
+                                        y: i,
+                                        count: count,
+                                        sites: heatmapData.details[i][j]
+                                    }],
+                                    backgroundColor: `rgba(220, 53, 69, ${alpha})`,
+                                    pointStyle: 'rect',
+                                    pointRadius: 20,
+                                    pointHoverRadius: 25
+                                });
+                            }
+                        }
+                    }
+                    
+                    new Chart(postVisitHeatmapCtx, {
+                        type: 'scatter',
+                        data: {
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    type: 'category',
+                                    position: 'bottom',
+                                    labels: heatmapData.day_ranges,
+                                    ticks: {
+                                        display: true
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Days Until New Alarm'
+                                    },
+                                    grid: {
+                                        display: false
+                                    }
+                                },
+                                y: {
+                                    type: 'category',
+                                    position: 'left',
+                                    labels: heatmapData.alarm_ranges,
+                                    reverse: true,
+                                    ticks: {
+                                        display: true
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Number of New Alarms'
+                                    },
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(context) {
+                                            const dataIndex = context[0].dataIndex;
+                                            const data = context[0].dataset.data[dataIndex];
+                                            return `${heatmapData.alarm_ranges[data.y]} with ${heatmapData.day_ranges[data.x]}`;
+                                        },
+                                        label: function(context) {
+                                            const data = context.raw;
+                                            const labels = [
+                                                `${data.count} site(s) with this pattern`
+                                            ];
+                                            
+                                            if (data.sites && data.sites.length <= 5) {
+                                                labels.push('');
+                                                labels.push('Sites:');
+                                                data.sites.forEach(site => {
+                                                    labels.push(`- ${site.site_name} (${site.site_id})`);
+                                                });
+                                            }
+                                            
+                                            return labels;
+                                        }
+                                    }
+                                },
+                                legend: {
+                                    display: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Post-Visit Alarm Distribution',
+                                    font: {
+                                        size: 14
+                                    }
+                                },
+                                subtitle: {
+                                    display: true,
+                                    text: 'Darker color indicates more sites with this pattern',
+                                    font: {
+                                        size: 12
+                                    },
+                                    padding: {
+                                        bottom: 10
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, 100);
+        }
+    }
     {% endif %}
     
     // Initialize the map with loading state
