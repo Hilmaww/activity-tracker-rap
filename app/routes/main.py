@@ -324,7 +324,9 @@ def index():
     
 
     total_alarm_count = weekly_alarms_count  # Total count of alarms for Strategic Alignment card
-    
+    total_sites_planned = 0 
+    total_aligned_sites = 0 
+
     for plan_id, plan_date in recent_plans:
         plan_sites = db.session.query(PlannedSite.site_id).filter(
             PlannedSite.daily_plan_id == plan_id
