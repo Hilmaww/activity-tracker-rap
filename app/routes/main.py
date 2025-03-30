@@ -693,9 +693,12 @@ def index():
     visited_sites_with_alarms = [{
         'alarm_count': alarm,
         'site_count': count,
-        'days_until_alarm': next((d['days_until_alarm'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), 0)
+        'days_until_alarm': next((d['days_until_alarm'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), 0),
+        'site_id': next((d['site_id'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), None),
+        'site_name': next((d['site_name'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), None),
+        'visit_date': next((d['visit_date'] for d in site_alarm_data.values() if d['alarm_count'] == alarm), None)
     } for alarm, count in alarm_count_map.items()]
-    
+
     # Group sites by number of alarms (for the visit effectiveness chart)
     alarm_counts_distribution = {}
     for site_data in visited_sites_with_alarms:
