@@ -523,8 +523,8 @@
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="card-title">Site Visit vs. Alarm Correlation</h5>
-                    <small class="text-muted">Bubble size represents priority score</small>
+                    <h5 class="card-title">Visit vs Alarm Distribution</h5>
+                    <small class="text-muted">Correlation between site visits and alarm frequency</small>
                 </div>
                 <div class="card-body">
                     <canvas id="visitAlarmScatterChart" height="250"></canvas>
@@ -532,41 +532,75 @@
             </div>
         </div>
     </div>
-    
+
     <div class="row mt-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="card-title">Assignee Workload Distribution</h5>
-                    <small class="text-muted">Site visit assignments by plan status (2 week period)</small>
+                    <h5 class="card-title">Assignee Workload</h5>
+                    <small class="text-muted">Planned site records by assignee and status</small>
                 </div>
                 <div class="card-body">
                     <canvas id="assigneeWorkloadChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="card-title">Most Frequently Visited Sites</h5>
-                    <small class="text-muted">Top 10 sites with the most visits in the past 2 weeks</small>
+                    <h5 class="card-title">Top 10 Visited Sites</h5>
+                    <small class="text-muted">Most frequently visited sites in the last 2 weeks</small>
                 </div>
                 <div class="card-body">
                     <canvas id="topVisitedSitesChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card shadow-sm">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="card-title">Sites with Most Alarms</h5>
-                    <small class="text-muted">Top 10 sites with the most alarms in the past 2 weeks</small>
+                    <h5 class="card-title">Top 10 Alarm Sites</h5>
+                    <small class="text-muted">Sites with the most alarms in the last 2 weeks</small>
                 </div>
                 <div class="card-body">
                     <canvas id="topAlarmSitesChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW EXECUTIVE INSIGHTS CHARTS SECTION -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Plan Execution Rate</h5>
+                    <small class="text-muted">Percentage of planned site visits completed by date</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="executionRateChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Alarm & Response Correlation</h5>
+                    <small class="text-muted">Correlation between alarms and remark data over time</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="alarmRemarkChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Visit Effectiveness</h5>
+                    <small class="text-muted">Sites with alarms after visits (ineffective resolutions)</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="visitEffectivenessChart" height="250"></canvas>
                 </div>
             </div>
         </div>
@@ -1241,8 +1275,7 @@
                     const value = context.raw;
                     // Higher alarm count = more red
                     const alpha = 0.7;
-                    if (value > 10) return `rgba(255, 0, 0, ${alpha})`;
-                    if (value > 5) return `rgba(255, 165, 0, ${alpha})`;
+                    
                     return `rgba(255, 206, 86, ${alpha})`;
                 },
                 borderColor: 'rgba(0, 0, 0, 0.1)',
@@ -1253,12 +1286,6 @@
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Site ID'
-                    }
-                },
                 y: {
                     beginAtZero: true,
                     title: {
@@ -1275,6 +1302,193 @@
                             return {{ executive_charts.top_alarm_sites.site_names|tojson }}[index];
                         }
                     }
+                }
+            }
+        }
+    });
+    
+    // Execution Rate Chart
+    const executionRateCtx = document.getElementById('executionRateChart').getContext('2d');
+    new Chart(executionRateCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ executive_charts.execution_by_date.dates|tojson }},
+            datasets: [{
+                label: 'Execution Rate (%)',
+                data: {{ executive_charts.execution_by_date.execution_percentages|tojson }},
+                backgroundColor: function(context) {
+                    const value = context.raw;
+                    // Color based on execution rate
+                    if (value >= 85) return 'rgba(40, 167, 69, 0.7)'; // Green for high
+                    if (value >= 70) return 'rgba(255, 193, 7, 0.7)'; // Yellow for medium
+                    return 'rgba(220, 53, 69, 0.7)'; // Red for low
+                },
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 100,
+                    title: {
+                        display: true,
+                        text: 'Execution Rate (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const dataIndex = context.dataIndex;
+                            const totalPlanned = {{ executive_charts.execution_by_date.total_planned|tojson }}[dataIndex];
+                            const totalExecuted = {{ executive_charts.execution_by_date.total_executed|tojson }}[dataIndex];
+                            return [
+                                `Execution Rate: ${context.parsed.y}%`,
+                                `Completed: ${totalExecuted} of ${totalPlanned} planned visits`
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Alarm & Response Correlation Chart
+    const alarmRemarkCtx = document.getElementById('alarmRemarkChart').getContext('2d');
+    new Chart(alarmRemarkCtx, {
+        type: 'line',
+        data: {
+            labels: {{ executive_charts.alarm_remark_trend.dates|tojson }},
+            datasets: [{
+                label: 'Alarms',
+                data: {{ executive_charts.alarm_remark_trend.alarm_counts|tojson }},
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgb(255, 99, 132)'
+            }, {
+                label: 'Remarks',
+                data: {{ executive_charts.alarm_remark_trend.remark_counts|tojson }},
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgb(54, 162, 235)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Count'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                },
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+    
+    // Visit Effectiveness Chart (Bubble chart for inefficiencies)
+    const visitEffectivenessCtx = document.getElementById('visitEffectivenessChart').getContext('2d');
+    new Chart(visitEffectivenessCtx, {
+        type: 'bubble',
+        data: {
+            datasets: [{
+                label: 'Sites with Post-Visit Alarms',
+                data: {{ executive_charts.visited_sites_with_alarms|tojson|safe }}.map(site => ({
+                    x: parseInt(site.days_until_alarm), // Days until alarm on x-axis
+                    y: parseInt(site.alarm_count),      // Number of alarms on y-axis
+                    r: 10,                              // Constant bubble size for clarity
+                    site_id: site.site_id,
+                    site_name: site.site_name,
+                    visit_date: site.visit_date
+                })),
+                backgroundColor: function(context) {
+                    const value = context.raw?.x || 0;
+                    // Color based on days until alarm (faster is worse)
+                    if (value <= 3) return 'rgba(220, 53, 69, 0.7)'; // Red for quick recurrence
+                    if (value <= 7) return 'rgba(255, 193, 7, 0.7)'; // Yellow for medium
+                    return 'rgba(40, 167, 69, 0.7)'; // Green for longer time before recurrence
+                },
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Days Until New Alarm'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of New Alarms'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const data = context.raw;
+                            return [
+                                `Site: ${data.site_name} (${data.site_id})`,
+                                `Visit Date: ${data.visit_date}`,
+                                `Days Until Alarm: ${data.x}`,
+                                `New Alarms: ${data.y}`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top'
                 }
             }
         }

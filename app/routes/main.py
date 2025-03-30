@@ -486,6 +486,148 @@ def index():
         'top_alarm_sites': top_alarm_sites_data
     }
 
+    # ========= NEW ADDITIONAL EXECUTIVE CHARTS =========
+    
+    # 1. Bar chart of PlannedSite execution percentage by date
+    execution_by_date = {
+        'dates': [],
+        'execution_percentages': [],
+        'total_planned': [],
+        'total_executed': []
+    }
+    
+    # Get data for the last 14 days
+    for i in range(13, -1, -1):
+        date = current_date - timedelta(days=i)
+        execution_by_date['dates'].append(date.strftime('%d-%m-%Y'))
+        
+        # Count total planned sites for this date
+        total_planned = db.session.query(PlannedSite).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date == date,
+            DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED])
+        ).count()
+        
+        # Count executed sites (those with updated_actions != "Not Done Yet")
+        total_executed = db.session.query(PlannedSite).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date == date,
+            DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED]),
+            PlannedSite.updated_actions != 'Not Done Yet'
+        ).count()
+        
+        execution_by_date['total_planned'].append(total_planned)
+        execution_by_date['total_executed'].append(total_executed)
+        
+        # Calculate execution percentage
+        execution_percentage = round((total_executed / total_planned * 100) if total_planned > 0 else 0)
+        execution_by_date['execution_percentages'].append(execution_percentage)
+    
+    # 2. Line chart for alarms and remarks per site over time
+    alarm_remark_trend = {
+        'dates': [],
+        'alarm_counts': [],
+        'remark_counts': []
+    }
+    
+    # Get data for the last 14 days
+    for i in range(13, -1, -1):
+        date = current_date - timedelta(days=i)
+        alarm_remark_trend['dates'].append(date.strftime('%d-%m-%Y'))
+        
+        # Create start and end timestamps for Jakarta date
+        start_of_day = datetime.combine(date, datetime.min.time()).astimezone(jakarta_tz)
+        end_of_day = datetime.combine(date, datetime.max.time()).astimezone(jakarta_tz)
+        
+        # Count new alarms for this date
+        alarm_count = AlarmRecord.query.filter(
+            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
+            AlarmRecord.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1),
+            AlarmRecord.is_deleted == False
+        ).count()
+        
+        # Count new remarks for this date
+        remark_count = AlarmRemark.query.filter(
+            AlarmRemark.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') >= start_of_day,
+            AlarmRemark.created_at.op('AT TIME ZONE')('UTC').op('AT TIME ZONE')('Asia/Jakarta') < end_of_day + timedelta(seconds=1),
+            AlarmRemark.is_deleted == False
+        ).count()
+        
+        alarm_remark_trend['alarm_counts'].append(alarm_count)
+        alarm_remark_trend['remark_counts'].append(remark_count)
+    
+    # 3. Chart showing sites with post-visit alarms (inefficiencies)
+    visited_sites_with_alarms = []
+    
+    # Get all sites that were visited in the last 30 days
+    visited_sites = db.session.query(
+        Site.id,
+        Site.site_id,
+        Site.name,
+        DailyPlan.plan_date,
+        PlannedSite.updated_actions
+    ).join(
+        PlannedSite, Site.id == PlannedSite.site_id
+    ).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= thirty_days_ago.date(),
+        DailyPlan.plan_date <= current_date,
+        PlannedSite.updated_actions != 'Not Done Yet'
+    ).all()
+    
+    # For each visited site, check if there were alarms after the visit
+    for site in visited_sites:
+        # Get the day after the plan date
+        next_day = site.plan_date + timedelta(days=1)
+        
+        # Check for alarms after the visit
+        post_visit_alarms = AlarmRecord.query.filter(
+            AlarmRecord.site_id == site.id,
+            AlarmRecord.created_at >= datetime.combine(next_day, datetime.min.time()),
+            AlarmRecord.is_deleted == False
+        ).count()
+        
+        # If there were alarms after the visit, add to list
+        if post_visit_alarms > 0:
+            visited_sites_with_alarms.append({
+                'site_id': site.site_id,
+                'site_name': site.name,
+                'visit_date': site.plan_date.strftime('%d-%m-%Y'),
+                'alarm_count': post_visit_alarms,
+                'days_until_alarm': 0  # We'll calculate this next
+            })
+    
+    # For each site with post-visit alarms, find the average time until first alarm
+    for site_data in visited_sites_with_alarms:
+        site = Site.query.filter_by(site_id=site_data['site_id']).first()
+        if site:
+            # Get visit date
+            visit_date_parts = site_data['visit_date'].split('-')
+            visit_date = datetime(int(visit_date_parts[2]), int(visit_date_parts[1]), int(visit_date_parts[0])).date()
+            
+            # Find the first alarm after visit
+            first_alarm = AlarmRecord.query.filter(
+                AlarmRecord.site_id == site.id,
+                AlarmRecord.created_at >= datetime.combine(visit_date + timedelta(days=1), datetime.min.time()),
+                AlarmRecord.is_deleted == False
+            ).order_by(AlarmRecord.created_at.asc()).first()
+            
+            if first_alarm and first_alarm.created_at:
+                # Calculate days between visit and alarm
+                alarm_date = first_alarm.created_at.date()
+                days_between = (alarm_date - visit_date).days
+                site_data['days_until_alarm'] = days_between
+    
+    # Add the new charts to the executive_charts dictionary
+    executive_charts.update({
+        'execution_by_date': execution_by_date,
+        'alarm_remark_trend': alarm_remark_trend,
+        'visited_sites_with_alarms': visited_sites_with_alarms
+    })
+
     # Get sites with tickets for map
     sites_with_tickets = db.session.query(
         Site,
