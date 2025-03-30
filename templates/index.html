@@ -1150,7 +1150,7 @@
     new Chart(assigneeWorkloadCtx, {
         type: 'bar',
         data: {
-            labels: {{ executive_charts.assignee_workload.assignees|tojson }},
+            labels: {{ executive_charts.assignee_workload.enom_users|tojson }},
             datasets: [
                 {
                     label: 'Approved',
