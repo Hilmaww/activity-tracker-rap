@@ -365,7 +365,6 @@ def index():
     based on the proportion of aligned sites, with timezone conversion.
     """
 
-    jakarta_tz = pytz.timezone('Asia/Jakarta')
     alignment_trend = {
         'dates': [],
         'percentages': []
