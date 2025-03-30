@@ -1349,41 +1349,52 @@
         const kabupatensCardBody = document.createElement('div');
         kabupatensCardBody.className = 'card-body';
         
-        // Create tabs container
-        const tabsContainer = document.createElement('div');
-        tabsContainer.className = 'nav nav-tabs mb-3';
+        // Create tabs container - Fix the tab navigation structure
+        const tabsContainer = document.createElement('ul');
+        tabsContainer.className = 'nav nav-tabs';
         tabsContainer.setAttribute('role', 'tablist');
+        tabsContainer.id = 'kabupatenTabs';
         
         // Create tab content container
         const tabContent = document.createElement('div');
-        tabContent.className = 'tab-content';
+        tabContent.className = 'tab-content pt-3';
+        tabContent.id = 'kabupatenTabContent';
         
         // Get kabupaten data
         const kabupatens = Object.keys({{ executive_charts.kabupaten_sites|tojson|safe }});
         
         // Create tabs and panes for each kabupaten
         kabupatens.forEach((kabupaten, index) => {
-            // Create tab
-            const tabItem = document.createElement('a');
-            tabItem.className = `nav-item nav-link${index === 0 ? ' active' : ''}`;
-            tabItem.setAttribute('id', `nav-${kabupaten.replace(/\s+/g, '-')}-tab`);
-            tabItem.setAttribute('data-toggle', 'tab');
-            tabItem.setAttribute('href', `#nav-${kabupaten.replace(/\s+/g, '-')}`);
-            tabItem.setAttribute('role', 'tab');
-            tabItem.setAttribute('aria-controls', `nav-${kabupaten.replace(/\s+/g, '-')}`);
-            tabItem.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
-            tabItem.textContent = kabupaten;
+            const tabId = `kabupaten-${kabupaten.replace(/\s+/g, '-')}`;
+            
+            // Create tab list item
+            const tabItem = document.createElement('li');
+            tabItem.className = 'nav-item';
+            
+            // Create tab link
+            const tabLink = document.createElement('a');
+            tabLink.className = `nav-link${index === 0 ? ' active' : ''}`;
+            tabLink.id = `${tabId}-tab`;
+            tabLink.setAttribute('data-toggle', 'tab');
+            tabLink.setAttribute('href', `#${tabId}`);
+            tabLink.setAttribute('role', 'tab');
+            tabLink.setAttribute('aria-controls', tabId);
+            tabLink.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
+            tabLink.textContent = kabupaten;
+            
+            // Add link to list item
+            tabItem.appendChild(tabLink);
             
             // Create tab pane
             const tabPane = document.createElement('div');
             tabPane.className = `tab-pane fade${index === 0 ? ' show active' : ''}`;
-            tabPane.setAttribute('id', `nav-${kabupaten.replace(/\s+/g, '-')}`);
+            tabPane.id = tabId;
             tabPane.setAttribute('role', 'tabpanel');
-            tabPane.setAttribute('aria-labelledby', `nav-${kabupaten.replace(/\s+/g, '-')}-tab`);
+            tabPane.setAttribute('aria-labelledby', `${tabId}-tab`);
             
             // Create canvas for chart
             const canvas = document.createElement('canvas');
-            canvas.setAttribute('id', `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`);
+            canvas.id = `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`;
             canvas.setAttribute('height', '300');
             
             // Add canvas to tab pane
@@ -1407,66 +1418,87 @@
         // Insert the new row after the current chart row
         chartRowTopVisitedSites.parentNode.insertBefore(kabupatensRow, chartRowTopVisitedSites.nextSibling);
         
-        // Create charts for each kabupaten
+        // Make sure jQuery is available and initialize tabs
         setTimeout(() => {
-            const kabupatenData = {{ executive_charts.kabupaten_sites|tojson|safe }};
-            
-            Object.keys(kabupatenData).forEach(kabupaten => {
-                const canvasId = `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`;
-                const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (typeof $ !== 'undefined') {
+                // Initialize the Bootstrap tabs explicitly
+                $('#kabupatenTabs a').on('click', function (e) {
+                    e.preventDefault();
+                    $(this).tab('show');
+                });
                 
-                if (ctx) {
-                    new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: kabupatenData[kabupaten].site_ids,
-                            datasets: [{
-                                label: `Visits in ${kabupaten}`,
-                                data: kabupatenData[kabupaten].visit_counts,
-                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                                borderColor: 'rgb(54, 162, 235)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    title: {
-                                        display: true,
-                                        text: 'Site ID'
-                                    },
-                                    ticks: {
-                                        maxRotation: 45,
-                                        minRotation: 45
-                                    }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Visit Count'
-                                    }
-                                }
+                // Initialize charts for each kabupaten
+                const kabupatenData = {{ executive_charts.kabupaten_sites|tojson|safe }};
+                
+                Object.keys(kabupatenData).forEach(kabupaten => {
+                    const canvasId = `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`;
+                    const canvas = document.getElementById(canvasId);
+                    
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: kabupatenData[kabupaten].site_ids,
+                                datasets: [{
+                                    label: `Visits in ${kabupaten}`,
+                                    data: kabupatenData[kabupaten].visit_counts,
+                                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                    borderColor: 'rgb(54, 162, 235)',
+                                    borderWidth: 1
+                                }]
                             },
-                            plugins: {
-                                tooltip: {
-                                    callbacks: {
-                                        title: function(context) {
-                                            const index = context[0].dataIndex;
-                                            return kabupatenData[kabupaten].site_names[index];
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Site ID'
+                                        },
+                                        ticks: {
+                                            maxRotation: 45,
+                                            minRotation: 45
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Visit Count'
                                         }
                                     }
                                 },
-                                legend: {
-                                    display: false
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            title: function(context) {
+                                                const index = context[0].dataIndex;
+                                                return kabupatenData[kabupaten].site_names[index];
+                                            }
+                                        }
+                                    },
+                                    legend: {
+                                        display: false
+                                    }
                                 }
                             }
-                        }
-                    });
-                }
-            });
+                        });
+                    }
+                });
+                
+                // Add event listener for tab shown event to resize charts (fixes render issues on hidden tabs)
+                $('#kabupatenTabs a').on('shown.bs.tab', function (e) {
+                    const targetId = $(e.target).attr('aria-controls');
+                    const canvas = document.querySelector(`#${targetId} canvas`);
+                    if (canvas && canvas.chart) {
+                        canvas.chart.resize();
+                    }
+                });
+            } else {
+                console.warn('jQuery not found - kabupaten tabs may not function correctly');
+            }
         }, 100);
     }
     
