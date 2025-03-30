@@ -506,6 +506,53 @@ def index():
         'visit_counts': [site.visit_count for site in most_visited_sites]
     }
     
+    # 4b. Top 10 most visited sites per kabupaten
+    # First, get all kabupaten with visits
+    kabupaten_list = db.session.query(
+        Site.kabupaten,
+        func.count(PlannedSite.id).label('total_visits')
+    ).join(
+        PlannedSite, Site.id == PlannedSite.site_id
+    ).join(
+        DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+    ).filter(
+        DailyPlan.plan_date >= two_weeks_ago,
+        DailyPlan.plan_date <= current_date
+    ).group_by(
+        Site.kabupaten
+    ).order_by(
+        func.count(PlannedSite.id).desc()
+    ).all()
+    
+    # Then for each kabupaten, get the top sites
+    kabupaten_sites = {}
+    for kabupaten_data in kabupaten_list:
+        kabupaten = kabupaten_data.kabupaten
+        
+        top_sites = db.session.query(
+            Site.site_id,
+            Site.name,
+            func.count(PlannedSite.id).label('visit_count')
+        ).join(
+            PlannedSite, Site.id == PlannedSite.site_id
+        ).join(
+            DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+        ).filter(
+            DailyPlan.plan_date >= two_weeks_ago,
+            DailyPlan.plan_date <= current_date,
+            Site.kabupaten == kabupaten
+        ).group_by(
+            Site.id
+        ).order_by(
+            func.count(PlannedSite.id).desc()
+        ).limit(10).all()
+        
+        kabupaten_sites[kabupaten] = {
+            'site_ids': [site.site_id for site in top_sites],
+            'site_names': [site.name for site in top_sites],
+            'visit_counts': [site.visit_count for site in top_sites]
+        }
+    
     # 5. Sites with most alarms
     top_alarm_sites = db.session.query(
         Site.site_id,
@@ -544,7 +591,8 @@ def index():
         'scatter_data': scatter_data,
         'assignee_workload': enom_user_workload,
         'top_visited_sites': top_visited_sites,
-        'top_alarm_sites': top_alarm_sites_data
+        'top_alarm_sites': top_alarm_sites_data,
+        'kabupaten_sites': kabupaten_sites
     }
 
     # ========= NEW ADDITIONAL EXECUTIVE CHARTS =========

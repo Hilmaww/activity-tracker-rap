@@ -1291,11 +1291,21 @@
             responsive: true,
             maintainAspectRatio: false,
             scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Site ID'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
                 y: {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Number of Alarms'
+                        text: 'Alarms Count'
                     }
                 }
             },
@@ -1311,6 +1321,154 @@
             }
         }
     });
+    
+    // Top Visited Sites Per Kabupaten Chart - Create a tabbed interface
+    // First add the container structure
+    const chartRow = document.querySelector('#topAlarmSitesChart').closest('.row');
+    if (chartRow) {
+        // Create a new row for the kabupaten chart
+        const kabupatensRow = document.createElement('div');
+        kabupatensRow.className = 'row mt-4';
+        
+        // Create column for the kabupaten chart
+        const kabupatensCol = document.createElement('div');
+        kabupatensCol.className = 'col-lg-12';
+        
+        // Create card for the kabupaten chart
+        const kabupatensCard = document.createElement('div');
+        kabupatensCard.className = 'card mb-4 shadow';
+        
+        // Create card header with title
+        const kabupatensCardHeader = document.createElement('div');
+        kabupatensCardHeader.className = 'card-header py-3 d-flex flex-row align-items-center justify-content-between';
+        kabupatensCardHeader.innerHTML = `
+            <h6 class="m-0 font-weight-bold text-primary">Top 10 Most Visited Sites by Kabupaten</h6>
+        `;
+        
+        // Create card body with tabs and chart
+        const kabupatensCardBody = document.createElement('div');
+        kabupatensCardBody.className = 'card-body';
+        
+        // Create tabs container
+        const tabsContainer = document.createElement('div');
+        tabsContainer.className = 'nav nav-tabs mb-3';
+        tabsContainer.setAttribute('role', 'tablist');
+        
+        // Create tab content container
+        const tabContent = document.createElement('div');
+        tabContent.className = 'tab-content';
+        
+        // Get kabupaten data
+        const kabupatens = Object.keys({{ executive_charts.kabupaten_sites|tojson|safe }});
+        
+        // Create tabs and panes for each kabupaten
+        kabupatens.forEach((kabupaten, index) => {
+            // Create tab
+            const tabItem = document.createElement('a');
+            tabItem.className = `nav-item nav-link${index === 0 ? ' active' : ''}`;
+            tabItem.setAttribute('id', `nav-${kabupaten.replace(/\s+/g, '-')}-tab`);
+            tabItem.setAttribute('data-toggle', 'tab');
+            tabItem.setAttribute('href', `#nav-${kabupaten.replace(/\s+/g, '-')}`);
+            tabItem.setAttribute('role', 'tab');
+            tabItem.setAttribute('aria-controls', `nav-${kabupaten.replace(/\s+/g, '-')}`);
+            tabItem.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
+            tabItem.textContent = kabupaten;
+            
+            // Create tab pane
+            const tabPane = document.createElement('div');
+            tabPane.className = `tab-pane fade${index === 0 ? ' show active' : ''}`;
+            tabPane.setAttribute('id', `nav-${kabupaten.replace(/\s+/g, '-')}`);
+            tabPane.setAttribute('role', 'tabpanel');
+            tabPane.setAttribute('aria-labelledby', `nav-${kabupaten.replace(/\s+/g, '-')}-tab`);
+            
+            // Create canvas for chart
+            const canvas = document.createElement('canvas');
+            canvas.setAttribute('id', `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`);
+            canvas.setAttribute('height', '300');
+            
+            // Add canvas to tab pane
+            tabPane.appendChild(canvas);
+            
+            // Add tab to tabs container
+            tabsContainer.appendChild(tabItem);
+            
+            // Add tab pane to tab content
+            tabContent.appendChild(tabPane);
+        });
+        
+        // Assemble the structure
+        kabupatensCardBody.appendChild(tabsContainer);
+        kabupatensCardBody.appendChild(tabContent);
+        kabupatensCard.appendChild(kabupatensCardHeader);
+        kabupatensCard.appendChild(kabupatensCardBody);
+        kabupatensCol.appendChild(kabupatensCard);
+        kabupatensRow.appendChild(kabupatensCol);
+        
+        // Insert the new row after the current chart row
+        chartRow.parentNode.insertBefore(kabupatensRow, chartRow.nextSibling);
+        
+        // Create charts for each kabupaten
+        setTimeout(() => {
+            const kabupatenData = {{ executive_charts.kabupaten_sites|tojson|safe }};
+            
+            Object.keys(kabupatenData).forEach(kabupaten => {
+                const canvasId = `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`;
+                const ctx = document.getElementById(canvasId)?.getContext('2d');
+                
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: kabupatenData[kabupaten].site_ids,
+                            datasets: [{
+                                label: `Visits in ${kabupaten}`,
+                                data: kabupatenData[kabupaten].visit_counts,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                borderColor: 'rgb(54, 162, 235)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Site ID'
+                                    },
+                                    ticks: {
+                                        maxRotation: 45,
+                                        minRotation: 45
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Visit Count'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(context) {
+                                            const index = context[0].dataIndex;
+                                            return kabupatenData[kabupaten].site_names[index];
+                                        }
+                                    }
+                                },
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }, 100);
+    }
     
     // Execution Rate Chart
     const executionRateCtx = document.getElementById('executionRateChart').getContext('2d');
