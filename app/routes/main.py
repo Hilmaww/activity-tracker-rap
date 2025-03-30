@@ -385,7 +385,7 @@ def index():
 
         for plan_id, plan_date in daily_plans:
             plan_sites = db.session.query(PlannedSite.site_id).filter(
-                PlannedSite.daily_plan_id == plan_id[0]
+                PlannedSite.daily_plan_id == plan_id
             ).all()
             plan_site_ids_in_a_day = [site_id for (site_id,) in plan_sites]
 
