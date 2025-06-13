@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram.constants import ParseMode
+from telegram.helpers import escape_markdown # Import this!
 
 # Database imports
 import psycopg2
@@ -72,12 +73,13 @@ class DatabaseManager:
                     cur.execute("""
                         SELECT * FROM users WHERE telegram_id = %s
                     """, (telegram_id,))
-                    return dict(cur.fetchone()) if cur.fetchone() else None
+                    user_data = cur.fetchone()
+                    return dict(user_data) if user_data else None
         except Exception as e:
             logger.error(f"Error getting user by telegram ID: {e}")
             return None
     
-    def register_telegram_user(self, telegram_id: int, username: str, full_name: str) -> bool:
+    def register_telegram_user(self, telegram_id: int, username: str, telegram_username:str, full_name: str) -> bool:
         """Register or update telegram user info"""
         try:
             with self.get_connection() as conn:
@@ -86,7 +88,7 @@ class DatabaseManager:
                         UPDATE users 
                         SET telegram_id = %s, telegram_username = %s, telegram_full_name = %s, updated_at = %s
                         WHERE username = %s
-                    """, (telegram_id, username, full_name, datetime.utcnow(), username))
+                    """, (telegram_id, telegram_username, full_name, datetime.utcnow(), username))
                     conn.commit()
                     return cur.rowcount > 0
         except Exception as e:
@@ -395,7 +397,7 @@ Need more help? Contact your administrator.
         telegram_username = update.effective_user.username or ""
         full_name = update.effective_user.full_name or ""
         
-        success = self.db.register_telegram_user(telegram_id, telegram_username, full_name)
+        success = self.db.register_telegram_user(telegram_id, username, telegram_username, full_name)
         
         if success:
             await update.message.reply_text(
@@ -529,28 +531,35 @@ Send your plan in the next message.""",
         if not user:
             await update.message.reply_text("❌ You need to register first.")
             return
-        
+
         today = datetime.now(self.config.JAKARTA_TZ).date()
         plan = self.db.get_user_daily_plan(user['id'], today)
-        
-        message = f"📊 **Status for {user['username']}**\n\n"
-        message += f"👤 **Role:** {user['role'].upper()}\n"
+
+        # Escape potentially problematic user data
+        escaped_username = escape_markdown(user['username'])
+        escaped_role = escape_markdown(user['role'].upper()) # Role might also have special chars
+
+        message = f"📊 **Status for {escaped_username}**\n\n"
+        message += f"👤 **Role:** {escaped_role}\n"
         message += f"📅 **Date:** {today.strftime('%d/%m/%Y')}\n\n"
-        
+
         if plan:
             planned_sites = self.db.get_planned_sites(plan['id'])
             completed = sum(1 for site in planned_sites if site['updated_actions'] != 'Not Done Yet')
             total = len(planned_sites)
             
-            message += f"📋 **Today's Plan:** {plan['status']}\n"
+            # Escape plan status
+            escaped_plan_status = escape_markdown(plan['status'])
+
+            message += f"📋 **Today's Plan:** {escaped_plan_status}\n"
             message += f"✅ **Progress:** {completed}/{total} sites completed\n"
-            
+
             if total > 0:
                 percentage = (completed / total) * 100
                 message += f"📈 **Completion:** {percentage:.1f}%\n"
         else:
             message += "📋 **Today's Plan:** No plan submitted\n"
-        
+            
         await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
     
     async def alarms_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
