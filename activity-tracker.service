@@ -1,0 +1,17 @@
+[Unit]
+Description=Activity Tracker Gunicorn Service
+After=network.target
+
+[Service]
+User=hilmifaww
+Group=www-data
+WorkingDirectory=/home/hilmifaww/activity-tracker-rap
+Environment="PATH=/home/hilmifaww/venv/bin"
+Environment="FLASK_ENV=production"
+EnvironmentFile=/home/hilmifaww/activity-tracker-rap/.env
+ExecStart=/home/hilmifaww/venv/bin/gunicorn \
+    --workers 3 --bind 127.0.0.1:8000 \
+    wsgi:app
+
+[Install]
+WantedBy=multi-user.target

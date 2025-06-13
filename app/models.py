@@ -22,8 +22,8 @@ class ProblemCategory(str, Enum):
 class EnomAssignee(str, Enum):
     RIZKI = "RIZKI"
     DOLLI = "DOLLI"
-    JAYA = "JAYA"
-    PARLIN = "PARLIN"
+    THARDIZON = "THARDIZON"
+    MUJAHID = "MUJAHID"
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
