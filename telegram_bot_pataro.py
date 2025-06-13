@@ -11,6 +11,7 @@ import asyncio
 import re
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Optional, Tuple
+from contextlib import contextmanager
 import pytz
 from dotenv import load_dotenv
 
@@ -34,7 +35,7 @@ from sqlalchemy import func, case # For aggregation and conditional expressions
 # If `db` is from a Flask app instance, you might need to import `app` and then `app.db`
 # or pass the `db` instance to DatabaseManager.
 # For simplicity, I'm assuming your models are directly importable.
-from models import (
+from app.models import (
     User, DailyPlan, PlannedSite, Site, Ticket, TicketStatus, ProblemCategory, EnomAssignee,
     TicketAction, PlanStatus, PlanComment, AlarmCategory, AlarmStatus, AlarmRecord, AlarmRemark,
     TelegramSession, TelegramBroadcast
@@ -73,9 +74,9 @@ class DatabaseManager:
 
     def __init__(self, database_url: str):
         self.engine = create_engine(database_url)
-        # SessionLocal will be used to get new session instances
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
+    @contextmanager # Add this decorator
     def get_db(self):
         """Dependency to get a DB session"""
         db = self.SessionLocal()
@@ -84,7 +85,7 @@ class DatabaseManager:
         finally:
             db.close()
 
-    def get_user_by_telegram_id(self, telegram_id: int) -> Optional[User]:
+    def get_user_by_telegram_id(self, telegram_id: int) -> Optional['User']: # Use string literal for type hint if 'User' is not imported yet
         """Get user by telegram ID"""
         with self.get_db() as db_session:
             return db_session.query(User).filter(User.telegram_id == telegram_id).first()
@@ -107,7 +108,7 @@ class DatabaseManager:
                 logger.error(f"Error registering telegram user: {e}")
                 return False
 
-    def get_user_daily_plan(self, user_id: int, plan_date: date) -> Optional[DailyPlan]:
+    def get_user_daily_plan(self, user_id: int, plan_date: date) -> Optional['DailyPlan']:
         """Get user's daily plan for specific date"""
         with self.get_db() as db_session:
             return db_session.query(DailyPlan).filter(
@@ -115,7 +116,7 @@ class DatabaseManager:
                 DailyPlan.plan_date == plan_date
             ).first()
 
-    def get_planned_sites(self, daily_plan_id: int) -> List[PlannedSite]:
+    def get_planned_sites(self, daily_plan_id: int) -> List['PlannedSite']:
         """Get planned sites for a daily plan"""
         with self.get_db() as db_session:
             return db_session.query(PlannedSite).join(Site).filter(
@@ -123,12 +124,12 @@ class DatabaseManager:
             ).order_by(PlannedSite.visit_order).all()
 
     def create_daily_plan(self, user_id: int, plan_date: date, sites_data: List[Dict],
-                          area_name: str, telegram_message_id: Optional[int] = None) -> Optional[DailyPlan]:
+                          area_name: str, telegram_message_id: Optional[int] = None) -> Optional['DailyPlan']:
         """Create a new daily plan with sites"""
         with self.get_db() as db_session:
             try:
                 total_sites = len(sites_data)
-                
+
                 # Create the DailyPlan record
                 new_plan = DailyPlan(
                     enom_user_id=user_id,
@@ -194,12 +195,12 @@ class DatabaseManager:
                 logger.error(f"Error updating planned site action: {e}")
                 return False
 
-    def get_site_by_site_id(self, site_id_str: str) -> Optional[Site]:
+    def get_site_by_site_id(self, site_id_str: str) -> Optional['Site']:
         """Get site by site_id string"""
         with self.get_db() as db_session:
             return db_session.query(Site).filter(Site.site_id == site_id_str).first()
 
-    def get_active_alarms(self) -> List[AlarmRecord]:
+    def get_active_alarms(self) -> List['AlarmRecord']:
         """Get active alarm records"""
         with self.get_db() as db_session:
             return db_session.query(AlarmRecord).join(Site).filter(
