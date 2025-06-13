@@ -147,10 +147,10 @@ class DatabaseManager:
 
                 # Add planned sites
                 for idx, site_data in enumerate(sites_data, 1):
-                    # Fetch Site object by site_code
-                    site = db_session.query(Site).filter(Site.site_id == site_data['site_code']).first()
+                    # Fetch Site object by site_id
+                    site = db_session.query(Site).filter(Site.site_id == site_data['site_id']).first()
                     if not site:
-                        logger.warning(f"Site {site_data['site_code']} not found for daily plan. Skipping.")
+                        logger.warning(f"Site {site_data['site_id']} not found for daily plan. Skipping.")
                         continue # Skip this site if not found
 
                     new_planned_site = PlannedSite(
@@ -212,13 +212,13 @@ class DatabaseManager:
 
 class PlanParser:
     """Parser for daily plan text format"""
-    # ... (Your existing PlanParser remains the same)
     @staticmethod
     def parse_plan_text(plan_text: str) -> Tuple[str, date, List[Dict]]:
         """
         Parse plan text format:
-        PLAN LABUSEL-PALUTA-PALAS
-        13/06/2025
+        PLAN 13/06/2025
+        LABUSEL-PALUTA-PALAS
+        
         Bang @Ansor TS Paluta @~Junaidi
         - PSP513 Dolok, Replace ML6651 Link To PSP330
         - PSP567 Rendaman Dolok,  Clearing Cell Down, Cek Power dan Optik
@@ -231,11 +231,9 @@ class PlanParser:
         # Extract area
         area_line = lines[0]
         if not area_line.startswith('PLAN '):
-            raise ValueError("First line must start with 'PLAN '")
-        area = area_line[5:].strip()
-
-        # Extract date
-        date_line = lines[1]
+            raise ValueError("Plan harus diawali dengan 'PLAN [Tanggal]'")
+        date_line = area_line[5:].strip()
+        area = lines[1]
         try:
             plan_date = datetime.strptime(date_line, '%d/%m/%Y').date()
         except ValueError:
@@ -246,10 +244,12 @@ class PlanParser:
         current_assignee = ""
 
         for line in lines[2:]:
-            if line.startswith('Bang @') or line.startswith('@'):
+            line = line.lower()
+            if line.startswith('bang') or line.startswith('om') or line.startswith('@'):
                 # This is an assignee line
-                current_assignee = line
-            elif line.startswith('- '):
+                current_assignee = line.lstrip('@').strip().title()
+
+            elif line.startswith('- ') or line.startswith('*') or line.startswith('#') or line.startswith('•'):
                 # This is a site action line
                 site_line = line[2:].strip()
 
@@ -258,7 +258,7 @@ class PlanParser:
                 if not site_match:
                     continue
 
-                site_code = site_match.group(1)
+                site_id = site_match.group(1).upper()
 
                 # Extract actions (everything after site code and location)
                 parts = site_line.split(',', 1)
@@ -273,7 +273,7 @@ class PlanParser:
                         actions = "Maintenance"
 
                 sites_data.append({
-                    'site_code': site_code,
+                    'site_id': site_id,
                     'actions': actions,
                     'assignee': current_assignee,
                     'duration': 60  # Default duration
@@ -350,12 +350,13 @@ To get started, use /register to link your account.
 
 📝 `/plan` - Submit daily plan
 Format your plan like this:
+```
 PLAN AREA-NAME
 13/06/2025
 Bang @Username
-
-PSP513 Location, Action description
-PSP567 Location, Action description
+- PSP513 Location, Action description
+- PSP567 Location, Action description
+```
 
 📋 `/myplan` - View your current daily plan
 
@@ -370,13 +371,13 @@ You can update individual sites or bulk update
 Replace 'username' with your system username
 
 **Plan Format Example:**
+```
 PLAN LABUSEL-PALUTA-PALAS
 13/06/2025
-Bang @Ansor TS Paluta @~Junaidi
-
-PSP513 Dolok, Replace ML6651 Link To PSP330
-PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-
+Bang @Ansor TS Paluta @~Junaidi 
+- PSP513 Dolok, Replace ML6651 Link To PSP330
+- PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+```
 Need more help? Contact your administrator.
         """
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
@@ -427,20 +428,22 @@ Need more help? Contact your administrator.
 
 Please send your daily plan in the following format:
 
+```
 PLAN AREA-NAME
-DD/MM/YYYY
+13/06/2025
 Bang @Username
-
-SITE001 Location, Action description
-SITE002 Location, Action description
+- PSP513 Location, Action description
+- PSP567 Location, Action description
+```
 
 **Example:**
+```
 PLAN LABUSEL-PALUTA-PALAS
 13/06/2025
-Bang @Ansor TS Paluta @~Junaidi
-
-PSP513 Dolok, Replace ML6651 Link To PSP330
-PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+Bang @Ansor TS Paluta @~Junaidi 
+- PSP513 Dolok, Replace ML6651 Link To PSP330
+- PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+```
 
 Send your plan in the next message.""",
             parse_mode=ParseMode.MARKDOWN
@@ -509,7 +512,7 @@ Send your plan in the next message.""",
         # Create inline keyboard with sites
         keyboard = []
         for site in planned_sites:
-            status_emoji = "✅" if site.is_completed else "⏳" # Better to check is_completed flag
+            status_emoji = "✅" if site.updated_actions != 'Not Done Yet' else "⏳" # Better to check is_completed flag
             keyboard.append([InlineKeyboardButton(
                 f"{status_emoji} {site.site.site_id} - {escape_markdown(site.site.name)}", # Accessing relationship
                 callback_data=f"update_site_{site.id}"
@@ -614,13 +617,34 @@ Send your plan in the next message.""",
             # Parse the plan text
             area, plan_date, sites_data = PlanParser.parse_plan_text(update.message.text)
 
+            # --- Start: Show parsed data to user ---
+            parsed_message = f"📝 **Parsed Plan Data:**\n\n"
+            parsed_message += f"🏢 **Area:** {escape_markdown(area)}\n"
+            parsed_message += f"📅 **Date:** {plan_date.strftime('%d/%m/%Y')}\n\n"
+            parsed_message += f"📍 **Sites:**\n"
+
+            if sites_data:
+                for idx, site_data in enumerate(sites_data, 1):
+                    parsed_message += f"{idx}. **{escape_markdown(site_data.get('site_id', 'N/A'))}**\n"
+                    parsed_message += f"   🔧 Action: {escape_markdown(site_data.get('actions', 'N/A'))}\n"
+                    if site_data.get('assignee'):
+                         parsed_message += f"   👤 Assignee: {escape_markdown(site_data['assignee'])}\n"
+                    # Duration is not typically shown in this summary, but can be added if needed
+                parsed_message += "\nIs this correct? Proceeding to validate sites..."
+            else:
+                parsed_message += "No sites found in the parsed plan."
+
+            await update.message.reply_text(parsed_message, parse_mode=ParseMode.MARKDOWN)
+            # --- End: Show parsed data to user ---
+
+
             # Validate and get site IDs from database
             validated_sites_data = [] # Changed name to avoid confusion with ORM objects
             missing_sites = []
 
             for site_data in sites_data:
                 # Using ORM method to get site object
-                site_obj = self.db.get_site_by_site_id(site_data['site_code'])
+                site_obj = self.db.get_site_by_site_id(site_data['site_id'])
                 if site_obj:
                     validated_sites_data.append({ # Store original dict for create_daily_plan
                         'site_id': site_obj.site_id, # Pass site_id string to create_daily_plan which then looks up the site.id
@@ -629,7 +653,7 @@ Send your plan in the next message.""",
                         'duration': site_data['duration']
                     })
                 else:
-                    missing_sites.append(site_data['site_code'])
+                    missing_sites.append(site_data['site_id'])
 
             if missing_sites:
                 await update.message.reply_text(
