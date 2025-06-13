@@ -27,7 +27,7 @@ from telegram.helpers import escape_markdown
 # from psycopg2.extras import RealDictCursor
 import sqlalchemy
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, aliased # Import aliased for joins with same table
+from sqlalchemy.orm import sessionmaker, aliased, joinedload # Import aliased for joins with same table
 from sqlalchemy import func, case # For aggregation and conditional expressions
 
 # Import your models
@@ -76,7 +76,7 @@ class DatabaseManager:
         self.engine = create_engine(database_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
-    @contextmanager # Add this decorator
+    @contextmanager
     def get_db(self):
         """Dependency to get a DB session"""
         db = self.SessionLocal()
@@ -117,9 +117,10 @@ class DatabaseManager:
             ).first()
 
     def get_planned_sites(self, daily_plan_id: int) -> List['PlannedSite']:
-        """Get planned sites for a daily plan"""
+        """Get planned sites for a daily plan with eager loading of Site."""
         with self.get_db() as db_session:
-            return db_session.query(PlannedSite).join(Site).filter(
+            # Add .options(joinedload(PlannedSite.site)) to eager load the 'site' relationship
+            return db_session.query(PlannedSite).options(joinedload(PlannedSite.site)).filter(
                 PlannedSite.daily_plan_id == daily_plan_id
             ).order_by(PlannedSite.visit_order).all()
 
