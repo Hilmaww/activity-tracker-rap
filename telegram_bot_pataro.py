@@ -218,7 +218,7 @@ class PlanParser:
         Parse plan text format:
         PLAN 13/06/2025
         LABUSEL-PALUTA-PALAS
-        
+
         Bang @Ansor TS Paluta @~Junaidi
         - PSP513 Dolok, Replace ML6651 Link To PSP330
         - PSP567 Rendaman Dolok,  Clearing Cell Down, Cek Power dan Optik
@@ -244,33 +244,48 @@ class PlanParser:
         current_assignee = ""
 
         for line in lines[2:]:
-            line = line.lower()
-            if line.startswith('bang') or line.startswith('om') or line.startswith('@'):
+            line_lower = line.lower() # Convert line to lowercase for initial checks
+            if line_lower.startswith('bang') or line_lower.startswith('om') or line_lower.startswith('@'):
                 # This is an assignee line
-                current_assignee = line.lstrip('@').strip().title()
+                assignee_name = line.strip() # Start with the original line, stripped of outer whitespace
 
-            elif line.startswith('- ') or line.startswith('*') or line.startswith('#') or line.startswith('•'):
+                # Use slicing to remove specific word prefixes ("Bang ", "Om ").
+                # This handles case-insensitivity on the check but removes the exact prefix length.
+                if assignee_name.lower().startswith('bang '):
+                    assignee_name = assignee_name[len('Bang '):].strip()
+                elif assignee_name.lower().startswith('om '):
+                    assignee_name = assignee_name[len('Om '):].strip()
+
+                # Now, remove leading '@' and '~' characters. lstrip is suitable for single leading characters.
+                assignee_name = assignee_name.lstrip('@').lstrip('~').strip()
+
+                # Convert to title case for consistent formatting
+                current_assignee = assignee_name.title()
+
+            elif line_lower.startswith('- ') or line_lower.startswith('*') or line_lower.startswith('#') or line_lower.startswith('•'):
                 # This is a site action line
-                site_line = line[2:].strip()
+                site_line = line[2:].strip() # Keep original case for site line
 
                 # Extract site ID (first word before space or comma)
-                site_match = re.match(r'^([A-Z0-9]+)', site_line)
+                site_match = re.match(r'^([A-Za-z0-9]+)', site_line) # Adjusted regex to include lowercase letters
                 if not site_match:
+                    # If no site ID found, skip this line
                     continue
 
-                site_id = site_match.group(1).upper()
+                site_id = site_match.group(1).upper() # Site ID should always be uppercase
 
                 # Extract actions (everything after site code and location)
+                # Find the first comma, or the second space after the site ID
                 parts = site_line.split(',', 1)
                 if len(parts) > 1:
                     actions = parts[1].strip()
                 else:
-                    # If no comma, take everything after the site code and assumed location
+                    # If no comma, try to infer actions after the first two words (site ID and assumed location)
                     words = site_line.split()
                     if len(words) > 2:
-                        actions = ' '.join(words[2:])
+                        actions = ' '.join(words[2:]).strip()
                     else:
-                        actions = "Maintenance"
+                        actions = "Maintenance" # Default action if nothing else is specified
 
                 sites_data.append({
                     'site_id': site_id,
@@ -324,7 +339,7 @@ class TelegramBot:
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         welcome_message = """
-🔧 **BTS Activity Tracker Bot**
+🔧 **PATARO Bot**
 
 Welcome! This bot helps manage daily plans and site activities.
 
@@ -344,7 +359,7 @@ To get started, use /register to link your account.
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
         help_text = """
-🆘 **Help - BTS Activity Tracker Bot**
+🆘 **Help - PATARO Bot**
 
 **Commands:**
 
@@ -750,6 +765,8 @@ Send your plan in the next message.""",
                 # Send test message when no alarms (for testing purposes)
                 test_message = f"""
 🔔 **Alarm Broadcast Test** - {datetime.now(self.config.JAKARTA_TZ).strftime('%d/%m/%Y %H:%M WIB')}
+
+~ Buah Jambu Buah Kendondong, Tolong FU Case Ini Dong ~
 
 ✅ **System Status:** All clear - No active alarms detected.
 
