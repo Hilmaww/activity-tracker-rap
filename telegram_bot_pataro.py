@@ -66,7 +66,7 @@ class BotConfig:
     JAKARTA_TZ = pytz.timezone('Asia/Jakarta')
 
     # Broadcast intervals (in hours)
-    ALARM_BROADCAST_INTERVAL = int(os.getenv('ALARM_BROADCAST_INTERVAL', '4'))
+    ALARM_BROADCAST_INTERVAL = int(os.getenv('ALARM_BROADCAST_INTERVAL', '7'))
 
 # --- REFACTORED DATABASEMANAGER CLASS ---
 class DatabaseManager:
@@ -252,7 +252,7 @@ class PlanParser:
 
         # Extract area
         area_line = lines[0]
-        if not area_line.startswith('PLAN '):
+        if not area_line.startswith('PLAN'):
             raise ValueError("Plan harus diawali dengan 'PLAN [Tanggal]'")
         date_line = area_line[5:].strip()
         area = lines[1]
@@ -286,10 +286,21 @@ class PlanParser:
 
             elif line_lower.startswith('- ') or line_lower.startswith('*') or line_lower.startswith('#') or line_lower.startswith('•'):
                 # This is a site action line
-                site_line = line[2:].strip() # Keep original case for site line
+                # Remove the bullet point and any following whitespace/invisible characters
+                if line_lower.startswith('-'):
+                    site_line = line[1:].strip()
+                elif line_lower.startswith('*'):
+                    site_line = line[1:].strip()
+                elif line_lower.startswith('#'):
+                    site_line = line[1:].strip()
+                elif line_lower.startswith('•'):
+                    site_line = line[1:].strip()
+
+                # Remove any remaining invisible characters at the beginning
+                site_line = re.sub(r'^[\s\u200b\u200c\u200d\u2060\ufeff]+', '', site_line)
 
                 # Extract site ID (first word before space or comma)
-                site_match = re.match(r'^([A-Za-z0-9]+)', site_line) # Adjusted regex to include lowercase letters
+                site_match = re.match(r'^([A-Za-z0-9]+)', site_line)
                 if not site_match:
                     # If no site ID found, skip this line
                     continue
@@ -388,8 +399,9 @@ To get started, use /register to link your account.
 📝 `/plan` - Submit daily plan
 Format your plan like this:
 ```
-PLAN AREA-NAME
-13/06/2025
+PLAN DD/MM/YYYY
+CLUSTER-NAME
+
 Bang @Username
 - PSP513 Location, Action description
 - PSP567 Location, Action description
@@ -409,8 +421,9 @@ Replace 'username' with your system username
 
 **Plan Format Example:**
 ```
-PLAN LABUSEL-PALUTA-PALAS
-13/06/2025
+PLAN 13/06/2025
+LABUSEL-PALUTA-PALAS
+
 Bang @Ansor TS Paluta @~Junaidi 
 - PSP513 Dolok, Replace ML6651 Link To PSP330
 - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
@@ -466,8 +479,8 @@ Need more help? Contact your administrator.
 Please send your daily plan in the following format:
 
 ```
-PLAN AREA-NAME
-13/06/2025
+PLAN 13/06/2025
+AREA-NAME
 Bang @Username
 - PSP513 Location, Action description
 - PSP567 Location, Action description
@@ -475,8 +488,8 @@ Bang @Username
 
 **Example:**
 ```
-PLAN LABUSEL-PALUTA-PALAS
-13/06/2025
+PLAN 13/06/2025
+LABUSEL-PALUTA-PALAS
 Bang @Ansor TS Paluta @~Junaidi 
 - PSP513 Dolok, Replace ML6651 Link To PSP330
 - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
@@ -909,7 +922,7 @@ Send your plan in the next message.""",
                 test_message = f"""
 🔔 **Alarm Broadcast Test** - {datetime.now(self.config.JAKARTA_TZ).strftime('%d/%m/%Y %H:%M WIB')}
 
-~ Buah Jambu Buah Kendondong, Tolong FU Case Ini Dong ~
+~ Buah Jambu Buah Kendondong, Gaskan FU Case Ini Dong ~
 
 ✅ **System Status:** All clear - No active alarms detected.
 
