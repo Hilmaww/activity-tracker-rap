@@ -641,16 +641,7 @@ class TelegramBot:
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-
-        # It's better to define variables for potentially problematic strings
-        # and then escape them.
-        developer_name = "Hilmi Fawwaz/ Staff NOP Rantau Prapat"
-        contact_email = "muhammad_h_fawwaz@telkomsel.co.id"
-        
-        # Example of how you'd use it if you had a variable for the email
-        # escaped_contact_email = escape_markdown(contact_email, version=2) # Use version=2 for MarkdownV2
-
-        welcome_message = f"""
+        welcome_message = """
             Semangat Pagi! Pagi✊🏽 Pagi✊🏽 Pagi✊🏽!
 
             Selamat datang di **PATARO Bot**! Saya siap membantumu mengelola aktivitas harian dan melacak progress di lapangan dengan lebih mudah.
@@ -679,7 +670,7 @@ class TelegramBot:
                 Contoh: `/register dolli_enom`
 
             2.  **Buat Rencana Harianmu**:
-                Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
+                Gunakan perintah `/plan` untuk memulai proses pembuatan rencana\. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
 
                 ```
                 PLAN DD/MM/YYYY
@@ -725,8 +716,8 @@ class TelegramBot:
 
             NOP & ENOM RantauPrapat - Salam Olahraga!
             Special Thanks To Abang Abang RAP Terbaik:
-            - Pak Leo (Ex-Mgr Rantau Prapat)
-            - Bang Amin, Bang Edy, Bang Adi, Bang Deni (Engineer Rantau Prapat)
+            - Pak Leo \( Ex-Mgr Rantau Prapat \)
+            - Bang Amin, Bang Edy, Bang Adi, Bang Deni \( Engineer Rantau Prapat \)
 
             All Team TO dan TS RAP: We Are One Team,One Dream
 
@@ -735,8 +726,8 @@ class TelegramBot:
             ---
 
             **Dikembangkan oleh:**
-            {escape_markdown(developer_name, version=2)}
-            Contact: {escape_markdown(contact_email, version=2)}
+            [Hilmi Fawwaz/ Staff NOP Rantau Prapat]
+            Contact: [muhammad\_h\_fawwaz@telkomsel\.co\.id]
             """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
