@@ -722,12 +722,6 @@ class TelegramBot:
             All Team TO dan TS RAP: We Are One Team,One Dream
 
             Semoga PATARO Bot ini dapat membantumu bekerja lebih efisien dan terorganisir. Semangat selalu!
-
-            ---
-            ```
-            **Dikembangkan oleh:**
-            [Hilmi Fawwaz - Staff NOP Rantau Prapat]
-            ```
             """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
