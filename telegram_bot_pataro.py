@@ -114,7 +114,7 @@ class DatabaseManager:
             return db_session.query(DailyPlan).filter(
                 DailyPlan.enom_user_id == user_id,
                 DailyPlan.plan_date == plan_date
-            ).first()
+            ).options(joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site)).first() # Eager load sites
 
     def get_planned_sites(self, daily_plan_id: int) -> List['PlannedSite']:
         """Get planned sites for a daily plan with eager loading of Site."""
@@ -181,12 +181,16 @@ class DatabaseManager:
                 if planned_site:
                     planned_site.updated_actions = updated_actions
                     # Assuming marking as completed if action is not 'Not Done Yet'
+                    # Check if the action is different from the default 'Not Done Yet'
                     if updated_actions != 'Not Done Yet' and not planned_site.is_completed:
                         planned_site.is_completed = True
                         planned_site.completed_at = datetime.utcnow()
                         # Also update total_sites_completed in DailyPlan
                         if planned_site.daily_plan: # Accessing relationship
                             planned_site.daily_plan.sites_completed += 1
+                            # Check if all sites are completed to update plan status
+                            if planned_site.daily_plan.sites_completed >= planned_site.daily_plan.total_sites_planned:
+                                planned_site.daily_plan.status = PlanStatus.APPROVED # Or another appropriate status
 
                     db_session.commit()
                     return True
@@ -208,6 +212,23 @@ class DatabaseManager:
                 AlarmRecord.status.in_([AlarmStatus.OPEN, AlarmStatus.ACKNOWLEDGED, AlarmStatus.SCHEDULED]),
                 AlarmRecord.is_deleted == False
             ).order_by(AlarmRecord.priority_score.desc(), AlarmRecord.created_at.desc()).limit(50).all()
+
+    def get_daily_plan_by_id(self, plan_id: int) -> Optional['DailyPlan']:
+        """Get daily plan by ID with eager loading of sites and user."""
+        with self.get_db() as db_session:
+            return db_session.query(DailyPlan).options(
+                joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site),
+                joinedload(DailyPlan.enom_user)
+            ).filter(DailyPlan.id == plan_id).first()
+
+    def get_all_daily_plans_for_date(self, plan_date: date) -> List['DailyPlan']:
+        """Get all daily plans for a specific date with eager loading."""
+        with self.get_db() as db_session:
+            return db_session.query(DailyPlan).options(
+                joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site),
+                joinedload(DailyPlan.enom_user)
+            ).filter(DailyPlan.plan_date == plan_date).all()
+
 # --- END REFACTORED DATABASEMANAGER CLASS ---
 
 
@@ -476,41 +497,86 @@ Send your plan in the next message.""",
             return
 
         today = datetime.now(self.config.JAKARTA_TZ).date()
-        # Using ORM method
-        plan = self.db.get_user_daily_plan(user.id, today) # Accessing attribute
 
-        if not plan:
-            await update.message.reply_text("📋 No plan found for today. Use `/plan` to create one.")
-            return
+        if user.role == 'enom':
+            # Show only the user's own plan
+            plan = self.db.get_user_daily_plan(user.id, today)
 
-        # Using ORM method
-        planned_sites = self.db.get_planned_sites(plan.id) # Accessing attribute
+            if not plan:
+                await update.message.reply_text("📋 No plan found for today. Use `/plan` to create one.")
+                return
 
-        message = f"📋 **Your Plan for {today.strftime('%d/%m/%Y')}**\n\n"
-        message += f"**Status:** {escape_markdown(plan.status.value)}\n\n" # Accessing Enum value and escaping
+            planned_sites = plan.planned_sites # Access relationship directly due to eager loading
 
-        for idx, site in enumerate(planned_sites, 1):
-            status_emoji = "✅" if site.updated_actions != 'Not Done Yet' else "⏳" # Accessing attribute
-            message += f"{status_emoji} **{idx}. {site.site.site_id}** - {escape_markdown(site.site.name)}\n" # Accessing relationship
-            message += f"   📍 {escape_markdown(site.site.kabupaten)}\n" # Accessing relationship
-            message += f"   🔧 Plan: {escape_markdown(site.planned_actions)}\n"
-            message += f"   📝 Status: {escape_markdown(site.updated_actions)}\n"
-            if site.assignee:
-                message += f"   👤 Assignee: {escape_markdown(site.assignee)}\n"
-            message += "\n"
+            message = f"📋 **Your Plan for {today.strftime('%d/%m/%Y')}**\n\n"
+            message += f"**Status:** {escape_markdown(plan.status.value)}\n"
+            message += f"**Progress:** {plan.sites_completed}/{plan.total_sites_planned} sites completed ({plan.completion_percentage:.1f}%)\n\n"
 
-        # Add inline keyboard for updates
-        keyboard = [[InlineKeyboardButton("🔄 Update Actions", callback_data=f"update_plan_{plan.id}")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+            if planned_sites:
+                message += f"📍 **Sites:**\n"
+                for idx, site in enumerate(planned_sites, 1):
+                    status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
+                    message += f"{status_emoji} **{idx}. {escape_markdown(site.site.site_id)}** - {escape_markdown(site.site.name)}\n"
+                    message += f"   📍 {escape_markdown(site.site.kabupaten)}\n"
+                    message += f"   🔧 Plan: {escape_markdown(site.planned_actions)}\n"
+                    message += f"   📝 Status: {escape_markdown(str(site.updated_actions or 'Not Done Yet'))}\n" # Ensure 'Not Done Yet' is shown if null/empty
+                    if site.assignee:
+                        message += f"   👤 Assignee: {escape_markdown(site.assignee)}\n"
+                    message += "\n"
+            else:
+                 message += "No sites planned for today.\n\n"
 
-        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+
+            # Add inline keyboard for updates - only for the plan owner
+            keyboard = [[InlineKeyboardButton("🔄 Update Actions", callback_data=f"update_plan_{plan.id}")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+
+        elif user.role == 'tsel':
+            # Show all ENOM users' plans for today
+            all_plans = self.db.get_all_daily_plans_for_date(today)
+
+            if not all_plans:
+                await update.message.reply_text(f"📋 No ENOM plans found for today, {today.strftime('%d/%m/%Y')}.")
+                return
+
+            message = f"📋 **All ENOM Plans for {today.strftime('%d/%m/%Y')}**\n\n"
+
+            for plan in all_plans:
+                # Ensure plan.enom_user is loaded and exists
+                if plan.enom_user:
+                    escaped_username = escape_markdown(plan.enom_user.username)
+                    escaped_plan_status = escape_markdown(plan.status.value)
+                    message += f"👤 **{escaped_username}**\n"
+                    message += f"Status: {escaped_plan_status} | Progress: {plan.sites_completed}/{plan.total_sites_planned} ({plan.completion_percentage:.1f}%)\n\n"
+                else:
+                     # Handle case where user relationship might be broken (shouldn't happen with FK)
+                     message += f"👤 **Unknown User (Plan ID: {plan.id})**\n"
+                     message += f"Status: {escape_markdown(plan.status.value)} | Progress: {plan.sites_completed}/{plan.total_sites_planned} ({plan.completion_percentage:.1f}%)\n\n"
+
+
+            message += "Use `/update` to see sites you can update (if any)." # TSEL users might update tickets, not plans directly via this view
+
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
+        else:
+             await update.message.reply_text("❌ Your role does not have access to view plans.")
+
 
     async def update_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /update command"""
+        # This command is primarily for ENOM users to update their own plan sites.
+        # TSEL users might use a different flow to update tickets/alarms.
+        # For now, let's keep this focused on ENOM plan updates.
         user = self.db.get_user_by_telegram_id(update.effective_user.id)
         if not user:
             await update.message.reply_text("❌ You need to register first.")
             return
+
+        if user.role != 'enom':
+             await update.message.reply_text("❌ Only ENOM users can use the `/update` command for plans.")
+             return
 
         today = datetime.now(self.config.JAKARTA_TZ).date()
         plan = self.db.get_user_daily_plan(user.id, today)
@@ -519,7 +585,7 @@ Send your plan in the next message.""",
             await update.message.reply_text("📋 No plan found for today. Use `/plan` to create one.")
             return
 
-        planned_sites = self.db.get_planned_sites(plan.id)
+        planned_sites = plan.planned_sites # Access relationship directly due to eager loading
 
         if not planned_sites:
             await update.message.reply_text("❌ No sites found in your plan.")
@@ -528,13 +594,14 @@ Send your plan in the next message.""",
         # Create inline keyboard with sites
         keyboard = []
         for site in planned_sites:
-            status_emoji = "✅" if site.updated_actions != 'Not Done Yet' else "⏳" # Better to check is_completed flag
+            status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
             keyboard.append([InlineKeyboardButton(
-                f"{status_emoji} {site.site.site_id} - {escape_markdown(site.site.name)}", # Accessing relationship
+                f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
                 callback_data=f"update_site_{site.id}"
             )])
 
-        keyboard.append([InlineKeyboardButton("📝 Bulk Update", callback_data=f"bulk_update_{plan.id}")])
+        # Bulk update is not implemented yet, keep it commented or remove
+        # keyboard.append([InlineKeyboardButton("📝 Bulk Update", callback_data=f"bulk_update_{plan.id}")])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -716,13 +783,28 @@ Send your plan in the next message.""",
         """Process site action update"""
         planned_site_id = context.user_data.get('updating_site_id')
         if not planned_site_id:
+            # This might happen if the bot restarts or state is lost
+            await update.message.reply_text("❌ Update session expired. Please use `/update` again.")
+            # Clear the awaiting state just in case
+            context.user_data['awaiting_site_update'] = False
+            context.user_data['updating_site_id'] = None
             return
 
         new_action = update.message.text.strip()
 
         # Using ORM method
         if self.db.update_planned_site_action(planned_site_id, new_action):
-            await update.message.reply_text(f"✅ Site action updated successfully!\n\n📝 New action: {escape_markdown(new_action)}")
+            # Fetch the updated planned site to show details in confirmation
+            with self.db.get_db() as db_session:
+                 updated_site = db_session.query(PlannedSite).options(joinedload(PlannedSite.site)).filter(PlannedSite.id == planned_site_id).first()
+                 if updated_site:
+                     message = f"✅ Site action updated successfully!\n\n"
+                     message += f"📍 **{escape_markdown(updated_site.site.site_id)}** - {escape_markdown(updated_site.site.name)}\n"
+                     message += f"📝 New action: {escape_markdown(new_action)}\n"
+                     message += f"Status: {'Completed' if updated_site.is_completed else 'Not Done Yet'}"
+                     await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+                 else:
+                     await update.message.reply_text(f"✅ Site action updated successfully!\n\n📝 New action: {escape_markdown(new_action)}")
         else:
             await update.message.reply_text("❌ Failed to update site action.")
 
@@ -739,6 +821,23 @@ Send your plan in the next message.""",
 
         if data.startswith('update_site_'):
             planned_site_id = int(data.split('_')[2])
+
+            # Optional: Check if the user clicking is the plan owner or authorized
+            user = self.db.get_user_by_telegram_id(update.effective_user.id)
+            if not user:
+                 await query.edit_message_text("❌ You need to register first.")
+                 return
+
+            with self.db.get_db() as db_session:
+                 planned_site = db_session.query(PlannedSite).options(joinedload(PlannedSite.daily_plan)).filter(PlannedSite.id == planned_site_id).first()
+                 if not planned_site:
+                      await query.edit_message_text("❌ Planned site not found.")
+                      return
+                 if planned_site.daily_plan.enom_user_id != user.id:
+                      await query.edit_message_text("❌ You can only update sites in your own plan.")
+                      return
+
+
             context.user_data['awaiting_site_update'] = True
             context.user_data['updating_site_id'] = planned_site_id
 
@@ -746,6 +845,49 @@ Send your plan in the next message.""",
                 "📝 **Update Site Action**\n\nPlease send the updated action for this site:",
                 parse_mode=ParseMode.MARKDOWN
             )
+
+        elif data.startswith('update_plan_'):
+            plan_id = int(data.split('_')[2])
+
+            # Retrieve the plan and its sites
+            plan = self.db.get_daily_plan_by_id(plan_id)
+
+            if not plan:
+                await query.edit_message_text("❌ Daily plan not found.")
+                return
+
+            # Check if the user clicking is the plan owner
+            user = self.db.get_user_by_telegram_id(update.effective_user.id)
+            if not user or plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only update your own plan.")
+                 return
+
+            planned_sites = plan.planned_sites # Access relationship directly due to eager loading
+
+            if not planned_sites:
+                await query.edit_message_text("❌ No sites found in this plan.")
+                return
+
+            # Create inline keyboard with sites for this specific plan
+            keyboard = []
+            for site in planned_sites:
+                status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
+                keyboard.append([InlineKeyboardButton(
+                    f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
+                    callback_data=f"update_site_{site.id}"
+                )])
+
+            # Bulk update is not implemented yet, keep it commented or remove
+            # keyboard.append([InlineKeyboardButton("📝 Bulk Update", callback_data=f"bulk_update_{plan.id}")])
+
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await query.edit_message_text(
+                f"🔄 **Update Actions for Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\nSelect a site to update:",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=reply_markup
+            )
+
 
         elif data.startswith('bulk_update_'):
             plan_id = int(data.split('_')[2])
