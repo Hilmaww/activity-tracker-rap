@@ -707,7 +707,7 @@ class TelegramBot:
             5.  **Cek Status dan Statistikmu**\:
                 Ketik `/status` untuk melihat ringkasan performa dan progress pekerjaanmu.
 
-            6.  **Pantau Alarm Aktif**:
+            6.  **Pantau Alarm Aktif**
                 Gunakan `/alarms` untuk mendapatkan daftar alarm yang sedang aktif.
 
             ---
