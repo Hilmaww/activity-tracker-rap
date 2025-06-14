@@ -764,7 +764,11 @@ Send your plan in the next message.""",
 
 
             # Add inline keyboard for updates - only for the plan owner
-            keyboard = [[InlineKeyboardButton("🔄 Update Actions", callback_data=f"update_plan_{plan.id}")]]
+            # Add 'Add New Site' button
+            keyboard = [
+                [InlineKeyboardButton("🔄 Update Actions", callback_data=f"update_plan_{plan.id}")],
+                [InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")]
+            ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
@@ -824,7 +828,13 @@ Send your plan in the next message.""",
         planned_sites = plan.planned_sites # Access relationship directly due to eager loading
 
         if not planned_sites:
-            await update.message.reply_text("❌ No sites found in your plan.")
+            # If no sites, still offer to add one
+            keyboard = [[InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                "❌ No sites found in your plan for today. You can add a new site:",
+                reply_markup=reply_markup
+            )
             return
 
         # Create inline keyboard with sites
@@ -833,16 +843,17 @@ Send your plan in the next message.""",
             status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
             keyboard.append([InlineKeyboardButton(
                 f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
-                callback_data=f"update_site_{site.id}"
+                callback_data=f"select_site_action_{site.id}" # Change callback to select action
             )])
 
-        # Bulk update is not implemented yet, keep it commented or remove
-        # keyboard.append([InlineKeyboardButton("📝 Bulk Update", callback_data=f"bulk_update_{plan.id}")])
+        # Add 'Add New Site' button
+        keyboard.append([InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")])
+
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            "🔄 **Update Site Actions**\n\nSelect a site to update or choose bulk update:",
+            "🔄 **Update Site Actions**\n\nSelect a site to manage or add a new one:",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=reply_markup
         )
@@ -915,10 +926,21 @@ Send your plan in the next message.""",
             await self.process_plan_submission(update, context)
             return
 
-        # Check if user is awaiting site update
-        if context.user_data.get('awaiting_site_update'):
-            await self.process_site_update(update, context)
+        # Check if user is awaiting site update action text
+        if context.user_data.get('awaiting_site_update_text'):
+            await self.process_site_update_text(update, context)
             return
+
+        # Check if user is awaiting details for adding a new site
+        if context.user_data.get('awaiting_add_site_details'):
+            await self.process_add_site_details(update, context)
+            return
+
+        # Check if user is awaiting details for changing site/details
+        if context.user_data.get('awaiting_change_site_details'):
+            await self.process_change_site_details(update, context)
+            return
+
 
         # Default response
         # await update.message.reply_text(
@@ -1015,15 +1037,15 @@ Send your plan in the next message.""",
             # Clear the awaiting state
             context.user_data['awaiting_plan'] = False
 
-    async def process_site_update(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Process site action update"""
+    async def process_site_update_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Process site action update text"""
         planned_site_id = context.user_data.get('updating_site_id')
         if not planned_site_id:
-            # This might happen if the bot restarts or state is lost
             await update.message.reply_text("❌ Update session expired. Please use `/update` again.")
-            # Clear the awaiting state just in case
-            context.user_data['awaiting_site_update'] = False
-            context.user_data['updating_site_id'] = None
+            # Clear all related states
+            context.user_data.pop('awaiting_site_update_text', None)
+            context.user_data.pop('updating_site_id', None)
+            context.user_data.pop('awaiting_site_action_choice', None) # Clear this too just in case
             return
 
         new_action = update.message.text.strip()
@@ -1031,22 +1053,152 @@ Send your plan in the next message.""",
         # Using ORM method
         if self.db.update_planned_site_action(planned_site_id, new_action):
             # Fetch the updated planned site to show details in confirmation
-            with self.db.get_db() as db_session:
-                 updated_site = db_session.query(PlannedSite).options(joinedload(PlannedSite.site)).filter(PlannedSite.id == planned_site_id).first()
-                 if updated_site:
-                     message = f"✅ Site action updated successfully!\n\n"
-                     message += f"📍 **{escape_markdown(updated_site.site.site_id)}** - {escape_markdown(updated_site.site.name)}\n"
-                     message += f"📝 New action: {escape_markdown(new_action)}\n"
-                     message += f"Status: {'Completed' if updated_site.is_completed else 'Not Done Yet'}"
-                     await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
-                 else:
-                     await update.message.reply_text(f"✅ Site action updated successfully!\n\n📝 New action: {escape_markdown(new_action)}")
+            updated_site = self.db.get_planned_site_by_id(planned_site_id) # Use the manager method
+            if updated_site:
+                message = f"✅ Site action updated successfully!\n\n"
+                message += f"📍 **{escape_markdown(updated_site.site.site_id)}** - {escape_markdown(updated_site.site.name)}\n"
+                message += f"📝 New action: {escape_markdown(new_action)}\n"
+                message += f"Status: {'Completed' if updated_site.is_completed else 'Not Done Yet'}"
+                await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+            else:
+                await update.message.reply_text(f"✅ Site action updated successfully!\n\n📝 New action: {escape_markdown(new_action)}")
         else:
             await update.message.reply_text("❌ Failed to update site action.")
 
         # Clear the awaiting state
-        context.user_data['awaiting_site_update'] = False
-        context.user_data['updating_site_id'] = None
+        context.user_data.pop('awaiting_site_update_text', None)
+        context.user_data.pop('updating_site_id', None)
+        context.user_data.pop('awaiting_site_action_choice', None) # Clear this too
+
+    async def process_add_site_details(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Process text input for adding a new site to a plan."""
+        plan_id = context.user_data.get('adding_to_plan_id')
+        if not plan_id:
+            await update.message.reply_text("❌ Add site session expired. Please use `/update` again.")
+            context.user_data.pop('awaiting_add_site_details', None)
+            context.user_data.pop('adding_to_plan_id', None)
+            return
+
+        input_text = update.message.text.strip()
+        # Expected format: SITEID Actions, Assignee
+        # Example: PSP513 Replace ML6651 Link To PSP330, Ansor
+        parts = input_text.split(',', 1)
+        if len(parts) < 1:
+            await update.message.reply_text("❌ Invalid format. Please use 'SITEID Actions, Assignee'.")
+            return
+
+        site_action_part = parts[0].strip()
+        assignee = parts[1].strip() if len(parts) > 1 else ""
+
+        site_action_parts = site_action_part.split(maxsplit=1)
+        if len(site_action_parts) < 1:
+             await update.message.reply_text("❌ Invalid format. Site ID is missing.")
+             return
+
+        site_id_str = site_action_parts[0].strip().upper()
+        actions = site_action_parts[1].strip() if len(site_action_parts) > 1 else "Maintenance"
+
+        # Validate site ID exists
+        site_obj = self.db.get_site_by_site_id(site_id_str)
+        if not site_obj:
+            await update.message.reply_text(f"❌ Site ID '{escape_markdown(site_id_str)}' not found in the database. Please check the ID and try again.")
+            return
+
+        # Add the site to the plan
+        new_planned_site = self.db.add_planned_site_to_plan(plan_id, site_id_str, actions, assignee)
+
+        if new_planned_site:
+            message = f"✅ Site added successfully to the plan!\n\n"
+            message += f"📍 **{escape_markdown(site_id_str)}** - {escape_markdown(site_obj.name)}\n"
+            message += f"🔧 Plan: {escape_markdown(actions)}\n"
+            if assignee:
+                 message += f"👤 Assignee: {escape_markdown(assignee)}\n"
+            message += f"Status: Not Done Yet"
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        else:
+            await update.message.reply_text("❌ Failed to add site to the plan.")
+
+        # Clear the awaiting state
+        context.user_data.pop('awaiting_add_site_details', None)
+        context.user_data.pop('adding_to_plan_id', None)
+
+
+    async def process_change_site_details(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Process text input for changing site details (site ID, actions, assignee)."""
+        planned_site_id = context.user_data.get('changing_site_details_id')
+        if not planned_site_id:
+            await update.message.reply_text("❌ Change site details session expired. Please use `/update` again.")
+            context.user_data.pop('awaiting_change_site_details', None)
+            context.user_data.pop('changing_site_details_id', None)
+            return
+
+        input_text = update.message.text.strip()
+        # Expected format: NEW_SITEID New Actions, New Assignee
+        # Example: PSP513 Replace ML6666 Link To PSP330, Ansor
+        parts = input_text.split(',', 1)
+        if len(parts) < 1:
+            await update.message.reply_text("❌ Invalid format. Please use 'NEW_SITEID New Actions, New Assignee'.")
+            return
+
+        site_action_part = parts[0].strip()
+        new_assignee = parts[1].strip() if len(parts) > 1 else ""
+
+        site_action_parts = site_action_part.split(maxsplit=1)
+        if len(site_action_parts) < 1:
+             await update.message.reply_text("❌ Invalid format. New Site ID is missing.")
+             return
+
+        new_site_id_str = site_action_parts[0].strip().upper()
+        new_actions = site_action_parts[1].strip() if len(site_action_parts) > 1 else "Maintenance"
+
+        # Validate new site ID exists
+        new_site_obj = self.db.get_site_by_site_id(new_site_id_str)
+        if not new_site_obj:
+            await update.message.reply_text(f"❌ New Site ID '{escape_markdown(new_site_id_str)}' not found in the database. Please check the ID and try again.")
+            return
+
+        # Update the planned site details
+        updated_planned_site = self.db.update_planned_site_details(planned_site_id, new_site_id_str, new_actions, new_assignee)
+
+        if updated_planned_site:
+            message = f"✅ Site details updated successfully!\n\n"
+            message += f"📍 **{escape_markdown(new_site_id_str)}** - {escape_markdown(new_site_obj.name)}\n"
+            message += f"🔧 Plan: {escape_markdown(new_actions)}\n"
+            if new_assignee:
+                 message += f"👤 Assignee: {escape_markdown(new_assignee)}\n"
+            message += f"Status: Not Done Yet" # Status is reset on change
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        else:
+            await update.message.reply_text("❌ Failed to update site details.")
+
+        # Clear the awaiting state
+        context.user_data.pop('awaiting_change_site_details', None)
+        context.user_data.pop('changing_site_details_id', None)
+
+
+    def _get_site_options_keyboard(self, planned_site: PlannedSite) -> InlineKeyboardMarkup:
+        """Helper to generate inline keyboard for planned site options."""
+        keyboard = []
+        # Option to update action text
+        keyboard.append([InlineKeyboardButton("📝 Update Action Text", callback_data=f"update_action_text_{planned_site.id}")])
+
+        # Option to toggle completion status
+        if planned_site.is_completed:
+            keyboard.append([InlineKeyboardButton("⏳ Mark Not Completed", callback_data=f"mark_not_completed_{planned_site.id}")])
+        else:
+            keyboard.append([InlineKeyboardButton("✅ Mark Completed", callback_data=f"mark_completed_{planned_site.id}")])
+
+        # Options to change details or delete
+        keyboard.append([InlineKeyboardButton("✏️ Change Site/Details", callback_data=f"change_site_details_{planned_site.id}")])
+        keyboard.append([InlineKeyboardButton("🗑️ Delete Site", callback_data=f"delete_site_{planned_site.id}")])
+
+        # Option to go back to plan site list (optional, but good UX)
+        if planned_site.daily_plan:
+             keyboard.append([InlineKeyboardButton("🔙 Back to Plan Sites", callback_data=f"update_plan_{planned_site.daily_plan.id}")])
+
+
+        return InlineKeyboardMarkup(keyboard)
+
 
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline keyboard button callbacks"""
@@ -1055,49 +1207,24 @@ Send your plan in the next message.""",
 
         data = query.data
 
-        if data.startswith('update_site_'):
-            planned_site_id = int(data.split('_')[2])
-
-            # Optional: Check if the user clicking is the plan owner or authorized
-            user = self.db.get_user_by_telegram_id(update.effective_user.id)
-            if not user:
-                 await query.edit_message_text("❌ You need to register first.")
-                 return
-
-            with self.db.get_db() as db_session:
-                 planned_site = db_session.query(PlannedSite).options(joinedload(PlannedSite.daily_plan)).filter(PlannedSite.id == planned_site_id).first()
-                 if not planned_site:
-                      await query.edit_message_text("❌ Planned site not found.")
-                      return
-                 if planned_site.daily_plan.enom_user_id != user.id:
-                      await query.edit_message_text("❌ You can only update sites in your own plan.")
-                      return
+        # Clear any previous awaiting states before processing a new button click
+        context.user_data.pop('awaiting_plan', None)
+        context.user_data.pop('awaiting_site_update_text', None)
+        context.user_data.pop('updating_site_id', None)
+        context.user_data.pop('awaiting_add_site_details', None)
+        context.user_data.pop('adding_to_plan_id', None)
+        context.user_data.pop('awaiting_change_site_details', None)
+        context.user_data.pop('changing_site_details_id', None)
+        context.user_data.pop('awaiting_site_action_choice', None) # Clear this state
 
 
-            context.user_data['awaiting_site_update'] = True
-            context.user_data['updating_site_id'] = planned_site_id
+        user = self.db.get_user_by_telegram_id(update.effective_user.id)
+        if not user:
+             await query.edit_message_text("❌ You need to register first.")
+             return
 
-            # Fetch the planned site details to show in the message
-            planned_site = self.db.get_planned_site_by_id(planned_site_id)
-
-            if planned_site:
-                site_id = planned_site.site.site_id if planned_site.site else "Unknown Site"
-                site_name = planned_site.site.name if planned_site.site else "No Name"
-                assignee = planned_site.assignee or "Unassigned"
-                status = "✅ Completed" if planned_site.is_completed else "⏳ Not Done Yet"
-
-                await query.edit_message_text(
-                    f"📝 **Update Site Action for {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
-                    f"Current Action: {escape_markdown(planned_site.updated_actions or 'Not Set')}\n"
-                    f"Assignee: {escape_markdown(assignee)}\n"
-                    f"Status: {status}\n\n"
-                    "Send the new action text for this site.",
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await query.edit_message_text("❌ Planned site not found.")
-
-        elif data.startswith('update_plan_'):
+        # Handle 'Update Actions' button from /myplan or /update command
+        if data.startswith('update_plan_'):
             plan_id = int(data.split('_')[2])
 
             # Retrieve the plan and its sites
@@ -1108,44 +1235,288 @@ Send your plan in the next message.""",
                 return
 
             # Check if the user clicking is the plan owner
-            user = self.db.get_user_by_telegram_id(update.effective_user.id)
-            if not user or plan.enom_user_id != user.id:
+            if plan.enom_user_id != user.id:
                  await query.edit_message_text("❌ You can only update your own plan.")
                  return
 
             planned_sites = plan.planned_sites # Access relationship directly due to eager loading
 
+            message = f"🔄 **Update Actions for Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\n"
+
             if not planned_sites:
-                await query.edit_message_text("❌ No sites found in this plan.")
-                return
+                message += "No sites found in this plan.\n\n"
+                keyboard = [[InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")]]
+            else:
+                message += "Select a site to manage or add a new one:\n\n"
+                # Create inline keyboard with sites for this specific plan
+                keyboard = []
+                for site in planned_sites:
+                    status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
+                    keyboard.append([InlineKeyboardButton(
+                        f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
+                        callback_data=f"select_site_action_{site.id}" # Change callback to select action
+                    )])
+                # Add 'Add New Site' button
+                keyboard.append([InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")])
 
-            # Create inline keyboard with sites for this specific plan
-            keyboard = []
-            for site in planned_sites:
-                status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
-                keyboard.append([InlineKeyboardButton(
-                    f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
-                    callback_data=f"update_site_{site.id}"
-                )])
-
-            # Bulk update is not implemented yet, keep it commented or remove
-            # keyboard.append([InlineKeyboardButton("📝 Bulk Update", callback_data=f"bulk_update_{plan.id}")])
 
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await query.edit_message_text(
-                f"🔄 **Update Actions for Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\nSelect a site to update:",
+                message,
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=reply_markup
             )
 
+        # Handle selecting a specific site from the list
+        elif data.startswith('select_site_action_'):
+            planned_site_id = int(data.split('_')[3])
 
-        elif data.startswith('bulk_update_'):
-            plan_id = int(data.split('_')[2])
-            # Implementation for bulk update would be more complex
+            planned_site = self.db.get_planned_site_by_id(planned_site_id)
+
+            if not planned_site:
+                 await query.edit_message_text("❌ Planned site not found.")
+                 return
+
+            # Check if the user clicking is the plan owner
+            if planned_site.daily_plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only update sites in your own plan.")
+                 return
+
+            # Show options for the selected site
+            site_id = planned_site.site.site_id if planned_site.site else "Unknown Site"
+            site_name = planned_site.site.name if planned_site.site else "No Name"
+            assignee = planned_site.assignee or "Unassigned"
+            status = "✅ Completed" if planned_site.is_completed else "⏳ Not Done Yet"
+
+            message = f"📍 **Manage Site: {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
+            message += f"Plan: {escape_markdown(planned_site.planned_actions)}\n"
+            message += f"Current Action: {escape_markdown(planned_site.updated_actions or 'Not Set')}\n"
+            message += f"Assignee: {escape_markdown(assignee)}\n"
+            message += f"Status: {status}\n\n"
+            message += "Select an action:"
+
+            reply_markup = self._get_site_options_keyboard(planned_site)
+
             await query.edit_message_text(
-                "📝 **Bulk Update**\n\nBulk update feature is coming soon. Please use individual site updates for now."
+                message,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=reply_markup
             )
+            # Set state to indicate user is choosing an action for this site (optional, but can help context)
+            context.user_data['awaiting_site_action_choice'] = planned_site_id
+
+
+        # Handle 'Update Action Text' button
+        elif data.startswith('update_action_text_'):
+            planned_site_id = int(data.split('_')[3])
+
+            planned_site = self.db.get_planned_site_by_id(planned_site_id)
+            if not planned_site:
+                 await query.edit_message_text("❌ Planned site not found.")
+                 return
+            if planned_site.daily_plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only update sites in your own plan.")
+                 return
+
+            context.user_data['awaiting_site_update_text'] = True
+            context.user_data['updating_site_id'] = planned_site_id
+
+            site_id = planned_site.site.site_id if planned_site.site else "Unknown Site"
+            site_name = planned_site.site.name if planned_site.site else "No Name"
+
+            await query.edit_message_text(
+                f"📝 **Update Action Text for {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
+                f"Current Action: {escape_markdown(planned_site.updated_actions or 'Not Set')}\n\n"
+                "Send the new action text for this site.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        # Handle 'Mark Completed' button
+        elif data.startswith('mark_completed_'):
+            planned_site_id = int(data.split('_')[2])
+            planned_site = self.db.get_planned_site_by_id(planned_site_id)
+            if not planned_site:
+                 await query.edit_message_text("❌ Planned site not found.")
+                 return
+            if planned_site.daily_plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only update sites in your own plan.")
+                 return
+
+            if self.db.mark_planned_site_completed(planned_site_id):
+                # Refresh the planned site object to get updated status and counts
+                updated_planned_site = self.db.get_planned_site_by_id(planned_site_id)
+                if updated_planned_site:
+                    # Re-show the site options with updated status
+                    site_id = updated_planned_site.site.site_id if updated_planned_site.site else "Unknown Site"
+                    site_name = updated_planned_site.site.name if updated_planned_site.site else "No Name"
+                    assignee = updated_planned_site.assignee or "Unassigned"
+                    status = "✅ Completed" if updated_planned_site.is_completed else "⏳ Not Done Yet"
+
+                    message = f"✅ Site marked as Completed!\n\n"
+                    message += f"📍 **Manage Site: {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
+                    message += f"Plan: {escape_markdown(updated_planned_site.planned_actions)}\n"
+                    message += f"Current Action: {escape_markdown(updated_planned_site.updated_actions or 'Not Set')}\n"
+                    message += f"Assignee: {escape_markdown(assignee)}\n"
+                    message += f"Status: {status}\n\n"
+                    message += "Select an action:"
+
+                    reply_markup = self._get_site_options_keyboard(updated_planned_site)
+
+                    await query.edit_message_text(
+                        message,
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=reply_markup
+                    )
+                else:
+                     await query.edit_message_text("✅ Site marked as Completed!")
+            else:
+                await query.edit_message_text("❌ Failed to mark site as completed.")
+
+        # Handle 'Mark Not Completed' button
+        elif data.startswith('mark_not_completed_'):
+            planned_site_id = int(data.split('_')[3])
+            planned_site = self.db.get_planned_site_by_id(planned_site_id)
+            if not planned_site:
+                 await query.edit_message_text("❌ Planned site not found.")
+                 return
+            if planned_site.daily_plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only update sites in your own plan.")
+                 return
+
+            if self.db.mark_planned_site_not_completed(planned_site_id):
+                 # Refresh the planned site object to get updated status and counts
+                updated_planned_site = self.db.get_planned_site_by_id(planned_site_id)
+                if updated_planned_site:
+                    # Re-show the site options with updated status
+                    site_id = updated_planned_site.site.site_id if updated_planned_site.site else "Unknown Site"
+                    site_name = updated_planned_site.site.name if updated_planned_site.site else "No Name"
+                    assignee = updated_planned_site.assignee or "Unassigned"
+                    status = "✅ Completed" if updated_planned_site.is_completed else "⏳ Not Done Yet"
+
+                    message = f"✅ Site marked as Not Completed!\n\n"
+                    message += f"📍 **Manage Site: {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
+                    message += f"Plan: {escape_markdown(updated_planned_site.planned_actions)}\n"
+                    message += f"Current Action: {escape_markdown(updated_planned_site.updated_actions or 'Not Set')}\n"
+                    message += f"Assignee: {escape_markdown(assignee)}\n"
+                    message += f"Status: {status}\n\n"
+                    message += "Select an action:"
+
+                    reply_markup = self._get_site_options_keyboard(updated_planned_site)
+
+                    await query.edit_message_text(
+                        message,
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=reply_markup
+                    )
+                else:
+                     await query.edit_message_text("✅ Site marked as Not Completed!")
+            else:
+                await query.edit_message_text("❌ Failed to mark site as not completed.")
+
+        # Handle 'Change Site/Details' button
+        elif data.startswith('change_site_details_'):
+            planned_site_id = int(data.split('_')[3])
+            planned_site = self.db.get_planned_site_by_id(planned_site_id)
+            if not planned_site:
+                 await query.edit_message_text("❌ Planned site not found.")
+                 return
+            if planned_site.daily_plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only update sites in your own plan.")
+                 return
+
+            context.user_data['awaiting_change_site_details'] = True
+            context.user_data['changing_site_details_id'] = planned_site_id
+
+            site_id = planned_site.site.site_id if planned_site.site else "Unknown Site"
+            site_name = planned_site.site.name if planned_site.site else "No Name"
+            current_actions = planned_site.planned_actions or "Not Set"
+            current_assignee = planned_site.assignee or "Unassigned"
+
+
+            await query.edit_message_text(
+                f"✏️ **Change Site Details for {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
+                f"Current Plan: {escape_markdown(current_actions)}\n"
+                f"Current Assignee: {escape_markdown(current_assignee)}\n\n"
+                "Send the new details in the format: `NEW_SITEID New Actions, New Assignee`\n"
+                "Example: `PSP513 Replace ML6666 Link To PSP330, Ansor`",
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+        # Handle 'Delete Site' button
+        elif data.startswith('delete_site_'):
+            planned_site_id = int(data.split('_')[2])
+            planned_site = self.db.get_planned_site_by_id(planned_site_id)
+            if not planned_site:
+                 await query.edit_message_text("❌ Planned site not found.")
+                 return
+            if planned_site.daily_plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only update sites in your own plan.")
+                 return
+
+            plan_id = planned_site.daily_plan.id # Get plan ID before deleting
+
+            if self.db.delete_planned_site(planned_site_id):
+                await query.edit_message_text("🗑️ Site deleted successfully.")
+                # Optional: Re-show the plan's site list after deletion
+                # You could call the logic from update_plan_ here
+                plan = self.db.get_daily_plan_by_id(plan_id)
+                if plan:
+                     planned_sites = plan.planned_sites
+                     message = f"🔄 **Update Actions for Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\n"
+                     if not planned_sites:
+                         message += "No sites found in this plan.\n\n"
+                         keyboard = [[InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")]]
+                     else:
+                         message += "Select a site to manage or add a new one:\n\n"
+                         keyboard = []
+                         for site in planned_sites:
+                             status_emoji = "✅" if site.is_completed else "⏳"
+                             keyboard.append([InlineKeyboardButton(
+                                 f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
+                                 callback_data=f"select_site_action_{site.id}"
+                             )])
+                         keyboard.append([InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")])
+                     reply_markup = InlineKeyboardMarkup(keyboard)
+                     await context.bot.send_message(
+                         chat_id=update.effective_chat.id,
+                         text=message,
+                         parse_mode=ParseMode.MARKDOWN,
+                         reply_markup=reply_markup
+                     )
+
+            else:
+                await query.edit_message_text("❌ Failed to delete site.")
+
+        # Handle 'Add New Site' button
+        elif data.startswith('add_site_to_plan_'):
+            plan_id = int(data.split('_')[4]) # Correct index based on callback format
+
+            plan = self.db.get_daily_plan_by_id(plan_id)
+            if not plan:
+                 await query.edit_message_text("❌ Daily plan not found.")
+                 return
+            if plan.enom_user_id != user.id:
+                 await query.edit_message_text("❌ You can only add sites to your own plan.")
+                 return
+
+            context.user_data['awaiting_add_site_details'] = True
+            context.user_data['adding_to_plan_id'] = plan_id
+
+            await query.edit_message_text(
+                f"➕ **Add New Site to Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\n"
+                "Send the site details in the format: `SITEID Actions, Assignee`\n"
+                "Example: `PSP513 Replace ML6651 Link To PSP330, Ansor`",
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+
+        # elif data.startswith('bulk_update_'):
+        #     plan_id = int(data.split('_')[2])
+        #     # Implementation for bulk update would be more complex
+        #     await query.edit_message_text(
+        #         "📝 **Bulk Update**\n\nBulk update feature is coming soon. Please use individual site updates for now."
+        #     )
 
     async def broadcast_alarms(self, context: ContextTypes.DEFAULT_TYPE):
         """Broadcast active alarms to the group"""
