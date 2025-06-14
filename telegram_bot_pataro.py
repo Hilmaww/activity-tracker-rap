@@ -665,11 +665,11 @@ class TelegramBot:
 
             ### Mulai Dengan PATARO Bot:
 
-            1.  **Daftarkan Akunmu**:
+            1.  **Daftarkan Akunmu**\:
                 Ketik `/register` diikuti dengan `username` sistemmu. Ini penting agar saya bisa menghubungkan akun Telegram-mu dengan data di sistem.
                 Contoh: `/register dolli_enom`
 
-            2.  **Buat Rencana Harianmu**:
+            2.  **Buat Rencana Harianmu**\:
                 Gunakan perintah `/plan` untuk memulai proses pembuatan rencana\. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
 
                 ```
@@ -698,16 +698,16 @@ class TelegramBot:
                 # PSP701 Sialagundi, Cek Power dan Optik
                 ```
 
-            3.  **Lihat Rencana Aktifmu**:
+            3.  **Lihat Rencana Aktifmu**\:
                 Ketik `/myplan` untuk melihat semua site dan aktivitas yang telah kamu rencanakan untuk hari ini.
 
-            4.  **Update Status Pekerjaan**:
+            4.  **Update Status Pekerjaan**\:
                 Setelah menyelesaikan pekerjaan di site, gunakan `/update` untuk memperbarui status tindakan. Kamu bisa update satu per satu atau melakukan bulk update.
 
-            5.  **Cek Status dan Statistikmu**:
+            5.  **Cek Status dan Statistikmu**\:
                 Ketik `/status` untuk melihat ringkasan performa dan progress pekerjaanmu.
 
-            6.  **Pantau Alarm Aktif**:
+            6.  **Pantau Alarm Aktif**\:
                 Gunakan `/alarms` untuk mendapatkan daftar alarm yang sedang aktif.
 
             ---
