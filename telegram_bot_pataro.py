@@ -247,18 +247,19 @@ class DatabaseManager:
                     logger.warning(f"New site {new_site_id_str} not found for updating planned site {planned_site_id}.")
                     return None
 
+                # Store old completion status before changing site/details
+                old_is_completed = planned_site.is_completed
+
                 planned_site.site_id = site.id
                 planned_site.planned_actions = new_actions
                 planned_site.assignee = new_assignee
-                # Reset status when changing site? Or keep? Let's reset to Not Done Yet
+                # Reset status when changing site/details
                 planned_site.updated_actions = 'Not Done Yet'
                 planned_site.is_completed = False
                 planned_site.completed_at = None
 
                 # If the site was previously completed, decrement the plan's completed count
-                # This logic might need refinement depending on exact requirements
-                # For simplicity, let's assume changing site resets completion status and count
-                if planned_site.is_completed and planned_site.daily_plan:
+                if old_is_completed and planned_site.daily_plan:
                      planned_site.daily_plan.sites_completed -= 1
                      # Revert plan status if needed
                      if planned_site.daily_plan.status == PlanStatus.APPROVED:
@@ -286,9 +287,7 @@ class DatabaseManager:
 
                 plan = planned_site.daily_plan # Get the related plan
 
-                db_session.delete(planned_site)
-
-                # Update counts on the plan
+                # Decrement counts *before* deleting the object
                 if plan:
                     plan.total_sites_planned -= 1
                     if planned_site.is_completed:
@@ -296,10 +295,15 @@ class DatabaseManager:
                     # Revert plan status if needed
                     if plan.status == PlanStatus.APPROVED and plan.sites_completed < plan.total_sites_planned:
                          plan.status = PlanStatus.SUBMITTED
-                    db_session.refresh(plan) # Refresh plan to get updated counts
 
 
+                db_session.delete(planned_site)
                 db_session.commit()
+
+                # Re-fetch the plan to ensure counts are updated in the object
+                if plan:
+                    db_session.refresh(plan)
+
                 return True
             except Exception as e:
                 db_session.rollback()
