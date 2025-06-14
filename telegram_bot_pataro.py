@@ -85,7 +85,7 @@ class DatabaseManager:
         finally:
             db.close()
 
-    def get_user_by_telegram_id(self, telegram_id: int) -> Optional['User']: # Use string literal for type hint if 'User' is not imported yet
+    def get_user_by_telegram_id(self, telegram_id: int) -> Optional['User']:
         """Get user by telegram ID"""
         with self.get_db() as db_session:
             return db_session.query(User).filter(User.telegram_id == telegram_id).first()
@@ -111,26 +111,31 @@ class DatabaseManager:
     def get_user_daily_plan(self, user_id: int, plan_date: date) -> Optional['DailyPlan']:
         """Get user's daily plan for specific date"""
         with self.get_db() as db_session:
+            # Eager load planned_sites, but the filtering for is_deleted will happen
+            # when accessing the relationship or using get_planned_sites
             return db_session.query(DailyPlan).filter(
                 DailyPlan.enom_user_id == user_id,
                 DailyPlan.plan_date == plan_date
-            ).options(joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site)).first() # Eager load sites
+            ).options(joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site)).first()
 
     def get_planned_sites(self, daily_plan_id: int) -> List['PlannedSite']:
-        """Get planned sites for a daily plan with eager loading of Site."""
+        """Get planned sites for a daily plan with eager loading of Site, filtering out deleted."""
         with self.get_db() as db_session:
-            # Add .options(joinedload(PlannedSite.site)) to eager load the 'site' relationship
             return db_session.query(PlannedSite).options(joinedload(PlannedSite.site)).filter(
-                PlannedSite.daily_plan_id == daily_plan_id
+                PlannedSite.daily_plan_id == daily_plan_id,
+                PlannedSite.is_deleted == False # Filter out soft-deleted sites
             ).order_by(PlannedSite.visit_order).all()
 
     def get_planned_site_by_id(self, planned_site_id: int) -> Optional['PlannedSite']:
-        """Get a single planned site by ID with eager loading of Site and DailyPlan."""
+        """Get a single planned site by ID with eager loading of Site and DailyPlan, filtering out deleted."""
         with self.get_db() as db_session:
             return db_session.query(PlannedSite).options(
                 joinedload(PlannedSite.site),
                 joinedload(PlannedSite.daily_plan)
-            ).filter(PlannedSite.id == planned_site_id).first()
+            ).filter(
+                PlannedSite.id == planned_site_id,
+                PlannedSite.is_deleted == False # Filter out soft-deleted site
+            ).first()
 
 
     def create_daily_plan(self, user_id: int, plan_date: date, sites_data: List[Dict],
@@ -277,27 +282,46 @@ class DatabaseManager:
                 return None
 
     def delete_planned_site(self, planned_site_id: int) -> bool:
-        """Delete a planned site and update the daily plan counts."""
+        """Soft delete a planned site and update the daily plan counts."""
         with self.get_db() as db_session:
             try:
+                # Fetch the site without the is_deleted filter initially,
+                # so we can still access its plan even if it was already marked deleted (though ideally we wouldn't call delete again)
                 planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
                 if not planned_site:
                     logger.warning(f"Planned site {planned_site_id} not found for deletion.")
                     return False
 
+                # If already deleted, just return True
+                if planned_site.is_deleted:
+                    logger.warning(f"Planned site {planned_site_id} already marked as deleted.")
+                    return True
+
                 plan = planned_site.daily_plan # Get the related plan
 
-                # Decrement counts *before* deleting the object
+                # Mark as deleted instead of deleting the row
+                planned_site.is_deleted = True
+                # Clear completion status and updated actions on deletion
+                planned_site.is_completed = False
+                planned_site.completed_at = None
+                planned_site.updated_actions = 'Deleted' # Optional: Mark action as deleted
+
+                # Decrement counts *before* committing the soft delete
+                # Note: total_sites_planned should probably reflect *active* sites,
+                # but the current logic counts all sites ever added.
+                # Let's adjust total_sites_planned to decrement on soft delete.
                 if plan:
-                    plan.total_sites_planned -= 1
-                    if planned_site.is_completed:
-                        plan.sites_completed -= 1
-                    # Revert plan status if needed
+                    plan.total_sites_planned -= 1 # Decrement total count
+                    # If it was completed, decrement completed count
+                    # The check `if planned_site.is_completed` above handles this before setting to False
+                    # So we only need to decrement completed count if it *was* completed before marking deleted
+                    # The logic in the previous turn already handled this correctly.
+
+                    # Revert plan status if needed (if it was APPROVED and now has fewer sites)
                     if plan.status == PlanStatus.APPROVED and plan.sites_completed < plan.total_sites_planned:
                          plan.status = PlanStatus.SUBMITTED
 
 
-                db_session.delete(planned_site)
                 db_session.commit()
 
                 # Re-fetch the plan to ensure counts are updated in the object
@@ -307,7 +331,7 @@ class DatabaseManager:
                 return True
             except Exception as e:
                 db_session.rollback()
-                logger.error(f"Error deleting planned site {planned_site_id}: {e}")
+                logger.error(f"Error soft deleting planned site {planned_site_id}: {e}")
                 return False
 
 
@@ -315,7 +339,11 @@ class DatabaseManager:
         """Update planned site action text and potentially completion status."""
         with self.get_db() as db_session:
             try:
-                planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
+                # Fetch, ensuring it's not deleted
+                planned_site = db_session.query(PlannedSite).filter(
+                    PlannedSite.id == planned_site_id,
+                    PlannedSite.is_deleted == False
+                ).first()
                 if planned_site:
                     # Store the old completion status
                     old_is_completed = planned_site.is_completed
@@ -339,7 +367,12 @@ class DatabaseManager:
                                 planned_site.completed_at = None # Clear completed_at if marked not completed
 
                             # Update plan status if all sites are completed
-                            if planned_site.daily_plan.sites_completed >= planned_site.daily_plan.total_sites_planned:
+                            # Need to check against total *non-deleted* sites
+                            active_sites_count = db_session.query(PlannedSite).filter(
+                                PlannedSite.daily_plan_id == planned_site.daily_plan_id,
+                                PlannedSite.is_deleted == False
+                            ).count()
+                            if planned_site.daily_plan.sites_completed >= active_sites_count:
                                 planned_site.daily_plan.status = PlanStatus.APPROVED # Or another appropriate status
                             elif planned_site.daily_plan.status == PlanStatus.APPROVED:
                                 # If a site is marked not completed, revert status from APPROVED
@@ -348,7 +381,7 @@ class DatabaseManager:
 
                     db_session.commit()
                     return True
-                return False
+                return False # Not found or deleted
             except Exception as e:
                 db_session.rollback()
                 logger.error(f"Error updating planned site action: {e}")
@@ -358,7 +391,11 @@ class DatabaseManager:
         """Mark a planned site as completed."""
         with self.get_db() as db_session:
             try:
-                planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
+                # Fetch, ensuring it's not deleted
+                planned_site = db_session.query(PlannedSite).filter(
+                    PlannedSite.id == planned_site_id,
+                    PlannedSite.is_deleted == False
+                ).first()
                 if planned_site and not planned_site.is_completed:
                     planned_site.is_completed = True
                     planned_site.completed_at = datetime.utcnow()
@@ -369,12 +406,17 @@ class DatabaseManager:
                     if planned_site.daily_plan:
                         planned_site.daily_plan.sites_completed += 1
                         # Update plan status if all sites are completed
-                        if planned_site.daily_plan.sites_completed >= planned_site.daily_plan.total_sites_planned:
+                        # Need to check against total *non-deleted* sites
+                        active_sites_count = db_session.query(PlannedSite).filter(
+                            PlannedSite.daily_plan_id == planned_site.daily_plan_id,
+                            PlannedSite.is_deleted == False
+                        ).count()
+                        if planned_site.daily_plan.sites_completed >= active_sites_count:
                             planned_site.daily_plan.status = PlanStatus.APPROVED
 
                     db_session.commit()
                     return True
-                return False # Already completed or not found
+                return False # Already completed, not found, or deleted
             except Exception as e:
                 db_session.rollback()
                 logger.error(f"Error marking planned site completed: {e}")
@@ -384,7 +426,11 @@ class DatabaseManager:
         """Mark a planned site as not completed."""
         with self.get_db() as db_session:
             try:
-                planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
+                # Fetch, ensuring it's not deleted
+                planned_site = db_session.query(PlannedSite).filter(
+                    PlannedSite.id == planned_site_id,
+                    PlannedSite.is_deleted == False
+                ).first()
                 if planned_site and planned_site.is_completed:
                     planned_site.is_completed = False
                     planned_site.completed_at = None
@@ -399,7 +445,7 @@ class DatabaseManager:
 
                     db_session.commit()
                     return True
-                return False # Already not completed or not found
+                return False # Already not completed, not found, or deleted
             except Exception as e:
                 db_session.rollback()
                 logger.error(f"Error marking planned site not completed: {e}")
@@ -422,6 +468,8 @@ class DatabaseManager:
     def get_daily_plan_by_id(self, plan_id: int) -> Optional['DailyPlan']:
         """Get daily plan by ID with eager loading of sites and user."""
         with self.get_db() as db_session:
+            # Eager load planned_sites, but the filtering for is_deleted will happen
+            # when accessing the relationship or using get_planned_sites
             return db_session.query(DailyPlan).options(
                 joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site),
                 joinedload(DailyPlan.enom_user)
@@ -742,15 +790,17 @@ Send your plan in the next message.""",
                 await update.message.reply_text("📋 No plan found for today. Use `/plan` to create one.")
                 return
 
-            planned_sites = plan.planned_sites # Access relationship directly due to eager loading
+            # Filter planned_sites list to exclude deleted ones
+            active_planned_sites = [site for site in plan.planned_sites if not site.is_deleted]
 
             message = f"📋 **Your Plan for {today.strftime('%d/%m/%Y')}**\n\n"
             message += f"**Status:** {escape_markdown(plan.status.value)}\n"
+            # Use counts from the plan object, which are updated on soft delete/complete
             message += f"**Progress:** {plan.sites_completed}/{plan.total_sites_planned} sites completed ({plan.completion_percentage:.1f}%)\n\n"
 
-            if planned_sites:
+            if active_planned_sites:
                 message += f"📍 **Sites:**\n"
-                for idx, site in enumerate(planned_sites, 1):
+                for idx, site in enumerate(active_planned_sites, 1):
                     status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
                     message += f"{status_emoji} **{idx}. {escape_markdown(site.site.site_id)}** - {escape_markdown(site.site.name)}\n"
                     message += f"   📍 {escape_markdown(site.site.kabupaten)}\n"
@@ -760,7 +810,7 @@ Send your plan in the next message.""",
                         message += f"   👤 Assignee: {escape_markdown(site.assignee)}\n"
                     message += "\n"
             else:
-                 message += "No sites planned for today.\n\n"
+                 message += "No active sites planned for today.\n\n"
 
 
             # Add inline keyboard for updates - only for the plan owner
@@ -788,12 +838,13 @@ Send your plan in the next message.""",
                 if plan.enom_user:
                     escaped_username = escape_markdown(plan.enom_user.username)
                     escaped_plan_status = escape_markdown(plan.status.value)
+                    # The plan object's counts already reflect active sites due to update logic
                     message += f"👤 **{escaped_username}**\n"
-                    message += f"Status: {escaped_plan_status} | Progress: {plan.sites_completed}/{plan.total_sites_planned} ({plan.completion_percentage:.1f}%)\n\n"
+                    message += f"Status: {escaped_plan_status} | Progress: {plan.sites_completed}/{plan.total_sites_planned} sites completed ({plan.completion_percentage:.1f}%)\n\n"
                 else:
                      # Handle case where user relationship might be broken (shouldn't happen with FK)
                      message += f"👤 **Unknown User (Plan ID: {plan.id})**\n"
-                     message += f"Status: {escape_markdown(plan.status.value)} | Progress: {plan.sites_completed}/{plan.total_sites_planned} ({plan.completion_percentage:.1f}%)\n\n"
+                     message += f"Status: {escape_markdown(plan.status.value)} | Progress: {plan.sites_completed}/{plan.total_sites_planned} sites completed ({plan.completion_percentage:.1f}%)\n\n"
 
 
             message += "Use `/update` to see sites you can update (if any)." # TSEL users might update tickets, not plans directly via this view
@@ -825,9 +876,10 @@ Send your plan in the next message.""",
             await update.message.reply_text("📋 No plan found for today. Use `/plan` to create one.")
             return
 
-        planned_sites = plan.planned_sites # Access relationship directly due to eager loading
+        # Use the method that filters out deleted sites
+        active_planned_sites = self.db.get_planned_sites(plan.id)
 
-        if not planned_sites:
+        if not active_planned_sites:
             # If no sites, still offer to add one
             keyboard = [[InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -839,7 +891,7 @@ Send your plan in the next message.""",
 
         # Create inline keyboard with sites
         keyboard = []
-        for site in planned_sites:
+        for site in active_planned_sites: # Iterate through filtered list
             status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
             keyboard.append([InlineKeyboardButton(
                 f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
@@ -1053,7 +1105,7 @@ Send your plan in the next message.""",
         # Using ORM method
         if self.db.update_planned_site_action(planned_site_id, new_action):
             # Fetch the updated planned site to show details in confirmation
-            updated_site = self.db.get_planned_site_by_id(planned_site_id) # Use the manager method
+            updated_site = self.db.get_planned_site_by_id(planned_site_id) # Use the manager method (which filters deleted)
             if updated_site:
                 message = f"✅ Site action updated successfully!\n\n"
                 message += f"📍 **{escape_markdown(updated_site.site.site_id)}** - {escape_markdown(updated_site.site.name)}\n"
@@ -1061,9 +1113,10 @@ Send your plan in the next message.""",
                 message += f"Status: {'Completed' if updated_site.is_completed else 'Not Done Yet'}"
                 await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
             else:
+                # This case should ideally not happen if update_planned_site_action returned True
                 await update.message.reply_text(f"✅ Site action updated successfully!\n\n📝 New action: {escape_markdown(new_action)}")
         else:
-            await update.message.reply_text("❌ Failed to update site action.")
+            await update.message.reply_text("❌ Failed to update site action. Site might be deleted or not found.")
 
         # Clear the awaiting state
         context.user_data.pop('awaiting_site_update_text', None)
@@ -1239,18 +1292,19 @@ Send your plan in the next message.""",
                  await query.edit_message_text("❌ You can only update your own plan.")
                  return
 
-            planned_sites = plan.planned_sites # Access relationship directly due to eager loading
+            # Use the method that filters out deleted sites
+            active_planned_sites = self.db.get_planned_sites(plan.id)
 
             message = f"🔄 **Update Actions for Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\n"
 
-            if not planned_sites:
-                message += "No sites found in this plan.\n\n"
+            if not active_planned_sites:
+                message += "No active sites found in this plan.\n\n"
                 keyboard = [[InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")]]
             else:
                 message += "Select a site to manage or add a new one:\n\n"
                 # Create inline keyboard with sites for this specific plan
                 keyboard = []
-                for site in planned_sites:
+                for site in active_planned_sites: # Iterate through filtered list
                     status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
                     keyboard.append([InlineKeyboardButton(
                         f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
@@ -1272,10 +1326,11 @@ Send your plan in the next message.""",
         elif data.startswith('select_site_action_'):
             planned_site_id = int(data.split('_')[3])
 
+            # Use the method that filters out deleted sites
             planned_site = self.db.get_planned_site_by_id(planned_site_id)
 
             if not planned_site:
-                 await query.edit_message_text("❌ Planned site not found.")
+                 await query.edit_message_text("❌ Planned site not found or already deleted.")
                  return
 
             # Check if the user clicking is the plan owner
@@ -1311,9 +1366,10 @@ Send your plan in the next message.""",
         elif data.startswith('update_action_text_'):
             planned_site_id = int(data.split('_')[3])
 
+            # Use the method that filters out deleted sites
             planned_site = self.db.get_planned_site_by_id(planned_site_id)
             if not planned_site:
-                 await query.edit_message_text("❌ Planned site not found.")
+                 await query.edit_message_text("❌ Planned site not found or already deleted.")
                  return
             if planned_site.daily_plan.enom_user_id != user.id:
                  await query.edit_message_text("❌ You can only update sites in your own plan.")
@@ -1335,9 +1391,10 @@ Send your plan in the next message.""",
         # Handle 'Mark Completed' button
         elif data.startswith('mark_completed_'):
             planned_site_id = int(data.split('_')[2])
+            # Use the method that filters out deleted sites
             planned_site = self.db.get_planned_site_by_id(planned_site_id)
             if not planned_site:
-                 await query.edit_message_text("❌ Planned site not found.")
+                 await query.edit_message_text("❌ Planned site not found or already deleted.")
                  return
             if planned_site.daily_plan.enom_user_id != user.id:
                  await query.edit_message_text("❌ You can only update sites in your own plan.")
@@ -1345,7 +1402,7 @@ Send your plan in the next message.""",
 
             if self.db.mark_planned_site_completed(planned_site_id):
                 # Refresh the planned site object to get updated status and counts
-                updated_planned_site = self.db.get_planned_site_by_id(planned_site_id)
+                updated_planned_site = self.db.get_planned_site_by_id(planned_site_id) # Use the manager method (filters deleted)
                 if updated_planned_site:
                     # Re-show the site options with updated status
                     site_id = updated_planned_site.site.site_id if updated_planned_site.site else "Unknown Site"
@@ -1369,16 +1426,18 @@ Send your plan in the next message.""",
                         reply_markup=reply_markup
                     )
                 else:
+                     # This case should ideally not happen if mark_planned_site_completed returned True
                      await query.edit_message_text("✅ Site marked as Completed!")
             else:
-                await query.edit_message_text("❌ Failed to mark site as completed.")
+                await query.edit_message_text("❌ Failed to mark site as completed. Site might be deleted or already completed.")
 
         # Handle 'Mark Not Completed' button
         elif data.startswith('mark_not_completed_'):
             planned_site_id = int(data.split('_')[3])
+            # Use the method that filters out deleted sites
             planned_site = self.db.get_planned_site_by_id(planned_site_id)
             if not planned_site:
-                 await query.edit_message_text("❌ Planned site not found.")
+                 await query.edit_message_text("❌ Planned site not found or already deleted.")
                  return
             if planned_site.daily_plan.enom_user_id != user.id:
                  await query.edit_message_text("❌ You can only update sites in your own plan.")
@@ -1386,7 +1445,7 @@ Send your plan in the next message.""",
 
             if self.db.mark_planned_site_not_completed(planned_site_id):
                  # Refresh the planned site object to get updated status and counts
-                updated_planned_site = self.db.get_planned_site_by_id(planned_site_id)
+                updated_planned_site = self.db.get_planned_site_by_id(planned_site_id) # Use the manager method (filters deleted)
                 if updated_planned_site:
                     # Re-show the site options with updated status
                     site_id = updated_planned_site.site.site_id if updated_planned_site.site else "Unknown Site"
@@ -1410,16 +1469,18 @@ Send your plan in the next message.""",
                         reply_markup=reply_markup
                     )
                 else:
+                     # This case should ideally not happen if mark_planned_site_not_completed returned True
                      await query.edit_message_text("✅ Site marked as Not Completed!")
             else:
-                await query.edit_message_text("❌ Failed to mark site as not completed.")
+                await query.edit_message_text("❌ Failed to mark site as not completed. Site might be deleted or already not completed.")
 
         # Handle 'Change Site/Details' button
         elif data.startswith('change_site_details_'):
             planned_site_id = int(data.split('_')[3])
+            # Use the method that filters out deleted sites
             planned_site = self.db.get_planned_site_by_id(planned_site_id)
             if not planned_site:
-                 await query.edit_message_text("❌ Planned site not found.")
+                 await query.edit_message_text("❌ Planned site not found or already deleted.")
                  return
             if planned_site.daily_plan.enom_user_id != user.id:
                  await query.edit_message_text("❌ You can only update sites in your own plan.")
@@ -1446,31 +1507,32 @@ Send your plan in the next message.""",
         # Handle 'Delete Site' button
         elif data.startswith('delete_site_'):
             planned_site_id = int(data.split('_')[2])
-            planned_site = self.db.get_planned_site_by_id(planned_site_id)
+            # Fetch the site first to get the plan_id before potential soft delete
+            planned_site = self.db.get_planned_site_by_id(planned_site_id) # This method filters deleted
             if not planned_site:
-                 await query.edit_message_text("❌ Planned site not found.")
+                 await query.edit_message_text("❌ Planned site not found or already deleted.")
                  return
             if planned_site.daily_plan.enom_user_id != user.id:
                  await query.edit_message_text("❌ You can only update sites in your own plan.")
                  return
 
-            plan_id = planned_site.daily_plan.id # Get plan ID before deleting
+            plan_id = planned_site.daily_plan.id # Get plan ID before soft deleting
 
             if self.db.delete_planned_site(planned_site_id):
                 await query.edit_message_text("🗑️ Site deleted successfully.")
-                # Optional: Re-show the plan's site list after deletion
-                # You could call the logic from update_plan_ here
+                # Re-show the plan's site list after deletion
                 plan = self.db.get_daily_plan_by_id(plan_id)
                 if plan:
-                     planned_sites = plan.planned_sites
+                     # Use the method that filters out deleted sites
+                     active_planned_sites = self.db.get_planned_sites(plan.id)
                      message = f"🔄 **Update Actions for Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\n"
-                     if not planned_sites:
-                         message += "No sites found in this plan.\n\n"
+                     if not active_planned_sites:
+                         message += "No active sites found in this plan.\n\n"
                          keyboard = [[InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")]]
                      else:
                          message += "Select a site to manage or add a new one:\n\n"
                          keyboard = []
-                         for site in planned_sites:
+                         for site in active_planned_sites: # Iterate through filtered list
                              status_emoji = "✅" if site.is_completed else "⏳"
                              keyboard.append([InlineKeyboardButton(
                                  f"{status_emoji} {escape_markdown(site.site.site_id)} - {escape_markdown(site.site.name)}",
@@ -1478,6 +1540,7 @@ Send your plan in the next message.""",
                              )])
                          keyboard.append([InlineKeyboardButton("➕ Add New Site", callback_data=f"add_site_to_plan_{plan.id}")])
                      reply_markup = InlineKeyboardMarkup(keyboard)
+                     # Send a new message instead of editing the deleted site's message
                      await context.bot.send_message(
                          chat_id=update.effective_chat.id,
                          text=message,

@@ -200,7 +200,7 @@ class DailyPlan(db.Model):
 
 class PlannedSite(db.Model):
     __tablename__ = 'planned_sites'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     daily_plan_id = db.Column(db.Integer, db.ForeignKey('daily_plans.id'), nullable=False)
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
@@ -209,12 +209,13 @@ class PlannedSite(db.Model):
     estimated_duration = db.Column(db.Integer, default=60)  # in minutes
     assignee = db.Column(db.String(100))  # Assignee from plan text
     updated_actions = db.Column(db.Text, default='Not Done Yet')  # Updated actions status
-    
+
     # NEW: Telegram integration fields
     telegram_updated = db.Column(db.Boolean, default=False)  # Whether updated via telegram
     telegram_update_message_id = db.Column(db.BigInteger, nullable=True)  # Update message ID
     completed_at = db.Column(db.DateTime, nullable=True)  # When marked as completed
     is_completed = db.Column(db.Boolean, default=False)  # Completion status
+    is_deleted = db.Column(db.Boolean, default=False) # Soft delete flag
 
     site = db.relationship('Site', backref='planned_sites', lazy=True)
 
