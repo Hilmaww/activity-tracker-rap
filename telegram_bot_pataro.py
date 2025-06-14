@@ -1074,7 +1074,7 @@ Send your plan in the next message.""",
             context.user_data['updating_site_id'] = planned_site_id
 
             # Fetch the planned site details to show in the message
-            planned_site = self.db.get_planned_site_action(planned_site_id)
+            planned_site = self.db.get_planned_site_by_id(planned_site_id)
 
             if planned_site:
                 site_id = planned_site.site.site_id if planned_site.site else "Unknown Site"
