@@ -724,10 +724,10 @@ class TelegramBot:
             Semoga PATARO Bot ini dapat membantumu bekerja lebih efisien dan terorganisir. Semangat selalu!
 
             ---
-
+            ```
             **Dikembangkan oleh:**
-            [Hilmi Fawwaz/ Staff NOP Rantau Prapat]
-            Contact: [muhammad\_h\_fawwaz@telkomsel\.co\.id]
+            [Hilmi Fawwaz - Staff NOP Rantau Prapat]
+            ```
             """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
