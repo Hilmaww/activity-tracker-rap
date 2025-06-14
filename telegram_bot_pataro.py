@@ -641,95 +641,103 @@ class TelegramBot:
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-        welcome_message = """
-Semangat Pagi! Pagi✊🏽 Pagi✊🏽 Pagi✊🏽!
 
-Selamat datang di **PATARO Bot**! Saya siap membantumu mengelola aktivitas harian dan melacak progress di lapangan dengan lebih mudah.
+        # It's better to define variables for potentially problematic strings
+        # and then escape them.
+        developer_name = "Hilmi Fawwaz/ Staff NOP Rantau Prapat"
+        contact_email = "muhammad_h_fawwaz@telkomsel.co.id"
+        
+        # Example of how you'd use it if you had a variable for the email
+        # escaped_contact_email = escape_markdown(contact_email, version=2) # Use version=2 for MarkdownV2
 
-PATARO Bot didedikasikan untuk memastikan setiap rencana harian berjalan lancar dan semua update tercatat dengan baik. Saya akan membantu kamu:
+        welcome_message = f"""
+            Semangat Pagi! Pagi✊🏽 Pagi✊🏽 Pagi✊🏽!
 
-* **Mengatur Rencana Harianmu**: Dari merencanakan kunjungan site hingga melacak status pekerjaan.
-* **Update Status Cepat**: Laporkan progress pekerjaan di site langsung dari Telegram.
-* **Monitor Alarm Penting**: Dapatkan informasi terkini tentang alarm aktif di berbagai site.
+            Selamat datang di **PATARO Bot**! Saya siap membantumu mengelola aktivitas harian dan melacak progress di lapangan dengan lebih mudah.
 
----
+            PATARO Bot didedikasikan untuk memastikan setiap rencana harian berjalan lancar dan semua update tercatat dengan baik. Saya akan membantu kamu:
 
-### Perintah Utama PATARO Bot:
+            * **Mengatur Rencana Harianmu**: Dari merencanakan kunjungan site hingga melacak status pekerjaan.
+            * **Update Status Cepat**: Laporkan progress pekerjaan di site langsung dari Telegram.
+            * **Monitor Alarm Penting**: Dapatkan informasi terkini tentang alarm aktif di berbagai site.
 
-Berikut adalah panduan cepat untuk mulai menggunakan bot ini:
+            ---
 
-* `/start`: Untuk kembali ke menu awal ini kapan saja.
-* `/help`: Menampilkan daftar semua perintah yang tersedia dan format penggunaannya.
+            ### Perintah Utama PATARO Bot:
 
----
+            Berikut adalah panduan cepat untuk mulai menggunakan bot ini:
 
-### Mulai Dengan PATARO Bot:
+            * `/start`: Untuk kembali ke menu awal ini kapan saja.
+            * `/help`: Menampilkan daftar semua perintah yang tersedia dan format penggunaannya.
 
-1.  **Daftarkan Akunmu**:
-    Ketik `/register` diikuti dengan `username` sistemmu. Ini penting agar saya bisa menghubungkan akun Telegram-mu dengan data di sistem.
-    Contoh: `/register dolli_enom`
+            ---
 
-2.  **Buat Rencana Harianmu**:
-    Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
+            ### Mulai Dengan PATARO Bot:
 
-    ```
-    PLAN DD/MM/YYYY
-    AREA-NAMA
+            1.  **Daftarkan Akunmu**:
+                Ketik `/register` diikuti dengan `username` sistemmu. Ini penting agar saya bisa menghubungkan akun Telegram-mu dengan data di sistem.
+                Contoh: `/register dolli_enom`
 
-    Bang @Username
-    - SITEID Lokasi, Deskripsi Action
-    - SITEID Lokasi, Deskripsi Action
+            2.  **Buat Rencana Harianmu**:
+                Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
 
-    Om @Username2
-    - SITEID Lokasi, Deskripsi Action
-    - SITEID Lokasi, Deskripsi Action
-    ```
-    Contoh:
-    ```
-    PLAN 13/06/2025
-    LABUSEL-PALUTA-PALAS
+                ```
+                PLAN DD/MM/YYYY
+                AREA-NAMA
 
-    Bang @Ansor TS Paluta @~Junaidi
-    - PSP513 Dolok, Replace ML6651 Link To PSP330
-    - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+                Bang @Username
+                - SITEID Lokasi, Deskripsi Action
+                - SITEID Lokasi, Deskripsi Action
 
-    bg @~Hoirum sapii
-    # PSP083 Sibornat Bunut, clearing cell down, Cek Power dan Optik
-    # PSP701 Sialagundi, Cek Power dan Optik
+                Om @Username2
+                - SITEID Lokasi, Deskripsi Action
+                - SITEID Lokasi, Deskripsi Action
+                ```
+                Contoh:
+                ```
+                PLAN 13/06/2025
+                LABUSEL-PALUTA-PALAS
 
-    ```
+                Bang @Ansor TS Paluta @~Junaidi
+                - PSP513 Dolok, Replace ML6651 Link To PSP330
+                - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
 
-3.  **Lihat Rencana Aktifmu**:
-    Ketik `/myplan` untuk melihat semua site dan aktivitas yang telah kamu rencanakan untuk hari ini.
+                bg @~Hoirum sapii
+                # PSP083 Sibornat Bunut, clearing cell down, Cek Power dan Optik
+                # PSP701 Sialagundi, Cek Power dan Optik
+                ```
 
-4.  **Update Status Pekerjaan**:
-    Setelah menyelesaikan pekerjaan di site, gunakan `/update` untuk memperbarui status tindakan. Kamu bisa update satu per satu atau melakukan bulk update.
+            3.  **Lihat Rencana Aktifmu**:
+                Ketik `/myplan` untuk melihat semua site dan aktivitas yang telah kamu rencanakan untuk hari ini.
 
-5.  **Cek Status dan Statistikmu**:
-    Ketik `/status` untuk melihat ringkasan performa dan progress pekerjaanmu.
+            4.  **Update Status Pekerjaan**:
+                Setelah menyelesaikan pekerjaan di site, gunakan `/update` untuk memperbarui status tindakan. Kamu bisa update satu per satu atau melakukan bulk update.
 
-6.  **Pantau Alarm Aktif**:
-    Gunakan `/alarms` untuk mendapatkan daftar alarm yang sedang aktif.
+            5.  **Cek Status dan Statistikmu**:
+                Ketik `/status` untuk melihat ringkasan performa dan progress pekerjaanmu.
 
----
+            6.  **Pantau Alarm Aktif**:
+                Gunakan `/alarms` untuk mendapatkan daftar alarm yang sedang aktif.
 
-### Didedikasikan Untuk:
+            ---
 
-NOP & ENOM RantauPrapat - Salam Olahraga!
-Special Thanks To Abang Abang RAP Terbaik:
-- Pak Leo ( Ex-Mgr Rantau Prapat )
-- Bang Amin, Bang Edy, Bang Adi, Bang Deni ( Engineer Rantau Prapat )
+            ### Didedikasikan Untuk:
 
-All Team TO dan TS RAP: We Are One Team,One Dream
+            NOP & ENOM RantauPrapat - Salam Olahraga!
+            Special Thanks To Abang Abang RAP Terbaik:
+            - Pak Leo (Ex-Mgr Rantau Prapat)
+            - Bang Amin, Bang Edy, Bang Adi, Bang Deni (Engineer Rantau Prapat)
 
-Semoga PATARO Bot ini dapat membantumu bekerja lebih efisien dan terorganisir. Semangat selalu!
+            All Team TO dan TS RAP: We Are One Team,One Dream
 
----
+            Semoga PATARO Bot ini dapat membantumu bekerja lebih efisien dan terorganisir. Semangat selalu!
 
-**Dikembangkan oleh:**
-[Hilmi Fawwaz/ Staff NOP Rantau Prapat]
-Contact: [muhammad_h_fawwaz@telkomsel.co.id]
-"""
+            ---
+
+            **Dikembangkan oleh:**
+            {escape_markdown(developer_name, version=2)}
+            Contact: {escape_markdown(contact_email, version=2)}
+            """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
