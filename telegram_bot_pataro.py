@@ -642,87 +642,87 @@ class TelegramBot:
         """Handle /start command"""
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
         welcome_message = """
-            Semangat Pagi! Pagi✊🏽 Pagi✊🏽 Pagi✊🏽!
+    Semangat Pagi! Pagi✊🏽 Pagi✊🏽 Pagi✊🏽!
 
-            Selamat datang di **PATARO Bot**! Saya siap membantumu mengelola aktivitas harian dan melacak progress di lapangan dengan lebih mudah.
+    Selamat datang di **PATARO Bot**! Saya siap membantumu mengelola aktivitas harian dan melacak progress di lapangan dengan lebih mudah.
 
-            PATARO Bot didedikasikan untuk memastikan setiap rencana harian berjalan lancar dan semua update tercatat dengan baik. Saya akan membantu kamu:
+    PATARO Bot didedikasikan untuk memastikan setiap rencana harian berjalan lancar dan semua update tercatat dengan baik. Saya akan membantu kamu:
 
-            * **Mengatur Rencana Harianmu**: Dari merencanakan kunjungan site hingga melacak status pekerjaan.
-            * **Update Status Cepat**: Laporkan progress pekerjaan di site langsung dari Telegram.
-            * **Monitor Alarm Penting**: Dapatkan informasi terkini tentang alarm aktif di berbagai site.
+    • **Mengatur Rencana Harianmu**: Dari merencanakan kunjungan site hingga melacak status pekerjaan.
+    • **Update Status Cepat**: Laporkan progress pekerjaan di site langsung dari Telegram.
+    • **Monitor Alarm Penting**: Dapatkan informasi terkini tentang alarm aktif di berbagai site.
 
-            ---
+    ---
 
-            ### Perintah Utama PATARO Bot:
+    ### Perintah Utama PATARO Bot:
 
-            Berikut adalah panduan cepat untuk mulai menggunakan bot ini:
+    Berikut adalah panduan cepat untuk mulai menggunakan bot ini:
 
-            * `/start`: Untuk kembali ke menu awal ini kapan saja.
-            * `/help`: Menampilkan daftar semua perintah yang tersedia dan format penggunaannya.
+    • `/start`: Untuk kembali ke menu awal ini kapan saja.
+    • `/help`: Menampilkan daftar semua perintah yang tersedia dan format penggunaannya.
 
-            ---
+    ---
 
-            ### Mulai Dengan PATARO Bot:
+    ### Mulai Dengan PATARO Bot:
 
-            1.  **Daftarkan Akunmu**\:
-                Ketik `/register` diikuti dengan `username` sistemmu. Ini penting agar saya bisa menghubungkan akun Telegram-mu dengan data di sistem.
-                Contoh: `/register dolli_enom`
+    1. **Daftarkan Akunmu**:
+    Ketik `/register` diikuti dengan `username` sistemmu. Ini penting agar saya bisa menghubungkan akun Telegram-mu dengan data di sistem.
+    Contoh: `/register dolli_enom`
 
-            2.  **Buat Rencana Harianmu**\:
-                Gunakan perintah `/plan` untuk memulai proses pembuatan rencana\. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
+    2. **Buat Rencana Harianmu**:
+    Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
 
-                ```
-                PLAN DD/MM/YYYY
-                AREA-NAMA
+    ```
+    PLAN DD/MM/YYYY
+    AREA-NAMA
 
-                Bang @Username
-                - SITEID Lokasi, Deskripsi Action
-                - SITEID Lokasi, Deskripsi Action
+    Bang @Username
+    - SITEID Lokasi, Deskripsi Action
+    - SITEID Lokasi, Deskripsi Action
 
-                Om @Username2
-                - SITEID Lokasi, Deskripsi Action
-                - SITEID Lokasi, Deskripsi Action
-                ```
-                Contoh:
-                ```
-                PLAN 13/06/2025
-                LABUSEL-PALUTA-PALAS
+    Om @Username2
+    - SITEID Lokasi, Deskripsi Action
+    - SITEID Lokasi, Deskripsi Action
+    ```
+    Contoh:
+    ```
+    PLAN 13/06/2025
+    LABUSEL-PALUTA-PALAS
 
-                Bang @Ansor TS Paluta @~Junaidi
-                - PSP513 Dolok, Replace ML6651 Link To PSP330
-                - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+    Bang @Ansor TS Paluta @~Junaidi
+    - PSP513 Dolok, Replace ML6651 Link To PSP330
+    - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
 
-                bg @~Hoirum sapii
-                # PSP083 Sibornat Bunut, clearing cell down, Cek Power dan Optik
-                # PSP701 Sialagundi, Cek Power dan Optik
-                ```
+    bg @~Hoirum sapii
+    # PSP083 Sibornat Bunut, clearing cell down, Cek Power dan Optik
+    # PSP701 Sialagundi, Cek Power dan Optik
+    ```
 
-            3.  **Lihat Rencana Aktifmu**\:
-                Ketik `/myplan` untuk melihat semua site dan aktivitas yang telah kamu rencanakan untuk hari ini.
+    3. **Lihat Rencana Aktifmu**:
+    Ketik `/myplan` untuk melihat semua site dan aktivitas yang telah kamu rencanakan untuk hari ini.
 
-            4.  **Update Status Pekerjaan**\:
-                Setelah menyelesaikan pekerjaan di site, gunakan `/update` untuk memperbarui status tindakan. Kamu bisa update satu per satu atau melakukan bulk update.
+    4. **Update Status Pekerjaan**:
+    Setelah menyelesaikan pekerjaan di site, gunakan `/update` untuk memperbarui status tindakan. Kamu bisa update satu per satu atau melakukan bulk update.
 
-            5.  **Cek Status dan Statistikmu**\:
-                Ketik `/status` untuk melihat ringkasan performa dan progress pekerjaanmu.
+    5. **Cek Status dan Statistikmu**:
+    Ketik `/status` untuk melihat ringkasan performa dan progress pekerjaanmu.
 
-            6.  **Pantau Alarm Aktif**
-                Gunakan `/alarms` untuk mendapatkan daftar alarm yang sedang aktif.
+    6. **Pantau Alarm Aktif**:
+    Gunakan `/alarms` untuk mendapatkan daftar alarm yang sedang aktif.
 
-            ---
+    ---
 
-            ### Didedikasikan Untuk:
+    ### Didedikasikan Untuk:
 
-            NOP & ENOM RantauPrapat - Salam Olahraga!
-            Special Thanks To Abang Abang RAP Terbaik:
-            - Pak Leo \( Ex-Mgr Rantau Prapat \)
-            - Bang Amin, Bang Edy, Bang Adi, Bang Deni \( Engineer Rantau Prapat \)
+    NOP & ENOM RantauPrapat - Salam Olahraga!
+    Special Thanks To Abang Abang RAP Terbaik:
+    • Pak Leo (Ex-Mgr Rantau Prapat)
+    • Bang Amin, Bang Edy, Bang Adi, Bang Deni (Engineer Rantau Prapat)
 
-            All Team TO dan TS RAP: We Are One Team,One Dream
+    All Team TO dan TS RAP: We Are One Team,One Dream
 
-            Semoga PATARO Bot ini dapat membantumu bekerja lebih efisien dan terorganisir. Semangat selalu!
-            """
+    Semoga PATARO Bot ini dapat membantumu bekerja lebih efisien dan terorganisir. Semangat selalu!
+    """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
