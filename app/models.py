@@ -222,7 +222,13 @@ class PlannedSite(db.Model):
     def completed_at_jakarta(self):
         jakarta_tz = pytz.timezone('Asia/Jakarta')
         return self.completed_at.astimezone(jakarta_tz) if self.completed_at else None
-    
+
+    @property
+    def site_id_str(self):
+        """Get the site_id string from the related Site object."""
+        return self.site.site_id if self.site else "N/A"
+
+
 class PlanComment(db.Model):
     __tablename__ = 'plan_comments'
     
@@ -237,7 +243,7 @@ class PlanComment(db.Model):
     telegram_message_id = db.Column(db.BigInteger, nullable=True)  # Original telegram message ID
 
     user = db.relationship('User', backref='plan_comment', lazy=True)
-    
+
     @property
     def created_at_jakarta(self):
         jakarta_tz = pytz.timezone('Asia/Jakarta')
@@ -260,7 +266,7 @@ class AlarmStatus(str, Enum):
 
 class AlarmRecord(db.Model):
     __tablename__ = 'alarm_records'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     site_id = db.Column(db.Integer, db.ForeignKey('sites.id'), nullable=False)
     category = db.Column(db.Enum(AlarmCategory), nullable=False)
@@ -269,17 +275,17 @@ class AlarmRecord(db.Model):
     status = db.Column(db.Enum(AlarmStatus), default=AlarmStatus.OPEN)
     priority_score = db.Column(db.Integer, default=0)
     uploaded_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     resolved_at = db.Column(db.DateTime)
     is_deleted = db.Column(db.Boolean, default=False)  # For soft delete
-    
+
     # NEW: Telegram integration fields
     telegram_broadcasted = db.Column(db.Boolean, default=False)  # Whether included in broadcast
     last_broadcast_at = db.Column(db.DateTime, nullable=True)  # Last broadcast time
     broadcast_count = db.Column(db.Integer, default=0)  # Number of times broadcasted
-    
+
     # Relationships
     site = db.relationship('Site', backref='alarms', lazy=True)
     uploaded_by = db.relationship('User', foreign_keys=[uploaded_by_id], backref='uploaded_alarms', lazy=True)

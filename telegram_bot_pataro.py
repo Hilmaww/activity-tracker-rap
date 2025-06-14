@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 # Telegram bot imports
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
-from telegram.constants import ParseMode
+from telegram.constants import ParseMode, ChatAction # Import ChatAction
 from telegram.helpers import escape_markdown
 
 # Database imports
@@ -124,11 +124,29 @@ class DatabaseManager:
                 PlannedSite.daily_plan_id == daily_plan_id
             ).order_by(PlannedSite.visit_order).all()
 
+    def get_planned_site_by_id(self, planned_site_id: int) -> Optional['PlannedSite']:
+        """Get a single planned site by ID with eager loading of Site and DailyPlan."""
+        with self.get_db() as db_session:
+            return db_session.query(PlannedSite).options(
+                joinedload(PlannedSite.site),
+                joinedload(PlannedSite.daily_plan)
+            ).filter(PlannedSite.id == planned_site_id).first()
+
+
     def create_daily_plan(self, user_id: int, plan_date: date, sites_data: List[Dict],
                           area_name: str, telegram_message_id: Optional[int] = None) -> Optional['DailyPlan']:
         """Create a new daily plan with sites"""
         with self.get_db() as db_session:
             try:
+                # Check if a plan already exists for this user and date
+                existing_plan = db_session.query(DailyPlan).filter(
+                    DailyPlan.enom_user_id == user_id,
+                    DailyPlan.plan_date == plan_date
+                ).first()
+                if existing_plan:
+                    logger.warning(f"Plan already exists for user {user_id} on {plan_date}. Aborting creation.")
+                    return None # Indicate that creation failed because plan exists
+
                 total_sites = len(sites_data)
 
                 # Create the DailyPlan record
@@ -173,24 +191,156 @@ class DatabaseManager:
                 logger.error(f"Error creating daily plan: {e}")
                 return None
 
+    def add_planned_site_to_plan(self, plan_id: int, site_id_str: str, actions: str, assignee: str) -> Optional['PlannedSite']:
+        """Add a new planned site to an existing daily plan."""
+        with self.get_db() as db_session:
+            try:
+                plan = db_session.query(DailyPlan).filter(DailyPlan.id == plan_id).first()
+                site = db_session.query(Site).filter(Site.site_id == site_id_str).first()
+
+                if not plan:
+                    logger.warning(f"Daily plan {plan_id} not found for adding site.")
+                    return None
+                if not site:
+                    logger.warning(f"Site {site_id_str} not found for adding to plan {plan_id}.")
+                    return None
+
+                # Determine the next visit order
+                max_order = db_session.query(func.max(PlannedSite.visit_order)).filter(PlannedSite.daily_plan_id == plan_id).scalar() or 0
+                next_order = max_order + 1
+
+                new_planned_site = PlannedSite(
+                    daily_plan_id=plan.id,
+                    site_id=site.id,
+                    planned_actions=actions,
+                    visit_order=next_order,
+                    assignee=assignee,
+                    estimated_duration=60, # Default duration
+                    updated_actions='Not Done Yet', # Default status
+                    is_completed=False
+                )
+                db_session.add(new_planned_site)
+
+                # Update total sites count on the plan
+                plan.total_sites_planned += 1
+
+                db_session.commit()
+                db_session.refresh(new_planned_site)
+                db_session.refresh(plan) # Refresh plan to get updated counts
+                return new_planned_site
+            except Exception as e:
+                db_session.rollback()
+                logger.error(f"Error adding planned site to plan {plan_id}: {e}")
+                return None
+
+    def update_planned_site_details(self, planned_site_id: int, new_site_id_str: str, new_actions: str, new_assignee: str) -> Optional['PlannedSite']:
+        """Update the site, actions, and assignee for an existing planned site."""
+        with self.get_db() as db_session:
+            try:
+                planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
+                if not planned_site:
+                    logger.warning(f"Planned site {planned_site_id} not found for update.")
+                    return None
+
+                site = db_session.query(Site).filter(Site.site_id == new_site_id_str).first()
+                if not site:
+                    logger.warning(f"New site {new_site_id_str} not found for updating planned site {planned_site_id}.")
+                    return None
+
+                planned_site.site_id = site.id
+                planned_site.planned_actions = new_actions
+                planned_site.assignee = new_assignee
+                # Reset status when changing site? Or keep? Let's reset to Not Done Yet
+                planned_site.updated_actions = 'Not Done Yet'
+                planned_site.is_completed = False
+                planned_site.completed_at = None
+
+                # If the site was previously completed, decrement the plan's completed count
+                # This logic might need refinement depending on exact requirements
+                # For simplicity, let's assume changing site resets completion status and count
+                if planned_site.is_completed and planned_site.daily_plan:
+                     planned_site.daily_plan.sites_completed -= 1
+                     # Revert plan status if needed
+                     if planned_site.daily_plan.status == PlanStatus.APPROVED:
+                          planned_site.daily_plan.status = PlanStatus.SUBMITTED
+
+
+                db_session.commit()
+                db_session.refresh(planned_site)
+                if planned_site.daily_plan:
+                    db_session.refresh(planned_site.daily_plan) # Refresh plan to get updated counts
+                return planned_site
+            except Exception as e:
+                db_session.rollback()
+                logger.error(f"Error updating planned site {planned_site_id} details: {e}")
+                return None
+
+    def delete_planned_site(self, planned_site_id: int) -> bool:
+        """Delete a planned site and update the daily plan counts."""
+        with self.get_db() as db_session:
+            try:
+                planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
+                if not planned_site:
+                    logger.warning(f"Planned site {planned_site_id} not found for deletion.")
+                    return False
+
+                plan = planned_site.daily_plan # Get the related plan
+
+                db_session.delete(planned_site)
+
+                # Update counts on the plan
+                if plan:
+                    plan.total_sites_planned -= 1
+                    if planned_site.is_completed:
+                        plan.sites_completed -= 1
+                    # Revert plan status if needed
+                    if plan.status == PlanStatus.APPROVED and plan.sites_completed < plan.total_sites_planned:
+                         plan.status = PlanStatus.SUBMITTED
+                    db_session.refresh(plan) # Refresh plan to get updated counts
+
+
+                db_session.commit()
+                return True
+            except Exception as e:
+                db_session.rollback()
+                logger.error(f"Error deleting planned site {planned_site_id}: {e}")
+                return False
+
+
     def update_planned_site_action(self, planned_site_id: int, updated_actions: str) -> bool:
-        """Update planned site action"""
+        """Update planned site action text and potentially completion status."""
         with self.get_db() as db_session:
             try:
                 planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
                 if planned_site:
+                    # Store the old completion status
+                    old_is_completed = planned_site.is_completed
+
                     planned_site.updated_actions = updated_actions
-                    # Assuming marking as completed if action is not 'Not Done Yet'
-                    # Check if the action is different from the default 'Not Done Yet'
-                    if updated_actions != 'Not Done Yet' and not planned_site.is_completed:
-                        planned_site.is_completed = True
-                        planned_site.completed_at = datetime.utcnow()
-                        # Also update total_sites_completed in DailyPlan
+
+                    # Determine new completion status based on the text
+                    # If text is 'Not Done Yet', mark as not completed
+                    # Otherwise, mark as completed
+                    new_is_completed = (updated_actions != 'Not Done Yet')
+
+                    # Update completion status and count only if it changes
+                    if new_is_completed != old_is_completed:
+                        planned_site.is_completed = new_is_completed
                         if planned_site.daily_plan: # Accessing relationship
-                            planned_site.daily_plan.sites_completed += 1
-                            # Check if all sites are completed to update plan status
+                            if new_is_completed:
+                                planned_site.daily_plan.sites_completed += 1
+                                planned_site.completed_at = datetime.utcnow()
+                            else:
+                                planned_site.daily_plan.sites_completed -= 1
+                                planned_site.completed_at = None # Clear completed_at if marked not completed
+
+                            # Update plan status if all sites are completed
                             if planned_site.daily_plan.sites_completed >= planned_site.daily_plan.total_sites_planned:
                                 planned_site.daily_plan.status = PlanStatus.APPROVED # Or another appropriate status
+                            elif planned_site.daily_plan.status == PlanStatus.APPROVED:
+                                # If a site is marked not completed, revert status from APPROVED
+                                planned_site.daily_plan.status = PlanStatus.SUBMITTED
+
 
                     db_session.commit()
                     return True
@@ -199,6 +349,58 @@ class DatabaseManager:
                 db_session.rollback()
                 logger.error(f"Error updating planned site action: {e}")
                 return False
+
+    def mark_planned_site_completed(self, planned_site_id: int) -> bool:
+        """Mark a planned site as completed."""
+        with self.get_db() as db_session:
+            try:
+                planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
+                if planned_site and not planned_site.is_completed:
+                    planned_site.is_completed = True
+                    planned_site.completed_at = datetime.utcnow()
+                    # Keep existing updated_actions or set a default? Let's keep existing unless it was 'Not Done Yet'
+                    if planned_site.updated_actions == 'Not Done Yet':
+                         planned_site.updated_actions = 'Completed'
+
+                    if planned_site.daily_plan:
+                        planned_site.daily_plan.sites_completed += 1
+                        # Update plan status if all sites are completed
+                        if planned_site.daily_plan.sites_completed >= planned_site.daily_plan.total_sites_planned:
+                            planned_site.daily_plan.status = PlanStatus.APPROVED
+
+                    db_session.commit()
+                    return True
+                return False # Already completed or not found
+            except Exception as e:
+                db_session.rollback()
+                logger.error(f"Error marking planned site completed: {e}")
+                return False
+
+    def mark_planned_site_not_completed(self, planned_site_id: int) -> bool:
+        """Mark a planned site as not completed."""
+        with self.get_db() as db_session:
+            try:
+                planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
+                if planned_site and planned_site.is_completed:
+                    planned_site.is_completed = False
+                    planned_site.completed_at = None
+                    # Keep existing updated_actions or set a default? Let's set to 'Not Done Yet'
+                    planned_site.updated_actions = 'Not Done Yet'
+
+                    if planned_site.daily_plan:
+                        planned_site.daily_plan.sites_completed -= 1
+                        # If plan was APPROVED and a site is marked not completed, revert status
+                        if planned_site.daily_plan.status == PlanStatus.APPROVED:
+                             planned_site.daily_plan.status = PlanStatus.SUBMITTED
+
+                    db_session.commit()
+                    return True
+                return False # Already not completed or not found
+            except Exception as e:
+                db_session.rollback()
+                logger.error(f"Error marking planned site not completed: {e}")
+                return False
+
 
     def get_site_by_site_id(self, site_id_str: str) -> Optional['Site']:
         """Get site by site_id string"""
@@ -224,10 +426,14 @@ class DatabaseManager:
     def get_all_daily_plans_for_date(self, plan_date: date) -> List['DailyPlan']:
         """Get all daily plans for a specific date with eager loading."""
         with self.get_db() as db_session:
-            return db_session.query(DailyPlan).options(
+            # Filter for 'enom' role users' plans
+            return db_session.query(DailyPlan).join(User).options(
                 joinedload(DailyPlan.planned_sites).joinedload(PlannedSite.site),
                 joinedload(DailyPlan.enom_user)
-            ).filter(DailyPlan.plan_date == plan_date).all()
+            ).filter(
+                DailyPlan.plan_date == plan_date,
+                User.role == 'enom'
+            ).all()
 
 # --- END REFACTORED DATABASEMANAGER CLASS ---
 
@@ -252,14 +458,24 @@ class PlanParser:
 
         # Extract area
         area_line = lines[0]
-        if not area_line.startswith('PLAN'):
-            raise ValueError("Plan harus diawali dengan 'PLAN [Tanggal]'")
-        date_line = area_line[5:].strip()
+        if not area_line.lower().startswith('plan'):
+            raise ValueError("Plan harus diawali dengan 'Plan [Tanggal]'")
+        # Use regex to extract date after "PLAN " case-insensitively, supporting DD/MM/YYYY or DD-MM-YYYY
+        date_match = re.match(r'^PLAN\s+(\d{2}[-/]\d{2}[-/]\d{4})', area_line, re.IGNORECASE)
+        if not date_match:
+             raise ValueError("Invalid date format in PLAN line. Use DD/MM/YYYY or DD-MM-YYYY")
+        date_line = date_match.group(1)
+
         area = lines[1]
         try:
-            plan_date = datetime.strptime(date_line, '%d/%m/%Y').date()
+            # Try parsing with '/' first, then '-'
+            try:
+                plan_date = datetime.strptime(date_line, '%d/%m/%Y').date()
+            except ValueError:
+                plan_date = datetime.strptime(date_line, '%d-%m-%Y').date()
         except ValueError:
-            raise ValueError("Invalid date format. Use DD/MM/YYYY")
+            raise ValueError("Invalid date format. Use DD/MM/YYYY or DD-MM-YYYY")
+
 
         # Parse sites and assignees
         sites_data = []
@@ -360,6 +576,7 @@ class TelegramBot:
         self.application.add_handler(CallbackQueryHandler(self.button_callback))
 
         # Message handlers
+        # Add filters for specific states if needed, otherwise handle in handle_message
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
 
         # Schedule regular broadcasts
@@ -371,6 +588,7 @@ class TelegramBot:
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
         welcome_message = """
 🔧 **PATARO Bot**
 
@@ -391,6 +609,7 @@ To get started, use /register to link your account.
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
         help_text = """
 🆘 **Help - PATARO Bot**
 
@@ -698,9 +917,9 @@ Send your plan in the next message.""",
             return
 
         # Default response
-        await update.message.reply_text(
-            "ℹ️ I didn't understand that. Use /help to see available commands."
-        )
+        # await update.message.reply_text(
+        #     "ℹ️ I didn't understand that. Use /help to see available commands."
+        # )
 
     async def process_plan_submission(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Process plan submission"""
@@ -854,10 +1073,25 @@ Send your plan in the next message.""",
             context.user_data['awaiting_site_update'] = True
             context.user_data['updating_site_id'] = planned_site_id
 
-            await query.edit_message_text(
-                "📝 **Update Site Action**\n\nPlease send the updated action for this site:",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            # Fetch the planned site details to show in the message
+            planned_site = self.db.get_planned_site_action(planned_site_id)
+
+            if planned_site:
+                site_id = planned_site.site.site_id if planned_site.site else "Unknown Site"
+                site_name = planned_site.site.name if planned_site.site else "No Name"
+                assignee = planned_site.assignee or "Unassigned"
+                status = "✅ Completed" if planned_site.is_completed else "⏳ Not Done Yet"
+
+                await query.edit_message_text(
+                    f"📝 **Update Site Action for {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
+                    f"Current Action: {escape_markdown(planned_site.updated_actions or 'Not Set')}\n"
+                    f"Assignee: {escape_markdown(assignee)}\n"
+                    f"Status: {status}\n\n"
+                    "Send the new action text for this site.",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                await query.edit_message_text("❌ Planned site not found.")
 
         elif data.startswith('update_plan_'):
             plan_id = int(data.split('_')[2])
