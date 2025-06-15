@@ -6,7 +6,7 @@ FROM all_sites s
 CROSS JOIN theft_incidents t  
 WHERE ST_DWithin(s.geom, t.geom, 5000)
   AND s.site_id NOT IN (SELECT DISTINCT site_id FROM theft_incidents)
-  AND s.rev_class IN ('Bronze', 'Silver')
+  AND s.rev_class IN ('Gold', 'Silver')
 GROUP BY s.site_id, s.site_name, s.lat, s.lng, s.rev_class
 ORDER BY nearby_thefts DESC, avg_distance_to_theft ASC;
 

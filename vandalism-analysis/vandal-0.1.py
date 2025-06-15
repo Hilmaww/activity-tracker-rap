@@ -1,6 +1,6 @@
 # Flask API Endpoints for Vandalism Risk Analysis
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import json
@@ -12,7 +12,7 @@ app = Flask(__name__)
 # Database configuration
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
-    'database': os.getenv('DB_NAME', 'telecom_db'),
+    'database': os.getenv('DB_NAME', 'tsel_rap_testing'),
     'user': os.getenv('DB_USER', 'postgres'),
     'password': os.getenv('DB_PASSWORD', 'password'),
     'port': os.getenv('DB_PORT', '5432')
@@ -22,9 +22,22 @@ def get_db_connection():
     """Get database connection"""
     return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
 
+@app.route('/')
+def dashboard():
+    """Render the main dashboard HTML page"""
+    return render_template('vandalism-analysis.html')
+
+@app.route('/dashboard')
+def dashboard_alt():
+    """Alternative route for dashboard"""
+    return render_template('vandalism-analysis2.html')
+
 @app.route('/api/theft-incidents', methods=['GET'])
 def get_theft_incidents():
     """Get all theft incidents with optional filtering"""
+    # Query your theft incidents table
+    # Return JSON with: site_id, lat, lng, date, materials, classification, etc.
+
     try:
         # Get query parameters
         start_date = request.args.get('start_date')
@@ -113,6 +126,9 @@ def get_theft_incidents():
 @app.route('/api/all-sites', methods=['GET'])
 def get_all_sites():
     """Get all sites with basic information"""
+    # Query your complete sites database
+    # Return sites with risk scoring based on proximity to theft incidents
+
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -162,6 +178,12 @@ def get_all_sites():
 @app.route('/api/risk-analysis', methods=['GET'])
 def get_risk_analysis():
     """Get comprehensive risk analysis for all sites"""
+    # Calculate risk scores for sites based on:
+    # - Distance to previous incidents
+    # - Site classification 
+    # - Equipment value
+    # - Historical patterns
+
     try:
         from risk_analyzer import VandalismRiskAnalyzer, FlaskIntegrationHelper
         
@@ -442,4 +464,4 @@ def get_temporal_analysis():
         }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)
