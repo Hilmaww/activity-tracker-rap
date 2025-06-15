@@ -527,10 +527,8 @@ class DatabaseManager:
             planned_visits = visits_query.all()
 
             # Get ticket history for this site
-            tickets_query = db_session.query(Ticket).options(
-                joinedload(Ticket.problem_category),
-                joinedload(Ticket.assigned_to_ts) # Assuming assignee_user relationship exists
-            ).filter(
+            # Removed joinedload for problem_category and assigned_to_ts as they are likely columns, not relationships
+            tickets_query = db_session.query(Ticket).filter(
                 Ticket.site_id == site.id
             ).order_by(Ticket.created_at.desc()).limit(10) # Limit results
 
