@@ -1208,7 +1208,7 @@ Send your plan in the next message.""",
                 except Exception as e:
                     print(f"Error processing and broadcasting alarm message: {e}")
                     # Optionally, send an error notification to a specific user or group
-                    # await context.bot.send_message(chat_id=YOUR_ADMIN_ID, text=f"Error: {e}")
+                    await context.bot.send_message(chat_id=self.config.ADMIN_USER_IDS[0], text=f"Error: {e}")
 
         # --- End of New Logic ---
 
