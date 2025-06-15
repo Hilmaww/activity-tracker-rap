@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telkomsel - Site Security Analytics</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --telkomsel-red: #ff0025;
+            --telkomsel-blue: #001a41;
+            --telkomsel-orange: #fda22b;
+            --telkomsel-gray: #dbdbdb;
+            --telkomsel-dark-red: #cc001e;
+            --telkomsel-light-red: #ff4d66;
+            --gradient-primary: linear-gradient(135deg, #ff0025 0%, #cc001e 100%);
+            --gradient-secondary: linear-gradient(135deg, #001a41 0%, #003366 100%);
+            --gradient-accent: linear-gradient(135deg, #fda22b 0%, #e6921f 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--gradient-secondary);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border-left: 5px solid var(--telkomsel-red);
+        }
+
+        .header h1 {
+            color: var(--telkomsel-blue);
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .telkomsel-logo {
+            color: var(--telkomsel-red);
+            font-weight: 900;
+        }
+
+        .header p {
+            color: #666;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-top: 4px solid var(--telkomsel-red);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(255, 0, 37, 0.2);
+        }
+
+        .stat-card.trending-up {
+            border-top-color: var(--telkomsel-red);
+        }
+
+        .stat-card.trending-down {
+            border-top-color: #27ae60;
+        }
+
+        .stat-value {
+            font-size: 2.8em;
+            font-weight: 900;
+            color: var(--telkomsel-red);
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(255, 0, 37, 0.1);
+        }
+
+        .stat-label {
+            color: var(--telkomsel-blue);
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .stat-change {
+            font-size: 0.9em;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .stat-change.increase {
+            background: rgba(255, 0, 37, 0.1);
+            color: var(--telkomsel-red);
+        }
+
+        .stat-change.decrease {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            border-left: 4px solid var(--telkomsel-orange);
+        }
+
+        .panel:hover {
+            transform: translateY(-3px);
+        }
+
+        .panel h3 {
+            color: var(--telkomsel-blue);
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 700;
+            border-bottom: 2px solid var(--telkomsel-red);
+            padding-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: var(--telkomsel-blue);
+            font-size: 0.95em;
+        }
+
+        select, button {
+            padding: 12px 18px;
+            border: 2px solid var(--telkomsel-gray);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        select {
+            background: white;
+            color: var(--telkomsel-blue);
+        }
+
+        select:focus {
+            border-color: var(--telkomsel-red);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 0, 37, 0.1);
+        }
+
+        button {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: var(--gradient-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 0, 37, 0.3);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .map-container {
+            height: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .legend h4 {
+            color: var(--telkomsel-blue);
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-container {
+            height: 350px;
+            margin-top: 15px;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .risk-zones-info {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 15px;
+        }
+
+        .risk-zones-info h4 {
+            margin-bottom: 10px;
+        }
+
+        .risk-zone-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: var(--telkomsel-blue);
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: rgba(255, 0, 37, 0.1);
+            color: var(--telkomsel-red);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid var(--telkomsel-red);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid var(--telkomsel-gray);
+            border-top: 3px solid var(--telkomsel-red);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="telkomsel-logo">Telkomsel</span> Site Security Analytics</h1>
+            <p>Advanced Vandalism Prevention & Risk Assessment Dashboard</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card trending-up">
+                <div class="stat-value" id="total2024">-</div>
+                <div class="stat-label">2024 Incidents</div>
+                <div class="stat-change" id="yoy-change">Loading...</div>
+            </div>
+            <div class="stat-card trending-down">
+                <div class="stat-value" id="total2025">-</div>
+                <div class="stat-label">2025 Incidents</div>
+                <div class="stat-change" id="mom-change">Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalLoss">-</div>
+                <div class="stat-label">Estimated Loss (IDR)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="highRiskZones">-</div>
+                <div class="stat-label">High Risk Zones</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>🎛️ Analysis Controls</h3>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Year Filter:</label>
+                    <select id="yearFilter">
+                        <option value="">All Years</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Region Filter:</label>
+                    <select id="regionFilter">
+                        <option value="all">All Regions</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Revenue Class:</label>
+                    <select id="revClassFilter">
+                        <option value="all">All Classes</option>
+                        <option value="gold">Gold</option>
+                        <option value="silver">Silver</option>
+                        <option value="bronze">Bronze</option>
+                        <option value="basic">Basic</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <button onclick="applyFilters()">Apply Filters</button>
+                </div>
+                <div class="control-group">
+                    <button onclick="exportData()">Export Data</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="panel">
+                <h3>📍 Incident Location Map</h3>
+                <div class="map-container">
+                    <div id="map" style="height: 400px; width: 100%;"></div>
+                    <div class="legend">
+                        <h4>Legend</h4>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff0025; width: 20px; height: 20px; display: inline-block; margin-right: 8px;"></div>
+                            <span>High Risk Zone</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #fda22b; width: 20px; height: 20px; display: inline-block; margin-right: 8px;"></div>
+                            <span>Medium Risk</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #27ae60; width: 20px; height: 20px; display: inline-block; margin-right: 8px;"></div>
+                            <span>Recent Incident</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>⚠️ High Risk Zones</h3>
+                <div id="riskZonesList">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span style="margin-left: 10px;">Loading risk zones...</span>
+                    </div>
+                </div>
+                <div class="risk-zones-info">
+                    <h4>Risk Assessment Criteria</h4>
+                    <div class="risk-zone-item">
+                        <strong>High Risk:</strong> 3+ incidents within 5km radius
+                    </div>
+                    <div class="risk-zone-item">
+                        <strong>Medium Risk:</strong> 2 incidents within 5km radius
+                    </div>
+                    <div class="risk-zone-item">
+                        <strong>Factors:</strong> Site classification, proximity to previous incidents, security measures
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analytics-grid">
+            <div class="panel">
+                <h3>📊 Monthly Trend Analysis</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>🏢 Revenue Class Impact</h3>
+                <div class="chart-container">
+                    <canvas id="revClassChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>🔍 Predictive Risk Assessment</h3>
+            <div id="riskAssessmentTable">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span style="margin-left: 10px;">Calculating risk scores...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let incidentMarkers = [];
+        let riskZoneCircles = [];
+        let trendChart;
+        let revClassChart;
+        let currentData = [];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            loadRegions();
+            loadAnalytics();
+            loadIncidents();
+            loadHighRiskZones();
+            loadRiskAssessment();
+        });
+
+        // Initialize Leaflet map
+        function initializeMap() {
+            // Center on Indonesia
+            map = L.map('map').setView([-2.5489, 118.0149], 5);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Load regions for filter
+        async function loadRegions() {
+            try {
+                const response = await fetch('/api/regions');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const regionSelect = document.getElementById('regionFilter');
+                    data.data.forEach(region => {
+                        const option = document.createElement('option');
+                        option.value = region;
+                        option.textContent = region;
+                        regionSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading regions:', error);
+            }
+        }
+
+        // Load analytics summary
+        async function loadAnalytics() {
+            try {
+                const response = await fetch('/api/analytics/summary');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const analytics = data.data;
+                    
+                    // Update YoY stats
+                    if (analytics.yoy_analysis.summary) {
+                        const yoy = analytics.yoy_analysis.summary;
+                        document.getElementById('total2024').textContent = yoy.incidents_2024 || 0;
+                        document.getElementById('total2025').textContent = yoy.incidents_2025 || 0;
+                        
+                        const yoyChangeEl = document.getElementById('yoy-change');
+                        const yoyChange = yoy.percentage_change || 0;
+                        yoyChangeEl.textContent = `${yoyChange > 0 ? '+' : ''}${yoyChange.toFixed(1)}% YoY`;
+                        yoyChangeEl.className = `stat-change ${yoyChange > 0 ? 'increase' : 'decrease'}`;
+                    }
+                    
+                    // Update MoM stats
+                    if (analytics.mom_analysis.summary) {
+                        const mom = analytics.mom_analysis.summary;
+                        const momChangeEl = document.getElementById('mom-change');
+                        const momChange = mom.percentage_change || 0;
+                        momChangeEl.textContent = `${momChange > 0 ? '+' : ''}${momChange.toFixed(1)}% MoM`;
+                        momChangeEl.className = `stat-change ${momChange > 0 ? 'increase' : 'decrease'}`;
+                    }
+                    
+                    // Calculate total loss
+                    const totalLoss = analytics.rev_class_breakdown.reduce((sum, item) => sum + (item.estimated_loss || 0), 0);
+                    document.getElementById('totalLoss').textContent = formatCurrency(totalLoss);
+                    
+                    // Load monthly trend chart
+                    loadMonthlyTrend();
+                    
+                    // Load revenue class chart
+                    loadRevClassChart(analytics.rev_class_breakdown);
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        // Load monthly trend chart
+        async function loadMonthlyTrend() {
+            try {
+                const response = await fetch('/api/analytics/monthly-trend');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const ctx = document.getElementById('trendChart').getContext('2d');
+                    
+                    if (trendChart) {
+                        trendChart.destroy();
+                    }
+                    
+                    trendChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.data.map(item => item.month_name),
+                            datasets: [{
+                                label: 'Incidents',
+                                data: data.data.map(item => item.incidents),
+                                borderColor: '#ff0025',
+                                backgroundColor: 'rgba(255, 0, 37, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.1)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading monthly trend:', error);
+            }
+        }
+
+        // Load revenue class chart
+        function loadRevClassChart(revClassData) {
+            const ctx = document.getElementById('revClassChart').getContext('2d');
+            
+            if (revClassChart) {
+                revClassChart.destroy();
+            }
+            
+            revClassChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: revClassData.map(item => item.rev_class || 'Unknown'),
+                    datasets: [{
+                        data: revClassData.map(item => item.incidents),
+                        backgroundColor: [
+                            '#ff0025',
+                            '#001a41',
+                            '#fda22b',
+                            '#27ae60',
+                            '#8e44ad'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load incidents on map
+        async function loadIncidents(filters = {}) {
+            try {
+                const params = new URLSearchParams(filters);
+                const response = await fetch(`/api/theft-incidents?${params}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentData = data.data;
+                    
+                    // Clear existing markers
+                    incidentMarkers.forEach(marker => map.removeLayer(marker));
+                    incidentMarkers = [];
+                    
+                    // Add incident markers
+                    data.data.forEach(incident => {
+                        if (incident.latitude && incident.longitude) {
+                            const marker = L.circleMarker([incident.latitude, incident.longitude], {
+                                radius: 6,
+                                fillColor: getRevClassColor(incident.rev_class),
+                                color: '#ffffff',
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            });
+                            
+                            marker.bindPopup(`
+                                <div style="min-width: 200px;">
+                                    <h4 style="color: #001a41; margin-bottom: 8px;">${incident.site_name}</h4>
+                                    <p><strong>Site ID:</strong> ${incident.site_id}</p>
+                                    <p><strong>Date:</strong> ${new Date(incident.event_date).toLocaleDateString()}</p>
+                                    <p><strong>Location:</strong> ${incident.kabupaten}</p>
+                                    <p><strong>Revenue Class:</strong> ${incident.rev_class || 'Unknown'}</p>
+                                    <p><strong>Loss:</strong> IDR ${formatCurrency(incident.estimated_loss)}</p>
+                                    <p><strong>Materials:</strong> ${incident.material_kehilangan_detail || 'N/A'}</p>
+                                </div>
+                            `);
+                            
+                            marker.addTo(map);
+                            incidentMarkers.push(marker);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading incidents:', error);
+            }
+        }
+
+        // Load high risk zones
+        async function loadHighRiskZones() {
+            try {
+                const response = await fetch('/api/analytics/high-risk-zones');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('highRiskZones').textContent = data.total_zones;
+                    
+                    // Clear existing risk zone circles
+                    riskZoneCircles.forEach(circle => map.removeLayer(circle));
+                    riskZoneCircles = [];
+                    
+                    // Add risk zone circles to map
+                    data.data.forEach(zone => {
+                        const circle = L.circle([zone.center_latitude, zone.center_longitude], {
+                            radius: zone.radius * 1000, // Convert km to meters
+                            fillColor: zone.risk_level === 'High' ? '#ff0025' : '#fda22b',
+                            color: zone.risk_level === 'High' ? '#ff0025' : '#fda22b',
+                            weight: 2,
+                            opacity: 0.7,
+                            fillOpacity: 0.2
+                        });
+                        
+                        circle.bindPopup(`
+                            <div style="min-width: 200px;">
+                                <h4 style="color: #001a41;">Risk Zone - ${zone.risk_level}</h4>
+                                <p><strong>Incidents:</strong> ${zone.incident_count}</p>
+                                <p><strong>Radius:</strong> ${zone.radius} km</p>
+                            </div>
+                        `);
+                        
+                        circle.addTo(map);
+                        riskZoneCircles.push(circle);
+                    });
+                    
+                    // Update risk zones list
+                    updateRiskZonesList(data.data);
+                }
+            } catch (error) {
+                console.error('Error loading high risk zones:', error);
+                document.getElementById('riskZonesList').innerHTML = '<div class="error">Error loading risk zones</div>';
+            }
+        }
+
+        // Update risk zones list
+        function updateRiskZonesList(zones) {
+            const container = document.getElementById('riskZonesList');
+            
+            if (zones.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No high-risk zones detected</p>';
+                return;
+            }
+            
+            const html = zones.map(zone => `
+                <div class="risk-zone-item" style="background: rgba(255, 0, 37, 0.1); margin-bottom: 10px; padding: 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #ff0025;">${zone.risk_level} Risk Zone</strong>
+                            <p style="margin: 4px 0; color: #666;">${zone.incident_count} incidents</p>
+                        </div>
+                        <button onclick="focusOnZone(${zone.center_latitude}, ${zone.center_longitude})" 
+                                style="background: #ff0025; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">
+                            View
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        // Load risk assessment
+        async function loadRiskAssessment() {
+            try {
+                const response = await fetch('/api/analytics/risk-assessment');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('riskAssessmentTable');
+                    
+                    if (data.data.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: #666;">No sites require immediate attention</p>';
+                        return;
+                    }
+                    
+                    const html = `
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8f9fa;">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Site Name</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Location</th>
+                                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #dee2e6;">Risk Score</th>
+                                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #dee2e6;">Risk Level</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Revenue Class</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.data.slice(0, 10).map(site => `
+                                        <tr style="border-bottom: 1px solid #dee2e6;">
+                                            <td style="padding: 12px;">${site.site_name}</td>
+                                            <td style="padding: 12px;">${site.kabupaten}</td>
+                                            <td style="padding: 12px; text-align: center;">
+                                                <span style="background: ${getRiskScoreColor(site.risk_score)}; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+                                                    ${site.risk_score}
+                                                </span>
+                                            </td>
+                                            <td style="padding: 12px; text-align: center;">
+                                                <span style="color: ${site.risk_level === 'High' ? '#ff0025' : site.risk_level === 'Medium' ? '#fda22b' : '#27ae60'}; font-weight: bold;">
+                                                    ${site.risk_level}
+                                                </span>
+                                            </td>
+                                            <td style="padding: 12px;">${site.rev_class || 'Unknown'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    container.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Error loading risk assessment:', error);
+                document.getElementById('riskAssessmentTable').innerHTML = '<div class="error">Error loading risk assessment</div>';
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const yearFilter = document.getElementById('yearFilter').value;
+            const regionFilter = document.getElementById('regionFilter').value;
+            const revClassFilter = document.getElementById('revClassFilter').value;
+            
+            const filters = {};
+            if (yearFilter) filters.year = yearFilter;
+            if (regionFilter && regionFilter !== 'all') filters.region = regionFilter;
+            if (revClassFilter && revClassFilter !== 'all') filters.rev_class = revClassFilter;
+            
+            // Reload data with filters
+            loadIncidents(filters);
+            loadAnalytics();
+            loadHighRiskZones();
+        }
+
+        // Export data
+        function exportData() {
+            if (currentData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            // Convert data to CSV
+            const headers = ['Site ID', 'Site Name', 'Date', 'Location', 'Revenue Class', 'Estimated Loss', 'Materials'];
+            const csvContent = [
+                headers.join(','),
+                ...currentData.map(row => [
+                    row.site_id,
+                    `"${row.site_name}"`,
+                    row.event_date,
+                    `"${row.kabupaten}"`,
+                    row.rev_class || 'Unknown',
+                    row.estimated_loss,
+                    `"${row.material_kehilangan_detail || 'N/A'}"`
+                ].join(','))
+            ].join('\n');
+            
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `telkomsel_incidents_${new Date().getTime()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        // Focus on zone
+        function focusOnZone(lat, lng) {
+            map.setView([lat, lng], 12);
+        }
+
+        // Utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID').format(amount);
+        }
+
+        function getRevClassColor(revClass) {
+            const colors = {
+                'gold': '#FFD700',
+                'silver': '#C0C0C0',
+                'bronze': '#CD7F32',
+                'basic': '#808080'
+            };
+            return colors[revClass?.toLowerCase()] || '#666666';
+        }
+
+        function getRiskScoreColor(score) {
+            if (score >= 70) return '#ff0025';
+            if (score >= 40) return '#fda22b';
+            return '#27ae60';
+        }
+    </script>
+</body>
+</html>

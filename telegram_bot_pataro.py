@@ -66,7 +66,7 @@ class BotConfig:
     JAKARTA_TZ = pytz.timezone('Asia/Jakarta')
 
     # Broadcast intervals (in hours)
-    ALARM_BROADCAST_INTERVAL = int(os.getenv('ALARM_BROADCAST_INTERVAL', '7'))
+    ALARM_BROADCAST_INTERVAL = int(os.getenv('ALARM_BROADCAST_INTERVAL', '1'))
 
 # --- REFACTORED DATABASEMANAGER CLASS ---
 class DatabaseManager:
@@ -722,33 +722,7 @@ class TelegramBot:
     Contoh: `/register dolli_enom`
 
     2. **Buat Rencana Harianmu**:
-    Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
-
-    ```
-    PLAN DD/MM/YYYY
-    AREA-NAMA
-
-    Bang @Username
-    - SITEID Lokasi, Deskripsi Action
-    - SITEID Lokasi, Deskripsi Action
-
-    Om @Username2
-    - SITEID Lokasi, Deskripsi Action
-    - SITEID Lokasi, Deskripsi Action
-    ```
-    Contoh:
-    ```
-    PLAN 13/06/2025
-    LABUSEL-PALUTA-PALAS
-
-    Bang @Ansor TS Paluta @~Junaidi
-    - PSP513 Dolok, Replace ML6651 Link To PSP330
-    - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-
-    bg @~Hoirum sapii
-    # PSP083 Sibornat Bunut, clearing cell down, Cek Power dan Optik
-    # PSP701 Sialagundi, Cek Power dan Optik
-    ```
+    Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus.
 
     3. **Lihat Rencana Aktifmu**:
     Ketik `/myplan` untuk melihat semua site dan aktivitas yang telah kamu rencanakan untuk hari ini.
@@ -783,7 +757,7 @@ class TelegramBot:
 
     **Dikembangkan oleh:**
     Hilmi Fawwaz - Staff NOP Rantau Prapat
-    Contact: muhammad_h_fawwaz@telkomsel.co.id
+    Contact: muhammad\_h\_fawwaz@telkomsel.co.id
     """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
