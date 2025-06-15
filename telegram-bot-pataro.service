@@ -1,0 +1,24 @@
+sudo tee /etc/systemd/system/telegram-bot-enom-v0.service > /dev/null << EOF
+[Unit]
+Description=Telegram Bot for PATARO ENOM Activity Tracker
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=hilmifaww
+Group=hilmifaww
+WorkingDirectory=/home/hilmifaww/activity-tracker-rap-tbot
+Environment=PATH=/home/hilmifaww/venv/bin
+ExecStart=/home/hilmifaww/venv/bin/python telegram_bot.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/enom_tracker/telegram_bot.log
+StandardError=append:/var/log/enom_tracker/telegram_bot.log
+
+# Environment variables
+EnvironmentFile=/home/hilmifaww/activity-tracker-rap-tbot/.env
+
+[Install]
+WantedBy=multi-user.target
+EOF

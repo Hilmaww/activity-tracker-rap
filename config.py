@@ -36,8 +36,6 @@ class Config:
     # Flask security configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # CSRF Protection
@@ -90,13 +88,17 @@ class DevelopmentConfig(Config):
     DEBUG = True
     HOST = '127.0.0.1'
     PORT = 5005
+    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_HTTPONLY = True
 
 class ProductionConfig(Config):
     DEBUG = False
     HOST = '0.0.0.0'
     PORT = 5000
+    SESSION_COOKIE_SECURE = True
 
 class StagingConfig(Config):
     DEBUG = False
     HOST = '0.0.0.0'
     PORT = 5001
+    SESSION_COOKIE_SECURE = True

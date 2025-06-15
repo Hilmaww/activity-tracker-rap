@@ -94,15 +94,30 @@ class DatabaseManager:
         """Register or update telegram user info"""
         with self.get_db() as db_session:
             try:
+                # --- NEW CHECK: Check if telegram_id is already in use by any user ---
+                existing_user_with_telegram_id = db_session.query(User).filter(User.telegram_id == telegram_id).first()
+                if existing_user_with_telegram_id:
+                    logger.warning(f"Telegram ID '{telegram_id}' is already linked to another user.")
+                    return False # Registration failed because Telegram ID is already in use
+
                 user = db_session.query(User).filter(User.username == username).first()
                 if user:
+                    # Check if the user is already linked to a Telegram ID
+                    if user.telegram_id is not None:
+                        logger.warning(f"Username '{username}' is already linked to a Telegram ID.")
+                        return False # Registration failed because username is already linked
+
+                    # If user exists and is not linked, proceed with linking
                     user.telegram_id = telegram_id
                     user.telegram_username = telegram_username
                     user.telegram_full_name = full_name
                     user.updated_at = datetime.utcnow()
                     db_session.commit()
                     return True
-                return False
+                else:
+                    # User not found by username
+                    logger.warning(f"Username '{username}' not found in the database.")
+                    return False
             except Exception as e:
                 db_session.rollback()
                 logger.error(f"Error registering telegram user: {e}")
@@ -535,7 +550,7 @@ class PlanParser:
 
         for line in lines[2:]:
             line_lower = line.lower() # Convert line to lowercase for initial checks
-            if line_lower.startswith('bang') or line_lower.startswith('om') or line_lower.startswith('@'):
+            if line_lower.startswith('bang') or line_lower.startswith('bg') or line_lower.startswith('om') or line_lower.startswith('@'):
                 # This is an assignee line
                 assignee_name = line.strip() # Start with the original line, stripped of outer whitespace
 
@@ -722,6 +737,12 @@ class TelegramBot:
     All Team TO dan TS RAP: We Are One Team,One Dream
 
     Semoga PATARO Bot ini dapat membantumu bekerja lebih efisien dan terorganisir. Semangat selalu!
+
+    ---
+
+    **Dikembangkan oleh:**
+    Hilmi Fawwaz - Staff NOP Rantau Prapat
+    Contact: muhammad_h_fawwaz@telkomsel.co.id
     """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
