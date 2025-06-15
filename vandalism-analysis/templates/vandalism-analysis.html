@@ -804,6 +804,7 @@
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr style="background: #f8f9fa;">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Site ID</th>
                                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Site Name</th>
                                         <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Location</th>
                                         <th style="padding: 12px; text-align: center; border-bottom: 2px solid #dee2e6;">Risk Score</th>
@@ -814,6 +815,7 @@
                                 <tbody>
                                     ${data.data.slice(0, 10).map(site => `
                                         <tr style="border-bottom: 1px solid #dee2e6;">
+                                            <td style="padding: 12px;">${site.site_id}</td>
                                             <td style="padding: 12px;">${site.site_name}</td>
                                             <td style="padding: 12px;">${site.kabupaten}</td>
                                             <td style="padding: 12px; text-align: center;">

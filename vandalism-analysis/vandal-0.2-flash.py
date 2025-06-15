@@ -630,6 +630,7 @@ def get_risk_assessment():
         formatted_results = []
         for site in analysis_results:
             formatted_results.append({
+                'site_id': site['site_id'],
                 'site_name': site['site_name'],
                 'kabupaten': site['location'].split(', ')[1] if ', ' in site['location'] else site['location'], # Extract kabupaten from 'location'
                 'risk_score': site['risk_analysis']['total_risk_score'],
