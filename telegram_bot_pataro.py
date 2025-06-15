@@ -675,7 +675,7 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("update", self.update_command))
         self.application.add_handler(CommandHandler("status", self.status_command))
         self.application.add_handler(CommandHandler("alarms", self.alarms_command))
-        self.application.add_handler(CommandHandler("site-activity", self.site_activity_command)) # New command handler
+        self.application.add_handler(CommandHandler("siteactivity", self.site_activity_command)) # New command handler
 
         # Callback query handler for inline keyboards
         self.application.add_handler(CallbackQueryHandler(self.button_callback))
