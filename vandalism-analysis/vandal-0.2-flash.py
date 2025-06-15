@@ -24,6 +24,20 @@ def get_db_connection():
     """Get database connection"""
     return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
 
+def clean_coordinates(lat_str, lon_str):
+    """
+    Cleans and converts comma-decimal coordinate strings to floats.
+    Handles potential errors during conversion.
+    """
+    try:
+        # Replace comma with period and convert to float
+        lat = float(lat_str.replace(',', '.'))
+        lon = float(lon_str.replace(',', '.'))
+        return lat, lon
+    except (ValueError, AttributeError):
+        # Return None if conversion fails or input is not a string
+        return None, None
+
 # --- VandalismRiskAnalyzer Class (Integrated from vandal_risk_analysis.py) ---
 class VandalismRiskAnalyzer:
     def __init__(self):
@@ -303,8 +317,8 @@ def get_theft_incidents():
         SELECT 
             site_id,
             site_name,
-            CAST(lat AS FLOAT) as latitude,
-            CAST(long AS FLOAT) as longitude,
+            CAST(REPLACE(lat::TEXT, ',', '.')  AS FLOAT) as latitude,
+            CAST(REPLACE(long::TEXT, ',', '.')  AS FLOAT) as longitude,
             rev_class,
             kelurahan,
             kecamatan,
@@ -518,7 +532,7 @@ def get_high_risk_zones():
 
         # Fetch all incidents and sites to pass to the analyzer
         cur.execute("""
-            SELECT site_id, site_name, CAST(lat AS FLOAT) as lat, CAST(long AS FLOAT) as long,
+            SELECT site_id, site_name, CAST(REPLACE(lat::TEXT, ',', '.') AS FLOAT) as lat, CAST(REPLACE(long::TEXT, ',', '.')  AS FLOAT) as long,
                    rev_class, kelurahan, kecamatan, kabupaten, material_kehilangan_detail as detail,
                    event_date, event_hour, material_kehilangan_detail
             FROM public.vandalism_events
@@ -529,7 +543,7 @@ def get_high_risk_zones():
         # Use the incidents themselves as 'sites' for simplicity in this context
         # For a more robust system, 'all_sites' table would be separate
         cur.execute("""
-            SELECT DISTINCT site_id, site_name, CAST(lat AS FLOAT) as lat, CAST(long AS FLOAT) as long,
+            SELECT DISTINCT site_id, site_name, CAST(REPLACE(lat::TEXT, ',', '.')  AS FLOAT) as lat, CAST(REPLACE(long::TEXT, ',', '.')  AS FLOAT) as long,
                    rev_class, kelurahan, kecamatan, kabupaten, material_kehilangan_detail as detail
             FROM public.vandalism_events
         """)
@@ -588,14 +602,14 @@ def get_risk_assessment():
 
         # Fetch all sites and incidents required by the analyzer
         cur.execute("""
-            SELECT site_id, site_name, CAST(lat AS FLOAT) as lat, CAST(long AS FLOAT) as long,
+            SELECT site_id, site_name, CAST(REPLACE(lat::TEXT, ',', '.')  AS FLOAT) as lat, CAST(REPLACE(long::TEXT, ',', '.')  AS FLOAT) as long,
                    rev_class, kelurahan, kecamatan, kabupaten, material_kehilangan_detail as detail
             FROM public.vandalism_events
         """)
         all_sites_for_risk = cur.fetchall()
 
         cur.execute("""
-            SELECT site_id, site_name, CAST(lat AS FLOAT) as lat, CAST(long AS FLOAT) as long,
+            SELECT site_id, site_name, CAST(REPLACE(lat::TEXT, ',', '.')  AS FLOAT) as lat, CAST(REPLACE(long::TEXT, ',', '.')  AS FLOAT) as long,
                    event_date, event_hour, material_kehilangan_detail, rev_class
             FROM public.vandalism_events
             ORDER BY event_date DESC
