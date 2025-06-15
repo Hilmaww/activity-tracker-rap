@@ -529,7 +529,7 @@ class DatabaseManager:
             # Get ticket history for this site
             tickets_query = db_session.query(Ticket).options(
                 joinedload(Ticket.problem_category),
-                joinedload(Ticket.assignee_user) # Assuming assignee_user relationship exists
+                joinedload(Ticket.assigned_to_ts) # Assuming assignee_user relationship exists
             ).filter(
                 Ticket.site_id == site.id
             ).order_by(Ticket.created_at.desc()).limit(10) # Limit results
@@ -1152,7 +1152,7 @@ Send your plan in the next message.""",
             for ticket in ticket_history:
                 created_date = ticket.created_at.strftime('%d/%m/%Y') if ticket.created_at else 'Unknown Date'
                 category = ticket.problem_category.value if ticket.problem_category else 'Unknown Category'
-                assignee = ticket.assignee_user.username if ticket.assignee_user else 'Unassigned'
+                assignee = ticket.assigned_to_ts if ticket.assigned_to_ts else (ticket.assigned_to_enom if ticket.assigned_to_enom else 'Unassigned')
                 status = ticket.status.value if ticket.status else 'Unknown Status'
                 message += f"• {escape_markdown(created_date)} - {escape_markdown(category)} ({escape_markdown(status)})\n"
                 message += f"  Assignee: {escape_markdown(assignee)}\n"
