@@ -1798,12 +1798,23 @@ def create_plan():
         action = request.form.get('action')
         try:
             plan_date = datetime.strptime(request.form['plan_date'], '%Y-%m-%d').date()
+            
+            # Add planned sites
+            site_ids = request.form.getlist('site_id[]')
+            actions = request.form.getlist('planned_actions[]')
+            visit_orders = request.form.getlist('visit_order[]')
+            durations = request.form.getlist('duration[]')
+            assignees = request.form.getlist('assignee[]')
+
+            total_sites = len(site_ids)
+
             if action == 'draft':
 
                 new_plan = DailyPlan(
                     enom_user_id=current_user.id,
                     plan_date=plan_date,
-                    status=PlanStatus.DRAFT
+                    status=PlanStatus.DRAFT,
+                    total_sites_planned=total_sites
                 )
                 db.session.add(new_plan)
                 db.session.commit()
@@ -1811,17 +1822,13 @@ def create_plan():
                 new_plan = DailyPlan(
                     enom_user_id=current_user.id,
                     plan_date=plan_date,
-                    status=PlanStatus.SUBMITTED
+                    status=PlanStatus.SUBMITTED,
+                    total_sites_planned=total_sites
                 )
                 db.session.add(new_plan)
                 db.session.commit()
 
-            # Add planned sites
-            site_ids = request.form.getlist('site_id[]')
-            actions = request.form.getlist('planned_actions[]')
-            visit_orders = request.form.getlist('visit_order[]')
-            durations = request.form.getlist('duration[]')
-            assignees = request.form.getlist('assignee[]')
+            
             
             for i in range(len(site_ids)):
                 # Get site by site_id

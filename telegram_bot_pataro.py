@@ -502,6 +502,43 @@ class DatabaseManager:
                 User.role == 'enom'
             ).all()
 
+    def get_site_activity_history(self, site_id_str: str) -> Tuple[Optional['Site'], List['PlannedSite'], List['Ticket']]:
+        """
+        Get activity history (planned visits and tickets) for a specific site.
+        Returns the Site object, a list of PlannedSite objects, and a list of Ticket objects.
+        """
+        with self.get_db() as db_session:
+            site = db_session.query(Site).filter(Site.site_id == site_id_str).first()
+
+            if not site:
+                return None, [], []
+
+            # Get planned visits for this site
+            # Join PlannedSite with DailyPlan and User to get plan date and user info
+            visits_query = db_session.query(PlannedSite).join(DailyPlan).join(User).options(
+                joinedload(PlannedSite.daily_plan).joinedload(DailyPlan.enom_user),
+                joinedload(PlannedSite.site) # Eager load site just in case, though we have it
+            ).filter(
+                PlannedSite.site_id == site.id,
+                PlannedSite.is_deleted == False, # Only include active planned sites
+                DailyPlan.status.in_([PlanStatus.APPROVED, PlanStatus.SUBMITTED]) # Only include relevant plan statuses
+            ).order_by(DailyPlan.plan_date.desc(), PlannedSite.visit_order.asc()).limit(20) # Limit results
+
+            planned_visits = visits_query.all()
+
+            # Get ticket history for this site
+            tickets_query = db_session.query(Ticket).options(
+                joinedload(Ticket.problem_category),
+                joinedload(Ticket.assignee_user) # Assuming assignee_user relationship exists
+            ).filter(
+                Ticket.site_id == site.id
+            ).order_by(Ticket.created_at.desc()).limit(10) # Limit results
+
+            ticket_history = tickets_query.all()
+
+            return site, planned_visits, ticket_history
+
+
 # --- END REFACTORED DATABASEMANAGER CLASS ---
 
 
@@ -638,6 +675,7 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("update", self.update_command))
         self.application.add_handler(CommandHandler("status", self.status_command))
         self.application.add_handler(CommandHandler("alarms", self.alarms_command))
+        self.application.add_handler(CommandHandler("site-activity", self.site_activity_command)) # New command handler
 
         # Callback query handler for inline keyboards
         self.application.add_handler(CallbackQueryHandler(self.button_callback))
@@ -666,6 +704,7 @@ class TelegramBot:
     • **Mengatur Rencana Harianmu**: Dari merencanakan kunjungan site hingga melacak status pekerjaan.
     • **Update Status Cepat**: Laporkan progress pekerjaan di site langsung dari Telegram.
     • **Monitor Alarm Penting**: Dapatkan informasi terkini tentang alarm aktif di berbagai site.
+    • **Lihat Riwayat Aktivitas Site**: Cek kunjungan dan tiket terkait site tertentu.
 
     ---
 
@@ -725,6 +764,10 @@ class TelegramBot:
     6. **Pantau Alarm Aktif**:
     Gunakan `/alarms` untuk mendapatkan daftar alarm yang sedang aktif.
 
+    7. **Lihat Riwayat Aktivitas Site**:
+    Gunakan `/siteactivity SITEID` untuk melihat riwayat kunjungan dan tiket terkait site tertentu.
+    Contoh: `/siteactivity PSP513`
+
     ---
 
     ### Didedikasikan Untuk:
@@ -774,7 +817,10 @@ You can update individual sites or bulk update
 
 🚨 /alarms - View active site alarms
 
-⚙️ /register username - Register your telegram account
+🔍 `/siteactivity SITEID` - View activity history for a specific site (TSel only)
+Example: `/siteactivity PSP513`
+
+⚙️ `/register username` - Register your telegram account
 Replace 'username' with your system username
 
 **Plan Format Example:**
@@ -782,7 +828,7 @@ Replace 'username' with your system username
 PLAN 13/06/2025
 LABUSEL-PALUTA-PALAS
 
-Bang @Ansor TS Paluta @~Junaidi 
+Bang @Ansor TS Paluta @~Junaidi
 - PSP513 Dolok, Replace ML6651 Link To PSP330
 - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
 ```
@@ -848,7 +894,7 @@ Bang @Username
 ```
 PLAN 13/06/2025
 LABUSEL-PALUTA-PALAS
-Bang @Ansor TS Paluta @~Junaidi 
+Bang @Ansor TS Paluta @~Junaidi
 - PSP513 Dolok, Replace ML6651 Link To PSP330
 - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
 ```
@@ -931,7 +977,7 @@ Send your plan in the next message.""",
                 else:
                      # Handle case where user relationship might be broken (shouldn't happen with FK)
                      message += f"👤 **Unknown User (Plan ID: {plan.id})**\n"
-                     message += f"Status: {escape_markdown(plan.status.value)} | Progress: {plan.sites_completed}/{plan.total_sites_planned} sites completed ({plan.completion_percentage:.1f}%)\n\n"
+                     message += f"Status: {escaped_plan_status} | Progress: {plan.sites_completed}/{plan.total_sites_planned} sites completed ({plan.completion_percentage:.1f}%)\n\n"
 
 
             message += "Use `/update` to see sites you can update (if any)." # TSEL users might update tickets, not plans directly via this view
@@ -1057,6 +1103,66 @@ Send your plan in the next message.""",
 
         await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
+    async def site_activity_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /siteactivity command for TSEL users"""
+        user = self.db.get_user_by_telegram_id(update.effective_user.id)
+        if not user:
+            await update.message.reply_text("❌ You need to register first.")
+            return
+
+        if user.role != 'tsel':
+             await update.message.reply_text("❌ Only TSEL users can use the `/siteactivity` command.")
+             return
+
+        if not context.args:
+            await update.message.reply_text(
+                "Please provide a Site ID: `/siteactivity SITEID`",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        site_id_str = context.args[0].strip().upper()
+
+        # Fetch site activity history using the new DB method
+        site, planned_visits, ticket_history = self.db.get_site_activity_history(site_id_str)
+
+        if not site:
+            await update.message.reply_text(f"❌ Site ID '{escape_markdown(site_id_str)}' not found in the database.")
+            return
+
+        message = f"🔍 **Activity History for {escape_markdown(site.site_id)} - {escape_markdown(site.name)}**\n"
+        message += f"📍 Location: {escape_markdown(site.kabupaten)}\n\n"
+
+        # Display Planned Visits
+        if planned_visits:
+            message += "📋 **Planned Visits (Recent)**\n"
+            for visit in planned_visits:
+                plan_date = visit.daily_plan.plan_date.strftime('%d/%m/%Y') if visit.daily_plan else 'Unknown Date'
+                user_name = visit.daily_plan.enom_user.username if visit.daily_plan and visit.daily_plan.enom_user else 'Unknown User'
+                status_emoji = "✅" if visit.is_completed else "⏳"
+                message += f"{status_emoji} {escape_markdown(plan_date)} by {escape_markdown(user_name)}\n"
+                message += f"   Plan: {escape_markdown(visit.planned_actions)}\n"
+                message += f"   Status: {escape_markdown(visit.updated_actions or 'Not Done Yet')}\n\n"
+        else:
+            message += "📋 No recent planned visits found.\n\n"
+
+        # Display Ticket History
+        if ticket_history:
+            message += "🎫 **Ticket History (Recent)**\n"
+            for ticket in ticket_history:
+                created_date = ticket.created_at.strftime('%d/%m/%Y') if ticket.created_at else 'Unknown Date'
+                category = ticket.problem_category.value if ticket.problem_category else 'Unknown Category'
+                assignee = ticket.assignee_user.username if ticket.assignee_user else 'Unassigned'
+                status = ticket.status.value if ticket.status else 'Unknown Status'
+                message += f"• {escape_markdown(created_date)} - {escape_markdown(category)} ({escape_markdown(status)})\n"
+                message += f"  Assignee: {escape_markdown(assignee)}\n"
+                message += f"  Desc: {escape_markdown(ticket.description[:80])}{'...' if len(ticket.description) > 80 else ''}\n\n"
+        else:
+            message += "🎫 No recent tickets found.\n\n"
+
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
+
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle regular text messages"""
 
@@ -1174,7 +1280,7 @@ Send your plan in the next message.""",
 
         finally:
             # Clear the awaiting state
-            context.user_data['awaiting_plan'] = False
+            context.user_data.pop('awaiting_plan', None)
 
     async def process_site_update_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Process site action update text"""
@@ -1192,7 +1298,7 @@ Send your plan in the next message.""",
         # Using ORM method
         if self.db.update_planned_site_action(planned_site_id, new_action):
             # Fetch the updated planned site to show details in confirmation
-            updated_site = self.db.get_planned_site_by_id(planned_site_id) # Use the manager method (which filters deleted)
+            updated_site = self.db.get_planned_site_by_id(planned_site_id) # Use the manager method (filters deleted)
             if updated_site:
                 message = f"✅ Site action updated successfully!\n\n"
                 message += f"📍 **{escape_markdown(updated_site.site.site_id)}** - {escape_markdown(updated_site.site.name)}\n"
