@@ -61,6 +61,9 @@ class BotConfig:
     DATABASE_URL = os.getenv('SQLALCHEMY_DATABASE_URI')
     AUTHORIZED_GROUP_ID = os.getenv('TELEGRAM_GROUP_ID')  # Your telegram group ID
     ADMIN_USER_IDS = [int(x) for x in os.getenv('ADMIN_USER_IDS', '').split(',') if x]
+    # Define your group chat IDs
+    GROUP_2_ALARM_BROADCAST_ID = os.getenv('ALARM_NOP_TELEGRAM_GROUP_ID')-4051061325
+    GROUP_1_TESTING_ID = os.getenv('PATARO_TELEGRAM_GROUP_ID')-2612746356
 
     # Timezone
     JAKARTA_TZ = pytz.timezone('Asia/Jakarta')
@@ -1163,6 +1166,51 @@ Send your plan in the next message.""",
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle regular text messages"""
+
+        # --- Start of New Logic for Alarm Broadcast ---
+
+        # Check if the message is from the alarm broadcast group and contains text
+        if update.message.chat.id == self.config.GROUP_2_ALARM_BROADCAST_ID and update.message.text:
+            message_text = update.message.text
+            
+            # Check if the message is the specific alarm broadcast you're interested in
+            if "*Alarm Down" in message_text:
+                try:
+                    # Find the end of the section you want to capture
+                    # We look for the line after "Duration: (e) 0-4 hours*"
+                    # and then find the end of that subsequent line.
+                    end_keyword = "Duration: (e) 0-4 hours*"
+                    keyword_index = message_text.find(end_keyword)
+
+                    if keyword_index != -1:
+                        # Find the start of the line *after* the keyword line
+                        start_of_next_line = message_text.find('\n', keyword_index) + 1
+                        
+                        # Find the end of that next line
+                        end_of_capture_line = message_text.find('\n', start_of_next_line)
+                        
+                        # If the line after the keyword is the last line in the message
+                        if end_of_capture_line == -1:
+                            end_of_capture_line = len(message_text)
+
+                        # Slice the message from the beginning to the end of the desired section
+                        broadcast_message = message_text[:end_of_capture_line]
+                        
+                        # Send the extracted message to your testing group
+                        await context.bot.send_message(
+                            chat_id=self.config.GROUP_1_TESTING_ID,
+                            text=broadcast_message,
+                            parse_mode='Markdown' # Use Markdown to preserve formatting like bold and italics
+                        )
+                        # We return here to stop processing the message further
+                        return
+
+                except Exception as e:
+                    print(f"Error processing and broadcasting alarm message: {e}")
+                    # Optionally, send an error notification to a specific user or group
+                    # await context.bot.send_message(chat_id=YOUR_ADMIN_ID, text=f"Error: {e}")
+
+        # --- End of New Logic ---
 
         # Check if user is awaiting plan submission
         if context.user_data.get('awaiting_plan'):
