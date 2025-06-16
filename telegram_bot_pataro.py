@@ -1168,13 +1168,13 @@ Send your plan in the next message.""",
         """Handle regular text messages"""
 
         # --- Start of New Logic for Alarm Broadcast ---
+        # Check if the message is from the alarm broadcast group and contains text tukarkitik
 
-        # Check if the message is from the alarm broadcast group and contains text
-        if update.message.chat.id == self.config.GROUP_2_ALARM_BROADCAST_ID and update.message.text:
+        if str(update.message.chat.id) == str(self.config.GROUP_2_ALARM_BROADCAST_ID) and update.message.text:
             message_text = update.message.text
             
             # Check if the message is the specific alarm broadcast you're interested in
-            if "*Alarm Down" in message_text:
+            if "Alarm Down" in message_text:
                 try:
                     # Find the end of the section you want to capture
                     # We look for the line after "Duration: (e) 0-4 hours*"
@@ -1194,7 +1194,7 @@ Send your plan in the next message.""",
                             end_of_capture_line = len(message_text)
 
                         # Slice the message from the beginning to the end of the desired section
-                        broadcast_message = message_text[:end_of_capture_line]
+                        broadcast_message = escape_markdown(message_text[:end_of_capture_line])
                         
                         # Send the extracted message to your testing group
                         await context.bot.send_message(
