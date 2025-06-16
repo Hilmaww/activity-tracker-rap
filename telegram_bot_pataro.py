@@ -62,8 +62,8 @@ class BotConfig:
     AUTHORIZED_GROUP_ID = os.getenv('TELEGRAM_GROUP_ID')  # Your telegram group ID
     ADMIN_USER_IDS = [int(x) for x in os.getenv('ADMIN_USER_IDS', '').split(',') if x]
     # Define your group chat IDs
-    GROUP_2_ALARM_BROADCAST_ID = os.getenv('ALARM_NOP_TELEGRAM_GROUP_ID')-4051061325
-    GROUP_1_TESTING_ID = os.getenv('PATARO_TELEGRAM_GROUP_ID')-2612746356
+    GROUP_2_ALARM_BROADCAST_ID = os.getenv('ALARM_NOP_TELEGRAM_GROUP_ID')
+    GROUP_1_TESTING_ID = os.getenv('PATARO_TELEGRAM_GROUP_ID')
 
     # Timezone
     JAKARTA_TZ = pytz.timezone('Asia/Jakarta')
