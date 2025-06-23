@@ -828,25 +828,7 @@ class TelegramBot:
     Contoh: `/register dolli_enom`
 
     2. **Buat Rencana Harianmu**:
-    Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus:
-
-    ```
-    PLAN DD/MM/YYYY
-    AREA-NAMA
-
-    Bang @Username
-    - SITEID Deskripsi Action
-    - SITEID Deskripsi Action
-    ```
-    Contoh:
-    ```
-    PLAN 13/06/2025
-    LABUSEL-PALUTA-PALAS
-
-    Bang @Ansor TS Paluta @~Junaidi
-    - PSP513 Dolok, Replace ML6651 Link To PSP330
-    - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-    ```
+    Gunakan perintah `/plan` untuk memulai proses pembuatan rencana. Kamu akan diminta untuk mengirimkan detail rencana harianmu dengan format khusus.
     Setelah itu, bot akan membalas dengan template yang sudah diformat. Kamu perlu mengisi kategori (C/P/S) di template tersebut dan mengirimkannya kembali menggunakan perintah `/sendplan`.
 
     3. **Lihat Rencana Aktifmu**:
@@ -882,7 +864,7 @@ class TelegramBot:
 
     **Dikembangkan oleh:**
     Hilmi Fawwaz - Staff NOP Rantau Prapat
-    Contact: muhammad_h_fawwaz@telkomsel.co.id
+    Contact: muhammad\_h\_fawwaz@telkomsel.co.id
     """
         await update.message.reply_text(welcome_message, parse_mode=ParseMode.MARKDOWN)
 
@@ -914,39 +896,10 @@ Example: `/siteactivity PSP513`
 Replace 'username' with your system username
 
 **Plan Submission Flow:**
-1. Type `/plan` and send your initial plan:
-PLAN DD/MM/YYYY
-CLUSTER-NAME
-
-Bang @Username
-
-SITEID Location, Action description
-SITEID Location, Action description
-<!-- end list -->
-
+1. Type `/plan` and send your initial plan like normal
 2. The bot will send you a pre-formatted `/sendplan` template.
 3. Fill in the `{C,P,S}` category for each site in the template.
 4. Copy the entire template and send it back to the bot using `/sendplan`.
-
-**Example for /plan (initial):**
-PLAN 13/06/2025
-LABUSEL-PALUTA-PALAS
-
-Bang @Ansor TS Paluta @~Junaidi
-
-PSP513 Dolok, Replace ML6651 Link To PSP330
-PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-<!-- end list -->
-
-
-**Example for /sendplan (after filling categories):**
-PLAN 13/06/2025
-LABUSEL-PALUTA-PALAS
-
-Bang @Ansor TS Paluta @~Junaidi
-PSP513/ Dolok/ C/ Replace ML6651 Link To PSP330
-PSP567/ Rendaman Dolok/ P/ Clearing Cell Down, Cek Power dan Optik
-
 
 Need more help? Contact your administrator.
         """
@@ -996,26 +949,26 @@ Need more help? Contact your administrator.
             """📝 **Submit Daily Plan (Step 1 of 2)**
 
 Please send your initial daily plan in the following simplified format:
-
+```
 PLAN DD/MM/YYYY
 AREA-NAME
 
 Bang @Username
 
-SITEID Location, Action description
-SITEID Location, Action description
-<!-- end list -->
-
+- SITEID Location, Action description
+- SITEID Location, Action description
+```
 
 **Example:**
+```
 PLAN 13/06/2025
 LABUSEL-PALUTA-PALAS
 
 Bang @Ansor TS Paluta @~Junaidi
 
-PSP513 Dolok, Replace ML6651 Link To PSP330
-PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-<!-- end list -->
+- PSP513 Dolok, Replace ML6651 Link To PSP330
+- PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+```
 
 I will then send you a formatted template to fill in the site categories (C/P/S) and submit using `/sendplan`.""",
             parse_mode=ParseMode.MARKDOWN
@@ -1038,26 +991,16 @@ I will then send you a formatted template to fill in the site categories (C/P/S)
             await update.message.reply_text("❌ Only ENOM users can submit daily plans.")
             return
 
-        plan_text = ""
-        # If the command has arguments, use them. Otherwise, assume it's a reply to the formatted message.
-        if context.args:
-            plan_text = " ".join(context.args)
-        elif update.message.reply_to_message and update.message.reply_to_message.from_user.is_bot:
-            plan_text = update.message.reply_to_message.text # This might not be ideal as it takes the bot's *previous* message.
-                                                             # It's better to rely on the user copying the template.
-            # To handle cases where user might just reply with /sendplan without copying the full text,
-            # we should encourage copying the *entire* formatted message.
-            # For robustness, we'll primarily rely on the message content itself.
-            if not plan_text.startswith("PLAN"): # A quick check if it looks like a plan.
-                await update.message.reply_text(
-                    "❌ Please copy the *entire* formatted plan template (starting with 'PLAN') and send it with `/sendplan`."
-                )
-                return
-        else:
+        # Corrected part: Get the full message text after the command
+        # This assumes the user copies the entire multi-line template after '/sendplan '
+        plan_text = update.message.text[len("/sendplan"):].strip()
+
+        if not plan_text: # If no text provided after /sendplan
              await update.message.reply_text(
                  "❌ Please copy the *entire* formatted plan template (starting with 'PLAN') and send it with `/sendplan`.\n\n"
                  "Example:\n"
                  "```\n"
+                 "/sendplan\n"
                  "PLAN 13/06/2025\n"
                  "LABUSEL-PALUTA-PALAS\n\n"
                  "Bang @Ansor TS Paluta @~Junaidi\n"
@@ -1525,9 +1468,10 @@ I will then send you a formatted template to fill in the site categories (C/P/S)
             await update.message.reply_text(
                 "✅ **Plan format generated!**\n\n"
                 "Please **COPY THE ENTIRE TEXT BELOW**, fill in the `{C,P,S}` category for each site, and then send it back to me using the `/sendplan` command.\n\n"
-                f"```\n{formatted_plan_template}```\n"
+                f"```\n/sendplan\n{formatted_plan_template}```\n"
                 "**Example after editing:**\n"
                 "```\n"
+                "/sendplan\n"
                 "PLAN 13/06/2025\n"
                 "LABUSEL-PALUTA-PALAS\n\n"
                 "Bang @Ansor TS Paluta @~Junaidi\n"
