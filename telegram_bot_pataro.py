@@ -1,3 +1,4 @@
+# telegram_bot_pataro.py
 #!/usr/bin/env python3
 """
 Telegram Bot for BTS Activity Tracker
@@ -195,13 +196,25 @@ class DatabaseManager:
                         logger.warning(f"Site {site_data['site_id']} not found for daily plan. Skipping.")
                         continue # Skip this site if not found
 
+                    # Validate and map category string to Enum
+                    category_str = site_data.get('category', '').upper()
+                    category_enum = None
+                    if category_str == 'C':
+                        category_enum = ProblemCategory.CORRECTIVE
+                    elif category_str == 'P':
+                        category_enum = ProblemCategory.PREVENTIVE
+                    elif category_str == 'S':
+                        category_enum = ProblemCategory.SUPPORT
+                    # If category_str is not C, P, or S, category_enum remains None (nullable column)
+
                     new_planned_site = PlannedSite(
                         daily_plan_id=new_plan.id,
                         site_id=site.id, # Use the actual Site ID from the fetched Site object
                         planned_actions=site_data['actions'],
                         visit_order=idx,
                         assignee=site_data.get('assignee', ''),
-                        estimated_duration=site_data.get('duration', 60)
+                        estimated_duration=site_data.get('duration', 60),
+                        category=category_enum # Save the category
                     )
                     db_session.add(new_planned_site)
 
@@ -214,7 +227,7 @@ class DatabaseManager:
                 logger.error(f"Error creating daily plan: {e}")
                 return None
 
-    def add_planned_site_to_plan(self, plan_id: int, site_id_str: str, actions: str, assignee: str) -> Optional['PlannedSite']:
+    def add_planned_site_to_plan(self, plan_id: int, site_id_str: str, category_str: str, actions: str, assignee: str) -> Optional['PlannedSite']:
         """Add a new planned site to an existing daily plan."""
         with self.get_db() as db_session:
             try:
@@ -232,6 +245,17 @@ class DatabaseManager:
                 max_order = db_session.query(func.max(PlannedSite.visit_order)).filter(PlannedSite.daily_plan_id == plan_id).scalar() or 0
                 next_order = max_order + 1
 
+                # Validate and map category string to Enum
+                category_enum = None
+                if category_str.upper() == 'C':
+                    category_enum = ProblemCategory.CORRECTIVE
+                elif category_str.upper() == 'P':
+                    category_enum = ProblemCategory.PREVENTIVE
+                elif category_str.upper() == 'S':
+                    category_enum = ProblemCategory.SUPPORT
+                # If category_str is not C, P, or S, category_enum remains None (nullable column)
+
+
                 new_planned_site = PlannedSite(
                     daily_plan_id=plan.id,
                     site_id=site.id,
@@ -240,7 +264,8 @@ class DatabaseManager:
                     assignee=assignee,
                     estimated_duration=60, # Default duration
                     updated_actions='Not Done Yet', # Default status
-                    is_completed=False
+                    is_completed=False,
+                    category=category_enum # Save the category
                 )
                 db_session.add(new_planned_site)
 
@@ -256,8 +281,8 @@ class DatabaseManager:
                 logger.error(f"Error adding planned site to plan {plan_id}: {e}")
                 return None
 
-    def update_planned_site_details(self, planned_site_id: int, new_site_id_str: str, new_actions: str, new_assignee: str) -> Optional['PlannedSite']:
-        """Update the site, actions, and assignee for an existing planned site."""
+    def update_planned_site_details(self, planned_site_id: int, new_site_id_str: str, new_category_str: str, new_actions: str, new_assignee: str) -> Optional['PlannedSite']:
+        """Update the site, category, actions, and assignee for an existing planned site."""
         with self.get_db() as db_session:
             try:
                 planned_site = db_session.query(PlannedSite).filter(PlannedSite.id == planned_site_id).first()
@@ -270,10 +295,22 @@ class DatabaseManager:
                     logger.warning(f"New site {new_site_id_str} not found for updating planned site {planned_site_id}.")
                     return None
 
+                # Validate and map category string to Enum
+                new_category_enum = None
+                if new_category_str.upper() == 'C':
+                    new_category_enum = ProblemCategory.CORRECTIVE
+                elif new_category_str.upper() == 'P':
+                    new_category_enum = ProblemCategory.PREVENTIVE
+                elif new_category_str.upper() == 'S':
+                    new_category_enum = ProblemCategory.SUPPORT
+                # If category_str is not C, P, or S, category_enum remains None (nullable column)
+
+
                 # Store old completion status before changing site/details
                 old_is_completed = planned_site.is_completed
 
                 planned_site.site_id = site.id
+                planned_site.category = new_category_enum # Update category
                 planned_site.planned_actions = new_actions
                 planned_site.assignee = new_assignee
                 # Reset status when changing site/details
@@ -548,20 +585,20 @@ class PlanParser:
     @staticmethod
     def parse_plan_text(plan_text: str) -> Tuple[str, date, List[Dict]]:
         """
-        Parse plan text format:
-        PLAN 13/06/2025
-        LABUSEL-PALUTA-PALAS
+        Parse plan text format for the initial submission:
+        PLAN DD/MM/YYYY
+        AREA-NAMA
 
-        Bang @Ansor TS Paluta @~Junaidi
-        - PSP513 Dolok, Replace ML6651 Link To PSP330
-        - PSP567 Rendaman Dolok,  Clearing Cell Down, Cek Power dan Optik
+        Bang @Username
+        - SITEID Deskripsi Action
+        - SITEID Deskripsi Action
         """
         lines = [line.strip() for line in plan_text.strip().split('\n') if line.strip()]
 
         if len(lines) < 3:
             raise ValueError("Invalid plan format. Minimum 3 lines required.")
 
-        # Extract area
+        # Extract area and date
         area_line = lines[0]
         if not area_line.lower().startswith('plan'):
             raise ValueError("Plan harus diawali dengan 'Plan [Tanggal]'")
@@ -620,26 +657,14 @@ class PlanParser:
                 # Remove any remaining invisible characters at the beginning
                 site_line = re.sub(r'^[\s\u200b\u200c\u200d\u2060\ufeff]+', '', site_line)
 
-                # Extract site ID (first word before space or comma)
-                site_match = re.match(r'^([A-Za-z0-9]+)', site_line)
-                if not site_match:
-                    # If no site ID found, skip this line
+                # Split site_line into site_id and actions
+                parts = site_line.split(' ', maxsplit=1)
+                if len(parts) < 2:
+                    logger.warning(f"Skipping invalid site line format (missing action): {line}")
                     continue
 
-                site_id = site_match.group(1).upper() # Site ID should always be uppercase
-
-                # Extract actions (everything after site code and location)
-                # Find the first comma, or the second space after the site ID
-                parts = site_line.split(',', 1)
-                if len(parts) > 1:
-                    actions = parts[1].strip()
-                else:
-                    # If no comma, try to infer actions after the first two words (site ID and assumed location)
-                    words = site_line.split()
-                    if len(words) > 2:
-                        actions = ' '.join(words[2:]).strip()
-                    else:
-                        actions = "Maintenance" # Default action if nothing else is specified
+                site_id = parts[0].strip().upper()
+                actions = parts[1].strip()
 
                 sites_data.append({
                     'site_id': site_id,
@@ -648,6 +673,83 @@ class PlanParser:
                     'duration': 60  # Default duration
                 })
 
+        return area, plan_date, sites_data
+
+    @staticmethod
+    def parse_sendplan_text(plan_text: str) -> Tuple[str, date, List[Dict]]:
+        """
+        Parse plan text format for /sendplan command:
+        PLAN DD/MM/YYYY
+        AREA-NAMA
+
+        Bang @Username
+        SITEID/ Location/ {C,P,S}/ Deskripsi Action
+        SITEID/ Location/ {C,P,S}/ Deskripsi Action
+        """
+        lines = [line.strip() for line in plan_text.strip().split('\n') if line.strip()]
+
+        if len(lines) < 3:
+            raise ValueError("Invalid plan format. Minimum 3 lines required.")
+
+        # Extract area and date
+        area_line = lines[0]
+        if not area_line.lower().startswith('plan'):
+            raise ValueError("Plan harus diawali dengan 'Plan [Tanggal]'")
+        date_match = re.match(r'^PLAN\s+(\d{2}[-/]\d{2}[-/]\d{4})', area_line, re.IGNORECASE)
+        if not date_match:
+             raise ValueError("Invalid date format in PLAN line. Use DD/MM/YYYY or DD-MM-YYYY")
+        date_line = date_match.group(1)
+
+        area = lines[1]
+        try:
+            # Try parsing with '/' first, then '-'
+            try:
+                plan_date = datetime.strptime(date_line, '%d/%m/%Y').date()
+            except ValueError:
+                plan_date = datetime.strptime(date_line, '%d-%m-%Y').date()
+        except ValueError:
+            raise ValueError("Invalid date format. Use DD/MM/YYYY or DD-MM-YYYY")
+
+        # Parse sites and assignees
+        sites_data = []
+        current_assignee = ""
+
+        for line in lines[2:]:
+            line_lower = line.lower()
+            if line_lower.startswith('bang') or line_lower.startswith('bg') or line_lower.startswith('om') or line_lower.startswith('@'):
+                assignee_name = line.strip()
+                if assignee_name.lower().startswith('bang '):
+                    assignee_name = assignee_name[len('Bang '):].strip()
+                elif assignee_name.lower().startswith('om '):
+                    assignee_name = assignee_name[len('Om '):].strip()
+                assignee_name = assignee_name.lstrip('@').lstrip('~').strip()
+                current_assignee = assignee_name.title()
+            elif '/' in line and not line.lower().startswith(('bang', 'bg', 'om', '@', '-', '*', '#', '•')): # This is now a more direct site line
+                site_line = line.strip()
+                parts = site_line.split('/', maxsplit=3) # Split into at most 4 parts: SITEID, Location, Category, Actions
+
+                if len(parts) < 4:
+                    logger.warning(f"Skipping invalid site line format for /sendplan: {line}. Expected 4 parts separated by '/'.")
+                    continue
+
+                site_id = parts[0].strip().upper()
+                # Location part is now explicitly parsed but not stored in DB directly for planned_sites
+                # location = parts[1].strip() 
+                category_str = parts[2].strip()
+                actions = parts[3].strip()
+
+                # Basic validation for category string
+                if category_str.upper() not in ['C', 'P', 'S']:
+                    logger.warning(f"Invalid category '{category_str}' for site {site_id}. Skipping site.")
+                    continue
+
+                sites_data.append({
+                    'site_id': site_id,
+                    'category': category_str,
+                    'actions': actions,
+                    'assignee': current_assignee,
+                    'duration': 60
+                })
         return area, plan_date, sites_data
 
 
@@ -672,6 +774,7 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("help", self.help_command))
         self.application.add_handler(CommandHandler("register", self.register_command))
         self.application.add_handler(CommandHandler("plan", self.plan_command))
+        self.application.add_handler(CommandHandler("sendplan", self.sendplan_command)) # New handler for final plan submission
         self.application.add_handler(CommandHandler("myplan", self.my_plan_command))
         self.application.add_handler(CommandHandler("update", self.update_command))
         self.application.add_handler(CommandHandler("status", self.status_command))
@@ -732,12 +835,8 @@ class TelegramBot:
     AREA-NAMA
 
     Bang @Username
-    - SITEID Lokasi, Deskripsi Action
-    - SITEID Lokasi, Deskripsi Action
-
-    Om @Username2
-    - SITEID Lokasi, Deskripsi Action
-    - SITEID Lokasi, Deskripsi Action
+    - SITEID Deskripsi Action
+    - SITEID Deskripsi Action
     ```
     Contoh:
     ```
@@ -747,11 +846,8 @@ class TelegramBot:
     Bang @Ansor TS Paluta @~Junaidi
     - PSP513 Dolok, Replace ML6651 Link To PSP330
     - PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-
-    bg @~Hoirum sapii
-    # PSP083 Sibornat Bunut, clearing cell down, Cek Power dan Optik
-    # PSP701 Sialagundi, Cek Power dan Optik
     ```
+    Setelah itu, bot akan membalas dengan template yang sudah diformat. Kamu perlu mengisi kategori (C/P/S) di template tersebut dan mengirimkannya kembali menggunakan perintah `/sendplan`.
 
     3. **Lihat Rencana Aktifmu**:
     Ketik `/myplan` untuk melihat semua site dan aktivitas yang telah kamu rencanakan untuk hari ini.
@@ -798,16 +894,9 @@ class TelegramBot:
 
 **Commands:**
 
-📝 `/plan` - Submit daily plan
-Format your plan like this:
-```
-PLAN DD/MM/YYYY
-CLUSTER-NAME
+📝 `/plan` - Start submitting your daily plan. You'll send a simplified version first, then get a formatted template to complete.
 
-Bang @Username
-- PSP513 Location, Action description
-- PSP567 Location, Action description
-```
+🚀 `/sendplan` - Submit the final formatted daily plan with categories.
 
 📋 /myplan - View your current daily plan
 
@@ -824,15 +913,41 @@ Example: `/siteactivity PSP513`
 ⚙️ `/register username` - Register your telegram account
 Replace 'username' with your system username
 
-**Plan Format Example:**
-```
+**Plan Submission Flow:**
+1. Type `/plan` and send your initial plan:
+PLAN DD/MM/YYYY
+CLUSTER-NAME
+
+Bang @Username
+
+SITEID Location, Action description
+SITEID Location, Action description
+<!-- end list -->
+
+2. The bot will send you a pre-formatted `/sendplan` template.
+3. Fill in the `{C,P,S}` category for each site in the template.
+4. Copy the entire template and send it back to the bot using `/sendplan`.
+
+**Example for /plan (initial):**
 PLAN 13/06/2025
 LABUSEL-PALUTA-PALAS
 
 Bang @Ansor TS Paluta @~Junaidi
-- PSP513 Dolok, Replace ML6651 Link To PSP330
-- PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-```
+
+PSP513 Dolok, Replace ML6651 Link To PSP330
+PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+<!-- end list -->
+
+
+**Example for /sendplan (after filling categories):**
+PLAN 13/06/2025
+LABUSEL-PALUTA-PALAS
+
+Bang @Ansor TS Paluta @~Junaidi
+PSP513/ Dolok/ C/ Replace ML6651 Link To PSP330
+PSP567/ Rendaman Dolok/ P/ Clearing Cell Down, Cek Power dan Optik
+
+
 Need more help? Contact your administrator.
         """
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
@@ -864,8 +979,7 @@ Need more help? Contact your administrator.
             )
 
     async def plan_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /plan command"""
-        # Using ORM method
+        """Handle /plan command - initiate plan submission, awaiting raw plan text"""
         user = self.db.get_user_by_telegram_id(update.effective_user.id)
         if not user:
             await update.message.reply_text(
@@ -874,38 +988,152 @@ Need more help? Contact your administrator.
             )
             return
 
-        if user.role != 'enom': # Accessing attribute directly
+        if user.role != 'enom':
             await update.message.reply_text("❌ Only ENOM users can submit daily plans.")
             return
 
         await update.message.reply_text(
-            """📝 **Submit Daily Plan**
+            """📝 **Submit Daily Plan (Step 1 of 2)**
 
-Please send your daily plan in the following format:
+Please send your initial daily plan in the following simplified format:
 
-```
-PLAN 13/06/2025
+PLAN DD/MM/YYYY
 AREA-NAME
+
 Bang @Username
-- PSP513 Location, Action description
-- PSP567 Location, Action description
-```
+
+SITEID Location, Action description
+SITEID Location, Action description
+<!-- end list -->
+
 
 **Example:**
-```
 PLAN 13/06/2025
 LABUSEL-PALUTA-PALAS
-Bang @Ansor TS Paluta @~Junaidi
-- PSP513 Dolok, Replace ML6651 Link To PSP330
-- PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
-```
 
-Send your plan in the next message.""",
+Bang @Ansor TS Paluta @~Junaidi
+
+PSP513 Dolok, Replace ML6651 Link To PSP330
+PSP567 Rendaman Dolok, Clearing Cell Down, Cek Power dan Optik
+<!-- end list -->
+
+I will then send you a formatted template to fill in the site categories (C/P/S) and submit using `/sendplan`.""",
             parse_mode=ParseMode.MARKDOWN
         )
 
-        # Store state for next message
-        context.user_data['awaiting_plan'] = True
+        # Store state for next message to be processed as initial plan
+        context.user_data['awaiting_initial_plan'] = True
+
+    async def sendplan_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /sendplan command - process final formatted plan text"""
+        user = self.db.get_user_by_telegram_id(update.effective_user.id)
+        if not user:
+            await update.message.reply_text(
+                "❌ You need to register first. Use `/register your_username`",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        if user.role != 'enom':
+            await update.message.reply_text("❌ Only ENOM users can submit daily plans.")
+            return
+
+        plan_text = ""
+        # If the command has arguments, use them. Otherwise, assume it's a reply to the formatted message.
+        if context.args:
+            plan_text = " ".join(context.args)
+        elif update.message.reply_to_message and update.message.reply_to_message.from_user.is_bot:
+            plan_text = update.message.reply_to_message.text # This might not be ideal as it takes the bot's *previous* message.
+                                                             # It's better to rely on the user copying the template.
+            # To handle cases where user might just reply with /sendplan without copying the full text,
+            # we should encourage copying the *entire* formatted message.
+            # For robustness, we'll primarily rely on the message content itself.
+            if not plan_text.startswith("PLAN"): # A quick check if it looks like a plan.
+                await update.message.reply_text(
+                    "❌ Please copy the *entire* formatted plan template (starting with 'PLAN') and send it with `/sendplan`."
+                )
+                return
+        else:
+             await update.message.reply_text(
+                 "❌ Please copy the *entire* formatted plan template (starting with 'PLAN') and send it with `/sendplan`.\n\n"
+                 "Example:\n"
+                 "```\n"
+                 "PLAN 13/06/2025\n"
+                 "LABUSEL-PALUTA-PALAS\n\n"
+                 "Bang @Ansor TS Paluta @~Junaidi\n"
+                 "PSP513/ Dolok/ C/ Replace ML6651 Link To PSP330\n"
+                 "PSP567/ Rendaman Dolok/ P/ Clearing Cell Down, Cek Power dan Optik\n"
+                 "```",
+                 parse_mode=ParseMode.MARKDOWN
+             )
+             return
+
+        # Use the dedicated parser for /sendplan format
+        try:
+            area, plan_date, sites_data = PlanParser.parse_sendplan_text(plan_text)
+
+            # Validate and get site IDs from database
+            validated_sites_data = []
+            missing_sites = []
+            invalid_categories = []
+
+            for site_data in sites_data:
+                site_obj = self.db.get_site_by_site_id(site_data['site_id'])
+                if site_obj:
+                    # Validate category here as well, although parser does basic check
+                    category_str = site_data.get('category', '').upper()
+                    if category_str in ['C', 'P', 'S']:
+                        validated_sites_data.append(site_data)
+                    else:
+                        invalid_categories.append(f"{site_data['site_id']} (Category: {category_str})")
+                else:
+                    missing_sites.append(site_data['site_id'])
+
+            if missing_sites:
+                await update.message.reply_text(
+                    f"⚠️ **Warning:** The following sites were not found in database:\n" +
+                    "\n".join(f"• {escape_markdown(site)}" for site in missing_sites) +
+                    f"\n\nProceeding with {len(validated_sites_data)} valid sites."
+                )
+            if invalid_categories:
+                await update.message.reply_text(
+                    f"⚠️ **Warning:** The following sites had invalid categories (use C, P, or S):\n" +
+                    "\n".join(f"• {escape_markdown(site)}" for site in invalid_categories) +
+                    f"\n\nProceeding with {len(validated_sites_data)} valid sites."
+                )
+
+            if not validated_sites_data:
+                await update.message.reply_text("❌ No valid sites found in your plan after validation.")
+                return
+
+            created_plan = self.db.create_daily_plan(
+                user.id,
+                plan_date,
+                validated_sites_data,
+                area,
+                update.message.message_id
+            )
+
+            if created_plan:
+                await update.message.reply_text(
+                    f"✅ **Plan submitted successfully!**\n\n" +
+                    f"📅 Date: {created_plan.plan_date.strftime('%d/%m/%Y')}\n" +
+                    f"🏢 Area: {escape_markdown(created_plan.area_name)}\n" +
+                    f"📍 Sites: {created_plan.total_sites_planned} sites planned\n\n" +
+                    "Use `/myplan` to view your plan or `/update` to update site actions."
+                )
+            else:
+                await update.message.reply_text("❌ Failed to create plan. A plan for this date might already exist or another error occurred.")
+
+        except ValueError as e:
+            await update.message.reply_text(f"❌ **Plan format error:** {escape_markdown(str(e))}")
+        except Exception as e:
+            logger.error(f"Error processing /sendplan submission: {e}")
+            await update.message.reply_text("❌ An error occurred while processing your plan.")
+        finally:
+            # Clear the awaiting state specific to initial plan submission
+            context.user_data.pop('awaiting_initial_plan', None)
+
 
     async def my_plan_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /myplan command"""
@@ -936,7 +1164,8 @@ Send your plan in the next message.""",
                 message += f"📍 **Sites:**\n"
                 for idx, site in enumerate(active_planned_sites, 1):
                     status_emoji = "✅" if site.is_completed else "⏳" # Use is_completed flag
-                    message += f"{status_emoji} **{idx}. {escape_markdown(site.site.site_id)}** - {escape_markdown(site.site.name)}\n"
+                    category_abbr = site.category.value[0] if site.category else '?' # Get first letter or '?'
+                    message += f"{status_emoji} **{idx}. {escape_markdown(site.site.site_id)}** ({category_abbr})\n" # Include category abbreviation
                     message += f"   📍 {escape_markdown(site.site.kabupaten)}\n"
                     message += f"   🔧 Plan: {escape_markdown(site.planned_actions)}\n"
                     message += f"   📝 Status: {escape_markdown(str(site.updated_actions or 'Not Done Yet'))}\n" # Ensure 'Not Done Yet' is shown if null/empty
@@ -1141,7 +1370,8 @@ Send your plan in the next message.""",
                 plan_date = visit.daily_plan.plan_date.strftime('%d/%m/%Y') if visit.daily_plan else 'Unknown Date'
                 user_name = visit.daily_plan.enom_user.username if visit.daily_plan and visit.daily_plan.enom_user else 'Unknown User'
                 status_emoji = "✅" if visit.is_completed else "⏳"
-                message += f"{status_emoji} {escape_markdown(plan_date)} by {escape_markdown(user_name)}\n"
+                category_abbr = visit.category.value[0] if visit.category else '?' # Get first letter or '?'
+                message += f"{status_emoji} {escape_markdown(plan_date)} by {escape_markdown(user_name)} ({category_abbr})\n" # Include category
                 message += f"   Plan: {escape_markdown(visit.planned_actions)}\n"
                 message += f"   Status: {escape_markdown(visit.updated_actions or 'Not Done Yet')}\n\n"
         else:
@@ -1212,9 +1442,9 @@ Send your plan in the next message.""",
 
         # --- End of New Logic ---
 
-        # Check if user is awaiting plan submission
-        if context.user_data.get('awaiting_plan'):
-            await self.process_plan_submission(update, context)
+        # Check if user is awaiting initial plan submission
+        if context.user_data.get('awaiting_initial_plan'):
+            await self.process_initial_plan_submission(update, context)
             return
 
         # Check if user is awaiting site update action text
@@ -1238,95 +1468,84 @@ Send your plan in the next message.""",
         #     "ℹ️ I didn't understand that. Use /help to see available commands."
         # )
 
-    async def process_plan_submission(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Process plan submission"""
+    async def process_initial_plan_submission(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Process the initial raw plan text and provide a formatted template."""
         user = self.db.get_user_by_telegram_id(update.effective_user.id)
         if not user:
             await update.message.reply_text("❌ You need to register first.")
+            context.user_data.pop('awaiting_initial_plan', None)
             return
 
         try:
-            # Parse the plan text
+            # Parse the initial plan text
             area, plan_date, sites_data = PlanParser.parse_plan_text(update.message.text)
 
-            # --- Start: Show parsed data to user ---
-            parsed_message = f"📝 **Parsed Plan Data:**\n\n"
-            parsed_message += f"🏢 **Area:** {escape_markdown(area)}\n"
-            parsed_message += f"📅 **Date:** {plan_date.strftime('%d/%m/%Y')}\n\n"
-            parsed_message += f"📍 **Sites:**\n"
+            formatted_plan_template = f"PLAN {plan_date.strftime('%d/%m/%Y')}\n"
+            formatted_plan_template += f"{area}\n\n"
 
-            if sites_data:
-                for idx, site_data in enumerate(sites_data, 1):
-                    parsed_message += f"{idx}. **{escape_markdown(site_data.get('site_id', 'N/A'))}**\n"
-                    parsed_message += f"   🔧 Action: {escape_markdown(site_data.get('actions', 'N/A'))}\n"
-                    if site_data.get('assignee'):
-                         parsed_message += f"   👤 Assignee: {escape_markdown(site_data['assignee'])}\n"
-                    # Duration is not typically shown in this summary, but can be added if needed
-                parsed_message += "\nIs this correct? Proceeding to validate sites..."
-            else:
-                parsed_message += "No sites found in the parsed plan."
-
-            await update.message.reply_text(parsed_message, parse_mode=ParseMode.MARKDOWN)
-            # --- End: Show parsed data to user ---
-
-
-            # Validate and get site IDs from database
-            validated_sites_data = [] # Changed name to avoid confusion with ORM objects
-            missing_sites = []
-
+            # Group sites by assignee for the template
+            assignee_groups = {}
             for site_data in sites_data:
-                # Using ORM method to get site object
-                site_obj = self.db.get_site_by_site_id(site_data['site_id'])
-                if site_obj:
-                    validated_sites_data.append({ # Store original dict for create_daily_plan
-                        'site_id': site_obj.site_id, # Pass site_id string to create_daily_plan which then looks up the site.id
-                        'actions': site_data['actions'],
-                        'assignee': site_data['assignee'],
-                        'duration': site_data['duration']
-                    })
-                else:
-                    missing_sites.append(site_data['site_id'])
+                assignee = site_data.get('assignee', 'Unassigned').title() # Ensure title case for consistency
+                if assignee not in assignee_groups:
+                    assignee_groups[assignee] = []
+                assignee_groups[assignee].append(site_data)
 
-            if missing_sites:
-                await update.message.reply_text(
-                    f"⚠️ **Warning:** The following sites were not found in database:\n" +
-                    "\n".join(f"• {escape_markdown(site)}" for site in missing_sites) + # Escape missing sites
-                    f"\n\nProceeding with {len(validated_sites_data)} valid sites."
-                )
+            for assignee, sites in assignee_groups.items():
+                if assignee: # Only add assignee line if assignee is present
+                    formatted_plan_template += f"Bang @{assignee}\n\n" # Use 'Bang' or 'Om' generically for template
+                
+                for site_data in sites:
+                    # Construct the line: SITEID/ Location/ {C,P,S}/ Deskripsi Action
+                    # For Location, we can try to extract from the actions if it's consistently there,
+                    # or just use a placeholder if not. Given previous format "PSP513 Dolok, Replace ML6651 Link To PSP330",
+                    # "Dolok" is part of actions. So we'll put '{Lokasi}' placeholder.
+                    site_id = site_data.get('site_id', 'N/A')
+                    actions = site_data.get('actions', 'N/A')
+                    
+                    # Attempt to extract a "Location" part from the actions for the template
+                    # Assuming format "SITEID Location, Action" or "SITEID Action"
+                    # This is a heuristic and might need refinement based on actual user input patterns.
+                    location_match = re.match(r'^\s*([^,]+),\s*(.*)$', actions)
+                    extracted_location = ""
+                    remaining_actions = actions
+                    if location_match:
+                        # If it matches "Location, Action", then first group is location, second is actions
+                        extracted_location = location_match.group(1).strip()
+                        remaining_actions = location_match.group(2).strip()
+                    else:
+                        # If no comma, assume the first part of actions (up to first space) could be location, or just leave as Actions
+                        # For simplicity, we'll just put a placeholder for Location for now and let user fill.
+                        extracted_location = "{Lokasi}" 
+                        
+                    formatted_plan_template += f"{escape_markdown(site_id)}/ {escape_markdown(extracted_location)}/ {{C,P,S}}/ {escape_markdown(remaining_actions)}\n"
+                formatted_plan_template += "\n" # Add a newline between assignee groups
 
-            if not validated_sites_data:
-                await update.message.reply_text("❌ No valid sites found in your plan.")
-                return
 
-            # Create the daily plan using the ORM method
-            created_plan = self.db.create_daily_plan(
-                user.id, # Pass user ID directly
-                plan_date,
-                validated_sites_data,
-                area,
-                update.message.message_id
+            await update.message.reply_text(
+                "✅ **Plan format generated!**\n\n"
+                "Please **COPY THE ENTIRE TEXT BELOW**, fill in the `{C,P,S}` category for each site, and then send it back to me using the `/sendplan` command.\n\n"
+                f"```\n{formatted_plan_template}```\n"
+                "**Example after editing:**\n"
+                "```\n"
+                "PLAN 13/06/2025\n"
+                "LABUSEL-PALUTA-PALAS\n\n"
+                "Bang @Ansor TS Paluta @~Junaidi\n"
+                "PSP513/ Dolok/ C/ Replace ML6651 Link To PSP330\n"
+                "PSP567/ Rendaman Dolok/ P/ Clearing Cell Down, Cek Power dan Optik\n"
+                "```",
+                parse_mode=ParseMode.MARKDOWN
             )
 
-            if created_plan: # Check if an object was returned
-                await update.message.reply_text(
-                    f"✅ **Plan submitted successfully!**\n\n" +
-                    f"📅 Date: {created_plan.plan_date.strftime('%d/%m/%Y')}\n" + # Access properties
-                    f"🏢 Area: {escape_markdown(created_plan.area_name)}\n" + # Access properties and escape
-                    f"📍 Sites: {created_plan.total_sites_planned} sites planned\n\n" + # Access properties
-                    "Use `/myplan` to view your plan or `/update` to update site actions."
-                )
-            else:
-                await update.message.reply_text("❌ Failed to create plan. Please try again.")
-
         except ValueError as e:
-            await update.message.reply_text(f"❌ **Plan format error:** {escape_markdown(str(e))}") # Escape error message
+            await update.message.reply_text(f"❌ **Initial plan format error:** {escape_markdown(str(e))}\n\nPlease review the format in `/help`.")
         except Exception as e:
-            logger.error(f"Error processing plan submission: {e}")
-            await update.message.reply_text("❌ An error occurred while processing your plan.")
-
+            logger.error(f"Error processing initial plan submission: {e}")
+            await update.message.reply_text("❌ An error occurred while processing your initial plan.")
         finally:
-            # Clear the awaiting state
-            context.user_data.pop('awaiting_plan', None)
+            # Clear the awaiting state for initial plan submission
+            context.user_data.pop('awaiting_initial_plan', None)
+
 
     async def process_site_update_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Process site action update text"""
@@ -1372,23 +1591,22 @@ Send your plan in the next message.""",
             return
 
         input_text = update.message.text.strip()
-        # Expected format: SITEID Actions, Assignee
-        # Example: PSP513 Replace ML6651 Link To PSP330, Ansor
-        parts = input_text.split(',', 1)
-        if len(parts) < 1:
-            await update.message.reply_text("❌ Invalid format. Please use 'SITEID Actions, Assignee'.")
-            return
+        # Expected format: SITEID / Category (C/P/S) / Actions, Assignee
+        # Example: PSP513 / C / Replace ML6651 Link To PSP330, Ansor
 
-        site_action_part = parts[0].strip()
-        assignee = parts[1].strip() if len(parts) > 1 else ""
+        parts_assignee = input_text.split(',', maxsplit=1)
+        assignee = parts_assignee[1].strip() if len(parts_assignee) > 1 else ""
+        site_category_action_part = parts_assignee[0].strip()
 
-        site_action_parts = site_action_part.split(maxsplit=1)
-        if len(site_action_parts) < 1:
-             await update.message.reply_text("❌ Invalid format. Site ID is missing.")
+        parts_site_category_action = site_category_action_part.split('/', maxsplit=2)
+
+        if len(parts_site_category_action) < 3:
+             await update.message.reply_text("❌ Invalid format. Please use 'SITEID / Category (C/P/S) / Actions, Assignee'.")
              return
 
-        site_id_str = site_action_parts[0].strip().upper()
-        actions = site_action_parts[1].strip() if len(site_action_parts) > 1 else "Maintenance"
+        site_id_str = parts_site_category_action[0].strip().upper()
+        category_str = parts_site_category_action[1].strip().upper()
+        actions = parts_site_category_action[2].strip()
 
         # Validate site ID exists
         site_obj = self.db.get_site_by_site_id(site_id_str)
@@ -1396,19 +1614,25 @@ Send your plan in the next message.""",
             await update.message.reply_text(f"❌ Site ID '{escape_markdown(site_id_str)}' not found in the database. Please check the ID and try again.")
             return
 
+        # Validate category
+        if category_str not in ['C', 'P', 'S']:
+             await update.message.reply_text(f"❌ Invalid category '{escape_markdown(category_str)}'. Please use C, P, or S.")
+             return
+
+
         # Add the site to the plan
-        new_planned_site = self.db.add_planned_site_to_plan(plan_id, site_id_str, actions, assignee)
+        new_planned_site = self.db.add_planned_site_to_plan(plan_id, site_id_str, category_str, actions, assignee)
 
         if new_planned_site:
             message = f"✅ Site added successfully to the plan!\n\n"
-            message += f"📍 **{escape_markdown(site_id_str)}** - {escape_markdown(site_obj.name)}\n"
+            message += f"📍 **{escape_markdown(site_id_str)}** - {escape_markdown(site_obj.name)} ({escape_markdown(category_str)})\n" # Include category
             message += f"🔧 Plan: {escape_markdown(actions)}\n"
             if assignee:
                  message += f"👤 Assignee: {escape_markdown(assignee)}\n"
-            message += f"Status: Not Done Yet"
+            message += f"Status: Not Done Yet" # Status is reset on change
             await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
         else:
-            await update.message.reply_text("❌ Failed to add site to the plan.")
+            await update.message.reply_text("❌ Failed to update site details.")
 
         # Clear the awaiting state
         context.user_data.pop('awaiting_add_site_details', None)
@@ -1416,7 +1640,7 @@ Send your plan in the next message.""",
 
 
     async def process_change_site_details(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Process text input for changing site details (site ID, actions, assignee)."""
+        """Process text input for changing site details."""
         planned_site_id = context.user_data.get('changing_site_details_id')
         if not planned_site_id:
             await update.message.reply_text("❌ Change site details session expired. Please use `/update` again.")
@@ -1425,23 +1649,22 @@ Send your plan in the next message.""",
             return
 
         input_text = update.message.text.strip()
-        # Expected format: NEW_SITEID New Actions, New Assignee
-        # Example: PSP513 Replace ML6666 Link To PSP330, Ansor
-        parts = input_text.split(',', 1)
-        if len(parts) < 1:
-            await update.message.reply_text("❌ Invalid format. Please use 'NEW_SITEID New Actions, New Assignee'.")
-            return
+        # Expected format: NEW_SITEID / New Category (C/P/S) / New Actions, New Assignee
+        # Example: PSP513 / C / Replace ML6666 Link To PSP330, Ansor
 
-        site_action_part = parts[0].strip()
-        new_assignee = parts[1].strip() if len(parts) > 1 else ""
+        parts_assignee = input_text.split(',', maxsplit=1)
+        new_assignee = parts_assignee[1].strip() if len(parts_assignee) > 1 else ""
+        site_category_action_part = parts_assignee[0].strip()
 
-        site_action_parts = site_action_part.split(maxsplit=1)
-        if len(site_action_parts) < 1:
-             await update.message.reply_text("❌ Invalid format. New Site ID is missing.")
+        parts_site_category_action = site_category_action_part.split('/', maxsplit=2)
+
+        if len(parts_site_category_action) < 3:
+             await update.message.reply_text("❌ Invalid format. Please use 'NEW_SITEID / New Category (C/P/S) / New Actions, New Assignee'.")
              return
 
-        new_site_id_str = site_action_parts[0].strip().upper()
-        new_actions = site_action_parts[1].strip() if len(site_action_parts) > 1 else "Maintenance"
+        new_site_id_str = parts_site_category_action[0].strip().upper()
+        new_category_str = parts_site_category_action[1].strip().upper()
+        new_actions = parts_site_category_action[2].strip()
 
         # Validate new site ID exists
         new_site_obj = self.db.get_site_by_site_id(new_site_id_str)
@@ -1449,15 +1672,22 @@ Send your plan in the next message.""",
             await update.message.reply_text(f"❌ New Site ID '{escape_markdown(new_site_id_str)}' not found in the database. Please check the ID and try again.")
             return
 
+        # Validate new category
+        if new_category_str not in ['C', 'P', 'S']:
+             await update.message.reply_text(f"❌ Invalid category '{escape_markdown(new_category_str)}'. Please use C, P, or S.")
+             return
+
         # Update the planned site details
-        updated_planned_site = self.db.update_planned_site_details(planned_site_id, new_site_id_str, new_actions, new_assignee)
+        updated_planned_site = self.db.update_planned_site_details(
+            planned_site_id, new_site_id_str, new_category_str, new_actions, new_assignee
+        )
 
         if updated_planned_site:
             message = f"✅ Site details updated successfully!\n\n"
-            message += f"📍 **{escape_markdown(new_site_id_str)}** - {escape_markdown(new_site_obj.name)}\n"
-            message += f"🔧 Plan: {escape_markdown(new_actions)}\n"
+            message += f"📍 **{escape_markdown(new_site_id_str)}** - {escape_markdown(new_site_obj.name)} ({escape_markdown(new_category_str)})\n" # Include category
+            message += f"🔧 New Plan: {escape_markdown(new_actions)}\n"
             if new_assignee:
-                 message += f"👤 Assignee: {escape_markdown(new_assignee)}\n"
+                 message += f"👤 New Assignee: {escape_markdown(new_assignee)}\n"
             message += f"Status: Not Done Yet" # Status is reset on change
             await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
         else:
@@ -1500,7 +1730,8 @@ Send your plan in the next message.""",
         data = query.data
 
         # Clear any previous awaiting states before processing a new button click
-        context.user_data.pop('awaiting_plan', None)
+        context.user_data.pop('awaiting_initial_plan', None) # New line
+        context.user_data.pop('awaiting_plan', None) # This was for the old flow, keep for now just in case
         context.user_data.pop('awaiting_site_update_text', None)
         context.user_data.pop('updating_site_id', None)
         context.user_data.pop('awaiting_add_site_details', None)
@@ -1730,16 +1961,18 @@ Send your plan in the next message.""",
 
             site_id = planned_site.site.site_id if planned_site.site else "Unknown Site"
             site_name = planned_site.site.name if planned_site.site else "No Name"
+            current_category = planned_site.category.value[0] if planned_site.category else '?'
             current_actions = planned_site.planned_actions or "Not Set"
             current_assignee = planned_site.assignee or "Unassigned"
 
 
             await query.edit_message_text(
                 f"✏️ **Change Site Details for {escape_markdown(site_id)} - {escape_markdown(site_name)}**\n\n"
+                f"Current Category: {escape_markdown(current_category)}\n"
                 f"Current Plan: {escape_markdown(current_actions)}\n"
                 f"Current Assignee: {escape_markdown(current_assignee)}\n\n"
-                "Send the new details in the format: `NEW_SITEID New Actions, New Assignee`\n"
-                "Example: `PSP513 Replace ML6666 Link To PSP330, Ansor`",
+                "Send the new details in the format: `NEW_SITEID / New Category (C/P/S) / New Actions, New Assignee`\n"
+                "Example: `PSP513 / C / Replace ML6666 Link To PSP330, Ansor`",
                 parse_mode=ParseMode.MARKDOWN
             )
 
@@ -1807,8 +2040,8 @@ Send your plan in the next message.""",
 
             await query.edit_message_text(
                 f"➕ **Add New Site to Plan {plan.plan_date.strftime('%d/%m/%Y')}**\n\n"
-                "Send the site details in the format: `SITEID Actions, Assignee`\n"
-                "Example: `PSP513 Replace ML6651 Link To PSP330, Ansor`",
+                "Send the site details in the format: `SITEID / Category (C/P/S) / Actions, Assignee`\n"
+                "Example: `PSP513 / C / Replace ML6651 Link To PSP330, Ansor`",
                 parse_mode=ParseMode.MARKDOWN
             )
 

@@ -210,6 +210,9 @@ class PlannedSite(db.Model):
     assignee = db.Column(db.String(100))  # Assignee from plan text
     updated_actions = db.Column(db.Text, default='Not Done Yet')  # Updated actions status
 
+    # NEW: Category for the planned site visit
+    category = db.Column(db.Enum(ProblemCategory), nullable=True) # Make nullable initially for migration ease
+
     # NEW: Telegram integration fields
     telegram_updated = db.Column(db.Boolean, default=False)  # Whether updated via telegram
     telegram_update_message_id = db.Column(db.BigInteger, nullable=True)  # Update message ID
