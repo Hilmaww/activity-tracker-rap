@@ -245,32 +245,13 @@
 
     <!-- Charts Section only for TSEL -->
     {% if current_user.role == 'tsel' %}
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="chart-container">
-                <h4 class="text-center mb-4">Site Alignment & Proactive Management</h4>
-                <p class="text-muted text-center">Strategic responsiveness and predictive maintenance capability</p>
-                <div class="chart-wrapper">
-                    <canvas id="siteAlignmentChart"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="chart-container">
-                <h4 class="text-center mb-4">Operational Efficiency Quadrant</h4>
-                <p class="text-muted text-center">Identifying operational bottlenecks and optimization opportunities</p>
-                <div class="chart-wrapper">
-                    <canvas id="operationalEfficiencyChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Removed Site Alignment & Proactive Management and Operational Efficiency Quadrant as per request -->
 
-    <!-- Additional Charts Section -->
+    <!-- Core Charts Section -->
     <div class="row mt-4">
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
                     <h5 class="card-title">Resource Allocation Intelligence</h5>
                     <small class="text-muted">Optimizing human capital and identifying training needs</small>
                 </div>
@@ -280,8 +261,8 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
                     <h5 class="card-title">Temporal Operational Performance</h5>
                     <small class="text-muted">Tracking operational rhythm and seasonal variations</small>
                 </div>
@@ -314,8 +295,8 @@
     <!-- Alarm Management Scorecard -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
                     <h5 class="card-title">Comprehensive Alarm Management Scorecard</h5>
                     <small class="text-muted">Strategic decision support for infrastructure management</small>
                 </div>
@@ -538,11 +519,11 @@
         <div class="col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="card-title">ENOM Workload Distribution</h5>
-                    <small class="text-muted">Planned site records by ENOM and status</small>
+                    <h5 class="card-title">Planned Sites by ENOM & Category (Last 30 Days)</h5>
+                    <small class="text-muted">Breakdown of planned site visits by problem category for each ENOM</small>
                 </div>
                 <div class="card-body">
-                    <canvas id="assigneeWorkloadChart" height="250"></canvas>
+                    <canvas id="plannedSitesByCategoryChart" height="250"></canvas>
                 </div>
             </div>
         </div>
@@ -653,130 +634,9 @@
 
     // Status Distribution Chart (30 days)
     {% if current_user.role == 'tsel' %}
-    // 1. Site Alignment & Proactive Management Chart (Doughnut with multiple datasets)
-    const siteAlignmentCtx = document.getElementById('siteAlignmentChart').getContext('2d');
-    const siteAlignmentChart = new Chart(siteAlignmentCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Sites with Plans', 'Sites with Alarms (No Plan)', 'Other Sites'],
-            datasets: [{
-                data: [
-                    {{ site_alignment.planned|default(0) }},
-                    {{ site_alignment.with_alarms_no_plan|default(0) }},
-                    {{ site_alignment.other|default(0) }}
-                ],
-                backgroundColor: [
-                    'rgba(54, 162, 235, 0.8)',  // Blue - Sites with Plans
-                    'rgba(255, 99, 132, 0.8)',  // Red - Sites with Alarms but No Plan
-                    'rgba(255, 206, 86, 0.8)',  // Yellow - Other Sites
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 15,
-                        padding: 15
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = Math.round((context.raw / total) * 100);
-                            return `${context.label}: ${context.raw} sites (${percentage}%)`;
-                        }
-                    }
-                }
-            },
-            cutout: '60%',
-            animation: {
-                animateScale: true,
-                animateRotate: true
-            }
-        }
-    });
+    // Removed Site Alignment & Proactive Management Chart
 
-    // 2. Operational Efficiency Chart (Radar)
-    const operationalEfficiencyCtx = document.getElementById('operationalEfficiencyChart').getContext('2d');
-    const operationalEfficiencyChart = new Chart(operationalEfficiencyCtx, {
-        type: 'radar',
-        data: {
-            labels: ['Site Visit Efficiency', 'Alarm Response Time', 'Resolution Rate', 'Resource Utilization', 'Plan Compliance'],
-            datasets: [{
-                label: 'Current Period',
-                data: [
-                    {{ operational_efficiency.visit_efficiency|default(65) }},
-                    {{ operational_efficiency.response_time|default(70) }},
-                    {{ operational_efficiency.resolution_rate|default(85) }},
-                    {{ operational_efficiency.resource_utilization|default(75) }},
-                    {{ operational_efficiency.plan_compliance|default(80) }}
-                ],
-                fill: true,
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderColor: 'rgb(54, 162, 235)',
-                pointBackgroundColor: 'rgb(54, 162, 235)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgb(54, 162, 235)'
-            }, {
-                label: 'Previous Period',
-                data: [
-                    {{ operational_efficiency_previous.visit_efficiency|default(60) }},
-                    {{ operational_efficiency_previous.response_time|default(65) }},
-                    {{ operational_efficiency_previous.resolution_rate|default(80) }},
-                    {{ operational_efficiency_previous.resource_utilization|default(70) }},
-                    {{ operational_efficiency_previous.plan_compliance|default(75) }}
-                ],
-                fill: true,
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                borderColor: 'rgb(255, 99, 132)',
-                pointBackgroundColor: 'rgb(255, 99, 132)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgb(255, 99, 132)'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            elements: {
-                line: {
-                    borderWidth: 3
-                }
-            },
-            scales: {
-                r: {
-                    angleLines: {
-                        display: true
-                    },
-                    suggestedMin: 0,
-                    suggestedMax: 100,
-                    ticks: {
-                        stepSize: 20
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.dataset.label}: ${context.raw}%`;
-                        }
-                    }
-                }
-            }
-        }
-    });
+    // Removed Operational Efficiency Chart
 
     // 3. Resource Allocation Intelligence (Stacked Bar)
     const resourceAllocationCtx = document.getElementById('resourceAllocationChart').getContext('2d');
@@ -788,21 +648,21 @@
                 {
                     label: 'Planned Sites',
                     data: {{ resource_allocation.planned_sites|default([8, 6, 9, 7])|tojson }},
-                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)', // Blue
                     borderColor: 'rgb(54, 162, 235)',
                     borderWidth: 1
                 },
                 {
                     label: 'Alarms Assigned',
                     data: {{ resource_allocation.alarms|default([5, 3, 7, 4])|tojson }},
-                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)', // Red
                     borderColor: 'rgb(255, 99, 132)',
                     borderWidth: 1
                 },
                 {
                     label: 'Tickets Assigned',
                     data: {{ resource_allocation.tickets|default([3, 5, 2, 6])|tojson }},
-                    backgroundColor: 'rgba(255, 206, 86, 0.7)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.7)', // Yellow
                     borderColor: 'rgb(255, 206, 86)',
                     borderWidth: 1
                 }
@@ -816,6 +676,10 @@
                     stacked: true,
                     grid: {
                         display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'ENOM User'
                     }
                 },
                 y: {
@@ -1144,41 +1008,22 @@
         }
     });
 
-    // Assignee Workload Chart
-    const assigneeWorkloadCtx = document.getElementById('assigneeWorkloadChart').getContext('2d');
-    new Chart(assigneeWorkloadCtx, {
+    // New: Planned Sites by ENOM & Category Chart (Stacked Bar)
+    const plannedSitesByCategoryCtx = document.getElementById('plannedSitesByCategoryChart').getContext('2d');
+    const plannedSitesByCategoryChart = new Chart(plannedSitesByCategoryCtx, {
         type: 'bar',
         data: {
-            labels: {{ executive_charts.assignee_workload.enom_users|tojson }},
+            labels: {{ planned_sites_by_enom_category.enom_users|tojson }},
             datasets: [
+                {% for dataset in planned_sites_by_enom_category.datasets %}
                 {
-                    label: 'Approved',
-                    data: {{ executive_charts.assignee_workload.approved|tojson }},
-                    backgroundColor: 'rgba(40, 167, 69, 0.7)',
-                    borderColor: 'rgb(40, 167, 69)',
+                    label: '{{ dataset.label }}',
+                    data: {{ dataset.data|tojson }},
+                    backgroundColor: '{{ ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)', 'rgba(201, 203, 207, 0.7)'][loop.index0 % 7] }}',
+                    borderColor: '{{ ['rgb(54, 162, 235)', 'rgb(255, 99, 132)', 'rgb(75, 192, 192)', 'rgb(255, 206, 86)', 'rgb(153, 102, 255)', 'rgb(255, 159, 64)', 'rgb(201, 203, 207)'][loop.index0 % 7] }}',
                     borderWidth: 1
                 },
-                {
-                    label: 'Submitted',
-                    data: {{ executive_charts.assignee_workload.submitted|tojson }},
-                    backgroundColor: 'rgba(0, 123, 255, 0.7)',
-                    borderColor: 'rgb(0, 123, 255)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Draft',
-                    data: {{ executive_charts.assignee_workload.draft|tojson }},
-                    backgroundColor: 'rgba(108, 117, 125, 0.7)',
-                    borderColor: 'rgb(108, 117, 125)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Rejected',
-                    data: {{ executive_charts.assignee_workload.rejected|tojson }},
-                    backgroundColor: 'rgba(220, 53, 69, 0.7)',
-                    borderColor: 'rgb(220, 53, 69)',
-                    borderWidth: 1
-                }
+                {% endfor %}
             ]
         },
         options: {
@@ -1189,7 +1034,7 @@
                     stacked: true,
                     title: {
                         display: true,
-                        text: 'Assignee'
+                        text: 'ENOM User'
                     }
                 },
                 y: {
@@ -1197,11 +1042,14 @@
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Number of Site Visits'
+                        text: 'Number of Planned Sites'
                     }
                 }
             },
             plugins: {
+                legend: {
+                    position: 'bottom'
+                },
                 tooltip: {
                     callbacks: {
                         footer: function(tooltipItems) {
@@ -1216,6 +1064,7 @@
             }
         }
     });
+
 
     // Top Visited Sites Chart
     const topVisitedSitesCtx = document.getElementById('topVisitedSitesChart').getContext('2d');
@@ -1336,13 +1185,14 @@
         
         // Create card for the kabupaten chart
         const kabupatensCard = document.createElement('div');
-        kabupatensCard.className = 'card mb-4 shadow';
+        kabupatensCard.className = 'card mb-4 shadow-sm';
         
         // Create card header with title
         const kabupatensCardHeader = document.createElement('div');
-        kabupatensCardHeader.className = 'card-header py-3 d-flex flex-row align-items-center justify-content-between';
+        kabupatensCardHeader.className = 'card-header bg-light d-flex flex-row align-items-center justify-content-between';
         kabupatensCardHeader.innerHTML = `
-            <h6 class="m-0 font-weight-bold text-primary">Top 10 Most Visited Sites by Kabupaten</h6>
+            <h5 class="card-title mb-0">Top 10 Most Visited Sites by Kabupaten</h5>
+            <small class="text-muted">Breakdown of site visits by region</small>
         `;
         
         // Create card body with tabs and chart
@@ -1375,7 +1225,7 @@
             const tabLink = document.createElement('a');
             tabLink.className = `nav-link${index === 0 ? ' active' : ''}`;
             tabLink.id = `${tabId}-tab`;
-            tabLink.setAttribute('data-toggle', 'tab');
+            tabLink.setAttribute('data-bs-toggle', 'tab'); // Changed to data-bs-toggle for Bootstrap 5
             tabLink.setAttribute('href', `#${tabId}`);
             tabLink.setAttribute('role', 'tab');
             tabLink.setAttribute('aria-controls', tabId);
@@ -1418,65 +1268,56 @@
         // Insert the new row after the current chart row
         chartRowTopVisitedSites.parentNode.insertBefore(kabupatensRow, chartRowTopVisitedSites.nextSibling);
         
-        // Make sure jQuery is available and initialize tabs
+        // Make sure Chart.js is available and initialize charts
         setTimeout(() => {
-            if (typeof $ !== 'undefined') {
-                // Initialize the Bootstrap tabs explicitly
-                $('#kabupatenTabs a').on('click', function (e) {
-                    e.preventDefault();
-                    $(this).tab('show');
-                });
+            const kabupatenData = {{ executive_charts.kabupaten_sites|tojson|safe }};
+            
+            Object.keys(kabupatenData).forEach(kabupaten => {
+                const canvasId = `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`;
+                const canvas = document.getElementById(canvasId);
                 
-                // Initialize charts for each kabupaten
-                const kabupatenData = {{ executive_charts.kabupaten_sites|tojson|safe }};
-                
-                Object.keys(kabupatenData).forEach(kabupaten => {
-                    const canvasId = `kabupatenChart-${kabupaten.replace(/\s+/g, '-')}`;
-                    const canvas = document.getElementById(canvasId);
-                    
-                    if (canvas) {
-                        const ctx = canvas.getContext('2d');
-                        new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: kabupatenData[kabupaten].site_ids,
-                                datasets: [{
-                                    label: `Visits in ${kabupaten}`,
-                                    data: kabupatenData[kabupaten].visit_counts,
-                                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                                    borderColor: 'rgb(54, 162, 235)',
-                                    borderWidth: 1
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    x: {
-                                        title: {
-                                            display: true,
-                                            text: 'Site ID'
-                                        },
-                                        ticks: {
-                                            maxRotation: 45,
-                                            minRotation: 45
-                                        }
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: kabupatenData[kabupaten].site_ids,
+                            datasets: [{
+                                label: `Visits in ${kabupaten}`,
+                                data: kabupatenData[kabupaten].visit_counts,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                borderColor: 'rgb(54, 162, 235)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Site ID'
                                     },
-                                    y: {
-                                        beginAtZero: true,
-                                        title: {
-                                            display: true,
-                                            text: 'Visit Count'
-                                        }
+                                    ticks: {
+                                        maxRotation: 45,
+                                        minRotation: 45
                                     }
                                 },
-                                plugins: {
-                                    tooltip: {
-                                        callbacks: {
-                                            title: function(context) {
-                                                const index = context[0].dataIndex;
-                                                return kabupatenData[kabupaten].site_names[index];
-                                            }
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Visit Count'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(context) {
+                                            const index = context[0].dataIndex;
+                                            return kabupatenData[kabupaten].site_names[index];
                                         }
                                     },
                                     legend: {
@@ -1484,20 +1325,23 @@
                                     }
                                 }
                             }
-                        });
-                    }
-                });
-                
-                // Add event listener for tab shown event to resize charts (fixes render issues on hidden tabs)
-                $('#kabupatenTabs a').on('shown.bs.tab', function (e) {
-                    const targetId = $(e.target).attr('aria-controls');
+                        }
+                    });
+                }
+            });
+            
+            // Add event listener for tab shown event to resize charts (fixes render issues on hidden tabs)
+            // Using Bootstrap 5's native JS for tabs
+            const tabEl = document.getElementById('kabupatenTabs');
+            if (tabEl) {
+                const tab = new bootstrap.Tab(tabEl.querySelector('.nav-link.active')); // Initialize active tab
+                tabEl.addEventListener('shown.bs.tab', event => {
+                    const targetId = event.target.getAttribute('aria-controls');
                     const canvas = document.querySelector(`#${targetId} canvas`);
-                    if (canvas && canvas.chart) {
-                        canvas.chart.resize();
+                    if (canvas && Chart.getChart(canvas)) { // Check if Chart.js instance exists
+                        Chart.getChart(canvas).resize();
                     }
                 });
-            } else {
-                console.warn('jQuery not found - kabupaten tabs may not function correctly');
             }
         }, 100);
     }
@@ -1738,9 +1582,10 @@
             const heatmapCol = document.createElement('div');
             heatmapCol.className = 'col-lg-6';
             heatmapCol.innerHTML = `
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">Post-Visit Alarm Distribution</h6>
+                <div class="card mb-4 shadow-sm h-100">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Post-Visit Alarm Distribution Heatmap</h5>
+                        <small class="text-muted">Density of sites with alarms after visits</small>
                     </div>
                     <div class="card-body">
                         <canvas id="postVisitHeatmapChart" height="300"></canvas>
@@ -1760,24 +1605,39 @@
                 if (postVisitHeatmapCtx) {
                     // Create datasets for each cell that has data
                     const datasets = [];
+                    // Define a color scale for the heatmap
+                    const colorScale = [
+                        'rgba(255, 255, 204, 0.8)', // Lightest yellow
+                        'rgba(255, 237, 160, 0.8)',
+                        'rgba(254, 217, 118, 0.8)',
+                        'rgba(254, 178, 76, 0.8)',
+                        'rgba(253, 141, 60, 0.8)',
+                        'rgba(252, 78, 42, 0.8)',
+                        'rgba(227, 26, 28, 0.8)',
+                        'rgba(189, 0, 38, 0.8)',
+                        'rgba(128, 0, 38, 0.8)'  // Darkest red
+                    ];
+                    
+                    const maxCount = Math.max(...heatmapData.counts.flat());
+
                     for (let i = 0; i < heatmapData.counts.length; i++) {
                         for (let j = 0; j < heatmapData.counts[i].length; j++) {
                             if (heatmapData.counts[i][j] > 0) {
-                                // Calculate color intensity based on count
                                 const count = heatmapData.counts[i][j];
-                                const alpha = Math.min(0.2 + (count / 10) * 0.8, 1);
+                                // Map count to a color in the scale
+                                const colorIndex = Math.min(Math.floor((count / maxCount) * (colorScale.length - 1)), colorScale.length - 1);
                                 
                                 datasets.push({
-                                    label: `${heatmapData.alarm_ranges[i]} at ${heatmapData.day_ranges[j]}`,
+                                    label: `Sites: ${count}`, // Label for tooltip
                                     data: [{
                                         x: j,
                                         y: i,
                                         count: count,
                                         sites: heatmapData.details[i][j]
                                     }],
-                                    backgroundColor: `rgba(220, 53, 69, ${alpha})`,
+                                    backgroundColor: colorScale[colorIndex],
                                     pointStyle: 'rect',
-                                    pointRadius: 20,
+                                    pointRadius: 20, // Fixed size for heatmap cells
                                     pointHoverRadius: 25
                                 });
                             }
@@ -1829,22 +1689,26 @@
                                 tooltip: {
                                     callbacks: {
                                         title: function(context) {
-                                            const dataIndex = context[0].dataIndex;
-                                            const data = context[0].dataset.data[dataIndex];
-                                            return `${heatmapData.alarm_ranges[data.y]} with ${heatmapData.day_ranges[data.x]}`;
+                                            const data = context[0].raw;
+                                            return `Pattern: ${heatmapData.alarm_ranges[data.y]} in ${heatmapData.day_ranges[data.x]}`;
                                         },
                                         label: function(context) {
                                             const data = context.raw;
                                             const labels = [
-                                                `${data.count} site(s) with this pattern`
+                                                `Sites: ${data.count}`
                                             ];
                                             
                                             if (data.sites && data.sites.length <= 5) {
                                                 labels.push('');
-                                                labels.push('Sites:');
+                                                labels.push('Affected Sites:');
                                                 data.sites.forEach(site => {
                                                     labels.push(`- ${site.site_name} (${site.site_id})`);
                                                 });
+                                            } else if (data.sites && data.sites.length > 5) {
+                                                labels.push('');
+                                                labels.push(`Affected Sites: ${data.sites.length} sites`);
+                                                labels.push('(Details in console)'); // Suggest checking console for many sites
+                                                console.log(`Sites for ${heatmapData.alarm_ranges[data.y]} in ${heatmapData.day_ranges[data.x]}:`, data.sites);
                                             }
                                             
                                             return labels;
@@ -1856,14 +1720,14 @@
                                 },
                                 title: {
                                     display: true,
-                                    text: 'Post-Visit Alarm Distribution',
+                                    text: 'Post-Visit Alarm Distribution Heatmap',
                                     font: {
                                         size: 14
                                     }
                                 },
                                 subtitle: {
                                     display: true,
-                                    text: 'Darker color indicates more sites with this pattern',
+                                    text: 'Color intensity represents number of sites with this pattern',
                                     font: {
                                         size: 12
                                     },
@@ -2231,4 +2095,3 @@
     }
 </style>
 {% endblock %}
-

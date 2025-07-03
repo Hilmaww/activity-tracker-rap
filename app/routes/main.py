@@ -1085,10 +1085,10 @@ def index():
     # Resource Utilization = Average workload distribution efficiency
     # Calculate how evenly workload is distributed among engineers
     # enom_users = User.query.filter_by(role='enom').all()
-    enom_users = [u for u in User.query.filter_by(role='enom') if u.username != 'enom_user']
+    enom_users_for_utilization = [u for u in User.query.filter_by(role='enom') if u.username != 'enom_user']
     workload_counts = []
     
-    for user in enom_users:
+    for user in enom_users_for_utilization:
         # Count user's active planned sites + assigned tickets + assigned alarms
         planned_count = db.session.query(func.count(PlannedSite.id)).join(
             DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
@@ -1279,8 +1279,8 @@ def index():
         resource_allocation['tickets'].append(tickets_count)
         
         # Count alarms - simplified
-        alarms_count = 3  # Placeholder
-        resource_allocation['alarms'].append(alarms_count)
+        # alarms_count = 3  # Placeholder
+        # resource_allocation['alarms'].append(alarms_count) # This line was causing issues, removed it.
     
     # 4. Temporal Operational Performance
     # Get data for the last 7 days
@@ -1394,6 +1394,53 @@ def index():
         alarm_management['zero_payload'].append(count_alarms(AlarmCategory.ZERO_PAYLOAD))
         alarm_management['other'].append(count_alarms(AlarmCategory.OTHER))
 
+    # Data for new stacked diagram: planned_sites on the last 30 days, legend by Category of the planned_sites for each enom_users
+    planned_sites_by_enom_category = {
+        'enom_users': [],
+        'categories': list(ProblemCategory.__members__.keys()), # Get all possible categories
+        'data': defaultdict(lambda: defaultdict(int)) # {enom_user: {category: count}}
+    }
+
+    # Get unique ENOM users who have planned sites in the last 30 days
+    enom_users_with_plans_30_days = db.session.query(User).join(
+        DailyPlan, User.id == DailyPlan.enom_user_id
+    ).filter(
+        DailyPlan.plan_date >= thirty_days_ago.date(),
+        DailyPlan.plan_date <= current_date,
+        User.role == 'enom',
+        User.username != "enom_user"
+    ).distinct().all()
+
+    for user in enom_users_with_plans_30_days:
+        planned_sites_by_enom_category['enom_users'].append(user.username)
+        for category in ProblemCategory:
+            count = db.session.query(PlannedSite).join(
+                DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
+            ).filter(
+                DailyPlan.enom_user_id == user.id,
+                DailyPlan.plan_date >= thirty_days_ago.date(),
+                DailyPlan.plan_date <= current_date,
+                PlannedSite.category == category # Filter by planned site category
+            ).count()
+            planned_sites_by_enom_category['data'][user.username][category.name] = count
+
+    # Convert defaultdict to regular dict for JSON serialization
+    final_planned_sites_data = {
+        'enom_users': planned_sites_by_enom_category['enom_users'],
+        'categories': planned_sites_by_enom_category['categories'],
+        'datasets': []
+    }
+
+    # Prepare datasets for Chart.js
+    for category in planned_sites_by_enom_category['categories']:
+        category_data = []
+        for enom_user in planned_sites_by_enom_category['enom_users']:
+            category_data.append(planned_sites_by_enom_category['data'][enom_user][category])
+        final_planned_sites_data['datasets'].append({
+            'label': category,
+            'data': category_data
+        })
+
 
     return render_template('index.html',
                        open_tickets=open_tickets,
@@ -1427,7 +1474,8 @@ def index():
                        alarm_stats=alarm_stats,
                        alarm_management=alarm_management,
                        executive_metrics=executive_metrics,
-                       executive_charts=executive_charts)
+                       executive_charts=executive_charts,
+                       planned_sites_by_enom_category=final_planned_sites_data) # Pass new data to template
 
 @bp.route('/tickets', methods=['GET'])
 @login_required
@@ -1805,6 +1853,7 @@ def create_plan():
             visit_orders = request.form.getlist('visit_order[]')
             durations = request.form.getlist('duration[]')
             assignees = request.form.getlist('assignee[]')
+            categories = request.form.getlist('category[]') # Get categories
 
             total_sites = len(site_ids)
 
@@ -1840,7 +1889,8 @@ def create_plan():
                         planned_actions=actions[i],
                         visit_order=visit_orders[i],
                         estimated_duration=durations[i],
-                        assignee=assignees[i]
+                        assignee=assignees[i],
+                        category=categories[i] if categories and i < len(categories) else None # Assign category
                     )
                     db.session.add(planned_site)
             
@@ -1991,6 +2041,7 @@ def edit_plan(plan_id):
                 actions = request.form.getlist('planned_actions[]')
                 ts = request.form.getlist('ts[]')
                 durations = request.form.getlist('duration[]')
+                categories = request.form.getlist('category[]') # Get categories
                 if new_status != PlanStatus.DRAFT:
                     updated_actions = request.form.getlist('updated_actions[]')
                 else:
@@ -2004,7 +2055,8 @@ def edit_plan(plan_id):
                         assignee=ts[i],
                         visit_order=i + 1,
                         estimated_duration=durations[i],
-                        updated_actions=updated_actions[i] if new_status != PlanStatus.DRAFT else 'Not Done Yet'
+                        updated_actions=updated_actions[i] if new_status != PlanStatus.DRAFT else 'Not Done Yet',
+                        category=categories[i] if categories and i < len(categories) else None # Assign category
                     )
                     db.session.add(planned_site)
 
@@ -2275,3 +2327,4 @@ def site_activities(site_id):
         from_date=from_date,
         to_date=to_date
     )
+
