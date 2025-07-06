@@ -1,4 +1,3 @@
-<!-- templates/base.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,115 +7,150 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}PATARO RAP - Performance & Activity Tracker for Availability & Recovery Optimization RAP{% endblock %}</title>
     
-    <!-- Use static script instead of cdn -->
+    <!-- Tailwind CSS CDN - The core of our new styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts - Inter for a modern, clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Existing JavaScript Libraries (not replaced by Tailwind/Shadcn) -->
+    <!-- jQuery -->
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <!-- jQuery UI (for drag-and-drop, if used) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.css') }}">
     <script src="{{ url_for('static', filename='js/jquery-ui.min.js') }}"></script>
-    <!-- <script src="{{ url_for('static', filename='js/toastr.min.js') }}"></script> -->
-    
-    <!-- Select2 CSS -->
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Select2 JS & CSS (ensure Select2 styling is compatible or overridden by Tailwind) -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    
-    <!-- Leaflet CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Leaflet for maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <!-- Toastr for notifications -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <!-- SweetAlert2 for custom alerts/modals -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Custom CSS -->
+    <!-- DataTables (if used, ensure styling is compatible) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
     <style>
-        .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        /* Base styles for Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+            @apply bg-gray-50 text-gray-800; /* Apply Tailwind background and text color */
         }
-        
+
+        /* Custom styles for specific elements that might need more granular control or mimic Bootstrap's look */
+        /* These would ideally be replaced by pure Tailwind where possible in index.html */
         .ticket-stats {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
+            @apply bg-white p-5 rounded-lg shadow-sm mb-8; /* Converted from Bootstrap styles */
         }
         
         .action-buttons {
-            margin: 20px 0;
+            @apply my-5; /* Converted from Bootstrap styles */
         }
         
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.9em;
+        /* Mimicking Bootstrap card hover effect with Tailwind */
+        .card-hover-effect {
+            @apply transition-all duration-300 ease-in-out;
         }
-        
-        .card {
-            transition: transform 0.2s;
+        .card-hover-effect:hover {
+            @apply transform -translate-y-1 shadow-lg;
         }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 8px rgba(0,0,0,.1);
+
+        /* Custom styles for badges, mimicking Bootstrap's color system with Tailwind-like gradients */
+        /* In a full Shadcn setup, these would be handled by a Badge component's variants */
+        .badge-base {
+            @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
         }
-        
-        .clickable {
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+        .badge-open { @apply badge-base bg-red-500 text-white shadow-sm; }
+        .badge-in-progress { @apply badge-base bg-yellow-500 text-gray-900 shadow-sm; }
+        .badge-pending { @apply badge-base bg-gray-700 text-white shadow-sm; }
+        .badge-resolved { @apply badge-base bg-blue-500 text-white shadow-sm; }
+        .badge-closed { @apply badge-base bg-green-500 text-white shadow-sm; }
+        .badge-submitted { @apply badge-base bg-indigo-500 text-white shadow-sm; }
+        .badge-draft { @apply badge-base bg-gray-400 text-white shadow-sm; }
+        .badge-approved { @apply badge-base bg-green-600 text-white shadow-sm; }
+        .badge-rejected { @apply badge-base bg-red-600 text-white shadow-sm; }
+        .badge-acknowledged { @apply badge-base bg-purple-600 text-white shadow-sm; }
+        .badge-scheduled { @apply badge-base bg-teal-500 text-white shadow-sm; }
+
+        /* Specific styles for map loading and controls */
+        .map-loading {
+            @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center bg-white bg-opacity-90 p-5 rounded-lg shadow-md z-50;
         }
-        
-        .clickable:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 8px rgba(223, 211, 211, 0.2);
+        .map-loading i {
+            @apply text-2xl mr-2 text-blue-500;
         }
-        
-        .chart-container {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,.05);
+        .custom-map-controls .btn {
+            @apply w-10 h-10 flex items-center justify-center mb-1 shadow-sm rounded-md;
         }
-        
-        .chart-wrapper {
-            position: relative;
-            min-height: 300px;
+        .custom-map-controls .btn.active {
+            @apply bg-blue-600 text-white;
         }
-        
-        /* Select2 custom styles */
-        .select2-container--bootstrap-5 {
-            width: 100% !important;
-        }
-        
-        .select2-selection {
-            height: 38px !important;
-            padding: 5px !important;
-        }
-        
-        #siteMap {
-            height: 700px;
-            width: 100%;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        
-        .map-container {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,.05);
-        }
-        
         .site-popup {
-            font-size: 14px;
+            @apply max-w-xs text-sm;
         }
-        
         .site-popup h5 {
-            margin: 0 0 5px 0;
+            @apply mb-2 pb-1 border-b border-gray-200;
         }
-        
         .site-popup p {
-            margin: 0;
-            color: #666;
+            @apply m-0 text-gray-600;
         }
-        
+        .status-breakdown {
+            @apply mt-2 text-xs;
+        }
+        .status-item {
+            @apply flex items-center my-0.5;
+        }
+        .status-dot {
+            @apply w-2 h-2 rounded-full mr-1.5;
+        }
+
+        /* Progress circle for executive dashboard KPIs (custom CSS needed for conic-gradient) */
+        .progress-circle {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-circle-inner {
+            position: absolute;
+            width: 70%;
+            height: 70%;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+        .progress-circle-bg-success {
+            background: conic-gradient(#22c55e var(--percent), #e5e7eb 0); /* Tailwind green-500 */
+        }
+        .progress-circle-bg-warning {
+            background: conic-gradient(#facc15 var(--percent), #e5e7eb 0); /* Tailwind yellow-400 */
+        }
+        .progress-circle-bg-danger {
+            background: conic-gradient(#ef4444 var(--percent), #e5e7eb 0); /* Tailwind red-500 */
+        }
+
+        /* <!-- Retain the css for other pages --> */
         /* Open - Vibrant Red with Subtle Gradient */
         .badge.bg-open {
             background: linear-gradient(to right, var(--bs-danger), #dc3545);
@@ -283,88 +317,126 @@
             background-color: #fff; /* White background for planned site */
             border-radius: 4px; /* Rounded corners */
         }
+        /* Retain the css for other pages  */
+
     </style>
     {% block extra_css %}{% endblock %}
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-
-    <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
 </head>
-<body>
+<body class="font-inter antialiased">
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand d-block text-wrap" href="{{ url_for('main.index') }}">
+    <!-- Mimicking Shadcn's Navbar / NavigationMenu structure with Tailwind -->
+    <nav class="bg-gray-900 text-white shadow-md py-4 px-4 md:px-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a class="text-lg font-semibold whitespace-normal leading-tight md:text-xl" href="{{ url_for('main.index') }}">
                 PATARO RAP - Performance & Activity Tracker for Availability & Recovery Optimization RAP
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+            
+            <!-- Mobile Menu Toggle Button -->
+            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                <i class="fas fa-bars text-xl"></i>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
-                    </li>
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.list_tickets') }}">View Tickets</a>
-                        </li>
-                        {% if current_user.role == 'tsel' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.create_ticket') }}">Create Ticket</a>
-                            </li>
-                        {% endif %}
-                        {% if current_user.role == 'enom' %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="planDropdown" role="button" data-bs-toggle="dropdown">
-                                    Daily Plans
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{{ url_for('main.list_plans') }}">My Plans</a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('main.create_plan') }}">Create Plan</a></li>
-                                </ul>
-                            </li>
-                        {% endif %}
-                        {% if current_user.role == 'tsel' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.list_plans') }}">Review Plans</a>
-                            </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.visited_sites') }}">
-                                <i class="fas fa-broadcast-tower"></i> Site Activities
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('alarms.list_alarms') }}">
-                                <i class="fas fa-bell"></i> Alarms & Programs
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
-                        </li>
+
+            <!-- Desktop Navigation Links -->
+            <div class="hidden md:flex space-x-6">
+                <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.index') }}">Home</a>
+                {% if current_user.is_authenticated %}
+                    <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.list_tickets') }}">View Tickets</a>
+                    {% if current_user.role == 'tsel' %}
+                        <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.create_ticket') }}">Create Ticket</a>
                     {% endif %}
-                </ul>
+                    
+                    <!-- Dropdown for Daily Plans -->
+                    <div class="relative group">
+                        <button class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200 flex items-center focus:outline-none" aria-haspopup="true" aria-expanded="false">
+                            Daily Plans <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-200 group-hover:rotate-180"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200">
+                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="planDropdown">
+                                <a href="{{ url_for('main.list_plans') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Plans</a>
+                                <a href="{{ url_for('main.create_plan') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Create Plan</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if current_user.role == 'tsel' %}
+                        <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.list_plans') }}">Review Plans</a>
+                    {% endif %}
+                    <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200 flex items-center" href="{{ url_for('main.visited_sites') }}">
+                        <i class="fas fa-broadcast-tower mr-2"></i> Site Activities
+                    </a>
+                    <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200 flex items-center" href="{{ url_for('alarms.list_alarms') }}">
+                        <i class="fas fa-bell mr-2"></i> Alarms & Programs
+                    </a>
+                    <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('auth.logout') }}">Logout</a>
+                {% else %}
+                    <a class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('auth.login') }}">Login</a>
+                {% endif %}
             </div>
+        </div>
+
+        <!-- Mobile Menu (hidden by default, shown with JS) -->
+        <div id="mobile-menu" class="hidden md:hidden mt-4 space-y-2">
+            <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.index') }}">Home</a>
+            {% if current_user.is_authenticated %}
+                <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.list_tickets') }}">View Tickets</a>
+                {% if current_user.role == 'tsel' %}
+                    <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.create_ticket') }}">Create Ticket</a>
+                {% endif %}
+                
+                <!-- Mobile Dropdown for Daily Plans -->
+                <div class="relative">
+                    <button id="mobile-plan-dropdown-button" class="w-full text-left text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200 flex items-center justify-between focus:outline-none" aria-haspopup="true" aria-expanded="false">
+                        Daily Plans <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-200"></i>
+                    </button>
+                    <div id="mobile-plan-dropdown-content" class="hidden pl-4 mt-2 space-y-2">
+                        <a href="{{ url_for('main.list_plans') }}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md">My Plans</a>
+                        <a href="{{ url_for('main.create_plan') }}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md">Create Plan</a>
+                    </div>
+                </div>
+
+                {% if current_user.role == 'tsel' %}
+                    <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('main.list_plans') }}">Review Plans</a>
+                {% endif %}
+                <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200 flex items-center" href="{{ url_for('main.visited_sites') }}">
+                    <i class="fas fa-broadcast-tower mr-2"></i> Site Activities
+                </a>
+                <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200 flex items-center" href="{{ url_for('alarms.list_alarms') }}">
+                    <i class="fas fa-bell mr-2"></i> Alarms & Programs
+                </a>
+                <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('auth.logout') }}">Logout</a>
+            {% else %}
+                <a class="block text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-200" href="{{ url_for('auth.login') }}">Login</a>
+            {% endif %}
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container mt-4">
+    <!-- Main Content Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <!-- Custom Alert Component (mimicking Shadcn Alert) -->
+                    <div class="relative flex items-center p-4 mb-4 rounded-lg text-sm
+                        {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200
+                        {% elif category == 'warning' %}bg-yellow-100 text-yellow-700 border border-yellow-200
+                        {% elif category == 'danger' %}bg-red-100 text-red-700 border border-red-200
+                        {% else %}bg-blue-100 text-blue-700 border border-blue-200{% endif %}"
+                        role="alert">
+                        <span class="mr-2">
+                            {% if category == 'success' %}<i class="fas fa-check-circle"></i>
+                            {% elif category == 'warning' %}<i class="fas fa-exclamation-triangle"></i>
+                            {% elif category == 'danger' %}<i class="fas fa-times-circle"></i>
+                            {% else %}<i class="fas fa-info-circle"></i>{% endif %}
+                        </span>
+                        <div>{{ message }}</div>
+                        <button type="button" class="absolute top-2 right-2 p-1 rounded-md transition-colors duration-200
+                            {% if category == 'success' %}hover:bg-green-200 text-green-700
+                            {% elif category == 'warning' %}hover:bg-yellow-200 text-yellow-700
+                            {% elif category == 'danger' %}hover:bg-red-200 text-red-700
+                            {% else %}hover:bg-blue-200 text-blue-700{% endif %}"
+                            onclick="this.parentElement.remove()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -374,52 +446,53 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-light text-center text-muted py-4 mt-5">
+    <footer class="bg-gray-100 text-center text-gray-600 py-4 mt-10 shadow-inner">
         <p>NOP RAP © 2025</p>
     </footer>
 
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    
-    <!-- Custom JavaScript -->
+    <!-- Custom JavaScript for interactivity -->
     <script nonce="{{ nonce_value | default('') }}">
         document.addEventListener('DOMContentLoaded', function() {
-            // Enable Bootstrap tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    // Toggle icon
+                    const icon = mobileMenuButton.querySelector('i');
+                    if (mobileMenu.classList.contains('hidden')) {
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    } else {
+                        icon.classList.remove('fa-bars');
+                        icon.classList.add('fa-times');
+                    }
+                });
+            }
+
+            // Mobile plan dropdown toggle
+            const mobilePlanDropdownButton = document.getElementById('mobile-plan-dropdown-button');
+            const mobilePlanDropdownContent = document.getElementById('mobile-plan-dropdown-content');
+            if (mobilePlanDropdownButton && mobilePlanDropdownContent) {
+                mobilePlanDropdownButton.addEventListener('click', () => {
+                    mobilePlanDropdownContent.classList.toggle('hidden');
+                    const icon = mobilePlanDropdownButton.querySelector('i');
+                    icon.classList.toggle('rotate-180');
+                });
+            }
+
+            // Setup CSRF token for AJAX requests (retained from original)
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                    }
+                }
             });
         });
     </script>
-
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Select2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     {% block extra_js %}{% endblock %}
-
-    <!-- Add this in the JavaScript section before closing </body> -->
-    <script nonce="{{ nonce_value | default('') }}">
-        // Setup CSRF token for AJAX requests
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader("X-CSRFToken", document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-                }
-            }
-        });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{{ url_for('static', filename='js/plans.js')  }}" nonce="{{ nonce_value }}"></script>
 </body>
 </html>

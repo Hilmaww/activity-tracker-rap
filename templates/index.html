@@ -2,144 +2,185 @@
 
 {% block content %}
     <!-- Dashboard Overview -->
-    <div class="row ticket-stats">
-        <div class="col-md-3">
-            <div class="card text-center clickable" data-status="OPEN">
-                <div class="card-body">
-                    <h5 class="card-title">Open Tickets</h5>
-                    <p class="card-text h3">{{ open_tickets | default(0) }}</p>
+    <!-- Replaced Bootstrap 'row' with Tailwind 'grid' and 'gap' -->
+    <!-- Replaced 'col-md-3' with responsive 'w-full sm:w-1/2 lg:w-1/4' for explicit widths or 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' on parent -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 ticket-stats">
+        <!-- Card 1: Open Tickets -->
+        <div class="w-full">
+            <!-- Applied Tailwind classes for card styling, and custom hover effect from base.html -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center cursor-pointer card-hover-effect" data-status="OPEN">
+                <div class="flex flex-col items-center justify-center">
+                    <h5 class="text-xl font-semibold text-gray-700 mb-2">Open Tickets</h5>
+                    <p class="text-4xl font-bold text-blue-600">{{ open_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center clickable" data-status="IN_PROGRESS">
-                <div class="card-body">
-                    <h5 class="card-title">In Progress</h5>
-                    <p class="card-text h3">{{ in_progress_tickets | default(0) }}</p>
+        <!-- Card 2: In Progress -->
+        <div class="w-full">
+            <div class="bg-white p-6 rounded-lg shadow-md text-center cursor-pointer card-hover-effect" data-status="IN_PROGRESS">
+                <div class="flex flex-col items-center justify-center">
+                    <h5 class="text-xl font-semibold text-gray-700 mb-2">In Progress</h5>
+                    <p class="text-4xl font-bold text-yellow-600">{{ in_progress_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center clickable" data-status="PENDING">
-                <div class="card-body">
-                    <h5 class="card-title">Pending</h5>
-                    <p class="card-text h3">{{ pending_tickets | default(0) }}</p>
+        <!-- Card 3: Pending -->
+        <div class="w-full">
+            <div class="bg-white p-6 rounded-lg shadow-md text-center cursor-pointer card-hover-effect" data-status="PENDING">
+                <div class="flex flex-col items-center justify-center">
+                    <h5 class="text-xl font-semibold text-gray-700 mb-2">Pending</h5>
+                    <p class="text-4xl font-bold text-gray-700">{{ pending_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center clickable" data-status="RESOLVED">
-                <div class="card-body">
-                    <h5 class="card-title">Resolved</h5>
-                    <p class="card-text h3">{{ resolved_tickets | default(0) }}</p>
+        <!-- Card 4: Resolved -->
+        <div class="w-full">
+            <div class="bg-white p-6 rounded-lg shadow-md text-center cursor-pointer card-hover-effect" data-status="RESOLVED">
+                <div class="flex flex-col items-center justify-center">
+                    <h5 class="text-xl font-semibold text-gray-700 mb-2">Resolved</h5>
+                    <p class="text-4xl font-bold text-green-600">{{ resolved_tickets | default(0) }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Last 30 Days</h5>
-                    <p class="card-text h3">{{ total_30_days | default(0) }}</p>
-                    <small class="text-muted">Total Tickets</small>
+        <!-- Card 5: Last 30 Days Total -->
+        <div class="w-full">
+            <div class="bg-white p-6 rounded-lg shadow-md text-center card-hover-effect">
+                <div class="flex flex-col items-center justify-center">
+                    <h5 class="text-xl font-semibold text-gray-700 mb-2">Last 30 Days</h5>
+                    <p class="text-4xl font-bold text-purple-600">{{ total_30_days | default(0) }}</p>
+                    <small class="text-gray-500 text-sm">Total Tickets</small>
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Action Buttons -->
-    <div class="action-buttons">
+    <!-- Replaced Bootstrap 'action-buttons' with Tailwind spacing -->
+    <div class="my-6 flex flex-wrap gap-4 action-buttons">
         {% if current_user.role == 'tsel' %}
-        <a href="/tickets/new" class="btn btn-primary">Create New Ticket</a>
+        <!-- Replaced Bootstrap 'btn' with Tailwind-styled button -->
+        <a href="/tickets/new" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+            Create New Ticket
+        </a>
         {% endif %}
-        <a href="/tickets" class="btn btn-secondary">View All Tickets</a>
-        <a href="/plans" class="btn btn-secondary">View My Plans</a>
+        <a href="/tickets" class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+            View All Tickets
+        </a>
+        <a href="/plans" class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+            View My Plans
+        </a>
     </div>
 
     <!-- Add this after the status cards section -->
     {% if current_user.role == 'enom' %}
         {% set has_plan_today = current_user.daily_plans|selectattr('plan_date', 'equalto', today)|first %}
         {% if not has_plan_today %}
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                <h4 class="alert-heading"><i class="fas fa-calendar-plus"></i> Plan Your Day!</h4>
-                <p>You haven't submitted your daily plan for today. Planning helps organize your site visits effectively.</p>
-                <hr>
-                <a href="{{ url_for('main.create_plan') }}" class="btn btn-primary">Create Today's Plan</a>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <!-- Custom Alert Component (mimicking Shadcn Alert) -->
+            <div class="relative flex items-start p-4 mb-4 rounded-lg text-sm bg-yellow-100 text-yellow-700 border border-yellow-200" role="alert">
+                <span class="mr-3 text-lg"><i class="fas fa-calendar-plus"></i></span>
+                <div class="flex-grow">
+                    <h4 class="text-lg font-semibold mb-1">Plan Your Day!</h4>
+                    <p class="mb-2">You haven't submitted your daily plan for today. Planning helps organize your site visits effectively.</p>
+                    <div class="border-t border-yellow-200 pt-2 mt-2">
+                        <a href="{{ url_for('main.create_plan') }}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200">
+                            Create Today's Plan
+                        </a>
+                    </div>
+                </div>
+                <button type="button" class="absolute top-2 right-2 p-1 rounded-md transition-colors duration-200 hover:bg-yellow-200 text-yellow-700" onclick="this.parentElement.remove()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         {% endif %}
         
         <!-- Sites Need Planning Section-->
         {% if unplanned_sites %}
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card bg-warning-subtle border-warning">
-                    <div class="card-header bg-warning-subtle border-warning">
-                        <h5 class="mb-0 text-warning">
-                            <i class="fas fa-exclamation-triangle"></i> Action Required: Sites Need Planning
-                        </h5>
+        <div class="mb-8">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+                <div class="bg-yellow-100 border-b border-yellow-200 p-4 rounded-t-lg">
+                    <h5 class="text-lg font-semibold text-yellow-800 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Action Required: Sites Need Planning
+                    </h5>
+                </div>
+                <div class="p-6">
+                    <div class="flex flex-col md:flex-row items-center justify-between mb-4">
+                        <div class="mb-4 md:mb-0 md:mr-4">
+                            <p class="text-lg font-medium mb-2">
+                                There are <strong class="text-yellow-800">{{ unplanned_sites|length }}</strong> sites with active alarms that have not been included in any plan.
+                            </p>
+                            <p class="text-gray-700">To ensure all critical issues are addressed, please create plans for these sites as soon as possible.</p>
+                        </div>
+                        <div class="w-full md:w-auto text-center md:text-right">
+                            <a href="{{ url_for('main.create_plan', sites=unplanned_site_ids|join(',')) }}" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-yellow-800 bg-yellow-300 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200">
+                                <i class="fas fa-calendar-plus mr-2"></i> Create Plan for Unplanned Sites
+                            </a>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <p class="lead mb-2">
-                                    There are <strong>{{ unplanned_sites|length }}</strong> sites with active alarms that have not been included in any plan.
-                                </p>
-                                <p class="mb-0">To ensure all critical issues are addressed, please create plans for these sites as soon as possible.</p>
-                            </div>
-                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                <a href="{{ url_for('main.create_plan', sites=unplanned_site_ids|join(',')) }}" class="btn btn-warning btn-lg">
-                                    <i class="fas fa-calendar-plus me-2"></i> Create Plan for Unplanned Sites
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <button class="btn btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#unplannedSitesList">
-                                <i class="fas fa-list me-1"></i> View Unplanned Sites
-                            </button>
-                        </div>
-                        
-                        <div class="collapse mt-3" id="unplannedSitesList">
-                            <div class="card card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-sm">
-                                        <thead>
+                    
+                    <div class="mt-4">
+                        <button class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" type="button" data-bs-toggle="collapse" data-bs-target="#unplannedSitesList">
+                            <i class="fas fa-list mr-2"></i> View Unplanned Sites
+                        </button>
+                    </div>
+                    
+                    <div class="collapse mt-4" id="unplannedSitesList">
+                        <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Site ID
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Site Name
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Location
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Priority
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Alarms
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Action
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        {% for site in unplanned_sites %}
                                             <tr>
-                                                <th>Site ID</th>
-                                                <th>Site Name</th>
-                                                <th>Location</th>
-                                                <th>Priority</th>
-                                                <th>Alarms</th>
-                                                <th>Action</th>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {{ site.site_id }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                    {{ site.name }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                    {{ site.kabupaten }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                                    {% if site.priority_score > 10 %}
+                                                        <span class="badge-base bg-red-500 text-white">High ({{ site.priority_score }})</span>
+                                                    {% elif site.priority_score > 5 %}
+                                                        <span class="badge-base bg-yellow-500 text-gray-900">Medium ({{ site.priority_score }})</span>
+                                                    {% else %}
+                                                        <span class="badge-base bg-blue-500 text-white">Low ({{ site.priority_score }})</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.alarm_count }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <a href="{{ url_for('main.create_plan', site_id=site.id) }}" 
+                                                       class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-yellow-800 bg-yellow-300 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200">
+                                                        <i class="fas fa-calendar-plus mr-1"></i> Plan
+                                                    </a>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for site in unplanned_sites %}
-                                                <tr>
-                                                    <td>{{ site.site_id }}</td>
-                                                    <td>{{ site.name }}</td>
-                                                    <td>{{ site.kabupaten }}</td>
-                                                    <td>
-                                                        {% if site.priority_score > 10 %}
-                                                            <span class="badge bg-danger">High ({{ site.priority_score }})</span>
-                                                        {% elif site.priority_score > 5 %}
-                                                            <span class="badge bg-warning text-dark">Medium ({{ site.priority_score }})</span>
-                                                        {% else %}
-                                                            <span class="badge bg-info">Low ({{ site.priority_score }})</span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td>{{ site.alarm_count }}</td>
-                                                    <td>
-                                                        <a href="{{ url_for('main.create_plan', site_id=site.id) }}" 
-                                                           class="btn btn-sm btn-warning">
-                                                            <i class="fas fa-calendar-plus me-1"></i> Plan
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -151,93 +192,94 @@
 
     <!-- Add this after the status cards section for TSEL users -->
     {% if current_user.role == 'tsel' %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="card-title mb-0">Today's ENOM Plans</h5>
-                            <small class="text-muted">
-                                {{ todays_plans|length }} plans submitted today
-                                ({{ todays_plans|selectattr('status.name', 'equalto', 'SUBMITTED')|list|length }} pending review)
-                            </small>
-                        </div>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                                <i class="fas fa-filter"></i> Filter
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#" data-filter="all">All Plans</a></li>
-                                <li><a class="dropdown-item" href="#" data-filter="submitted">Pending Review</a></li>
-                                <li><a class="dropdown-item" href="#" data-filter="approved">Approved</a></li>
-                                <li><a class="dropdown-item" href="#" data-filter="rejected">Rejected</a></li>
-                            </ul>
+    <div class="mt-8">
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h5 class="text-xl font-semibold text-gray-800 mb-1">Today's ENOM Plans</h5>
+                        <small class="text-gray-600">
+                            {{ todays_plans|length }} plans submitted today
+                            ({{ todays_plans|selectattr('status.name', 'equalto', 'SUBMITTED')|list|length }} pending review)
+                        </small>
+                    </div>
+                    <!-- Dropdown for Filter -->
+                    <div class="relative group">
+                        <button class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" type="button" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-filter mr-2"></i> Filter <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-200 group-hover:rotate-180"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200">
+                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="filterDropdown">
+                                <li><a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#" data-filter="all">All Plans</a></li>
+                                <li><a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#" data-filter="submitted">Pending Review</a></li>
+                                <li><a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#" data-filter="approved">Approved</a></li>
+                                <li><a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="#" data-filter="rejected">Rejected</a></li>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    {% if todays_plans %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+            </div>
+            <div class="p-6">
+                {% if todays_plans %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ENOM</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sites</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% set sorted_plans = todays_plans|sort(attribute='status.name', reverse=True) %}
+                            {% for plan in sorted_plans %}
                                 <tr>
-                                    <th>ENOM</th>
-                                    <th>Sites</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ plan.enom_user.username }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {{ plan.planned_sites|length }} sites
+                                        <small class="text-gray-500 block">
+                                            {{ plan.planned_sites|map(attribute='site.name')|join(', ') }}
+                                        </small>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span class="badge-base badge-{{ plan.status.name|lower }}">
+                                            {{ plan.status.name }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div class="flex space-x-2">
+                                            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
+                                               class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">View</a>
+                                            {% if plan.status.name == 'SUBMITTED' %}
+                                            <button type="button" 
+                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 plan-action-btn"
+                                                    data-plan-id="{{ plan.id }}" 
+                                                    data-action="approve">
+                                                Approve
+                                            </button>
+                                            <button type="button" 
+                                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 plan-action-btn"
+                                                    data-plan-id="{{ plan.id }}" 
+                                                    data-action="reject">
+                                                Reject
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {% set sorted_plans = todays_plans|sort(attribute='status.name', reverse=True) %}
-                                {% for plan in sorted_plans %}
-                                    <tr>
-                                        <td>{{ plan.enom_user.username }}</td>
-                                        <td>
-                                            {{ plan.planned_sites|length }} sites
-                                            <small class="text-muted d-block">
-                                                {{ plan.planned_sites|map(attribute='site.name')|join(', ') }}
-                                            </small>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-{{ plan.status.name|lower }}">
-                                                {{ plan.status.name }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
-                                                   class="btn btn-sm btn-primary">View</a>
-                                                {% if plan.status.name == 'SUBMITTED' %}
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-success plan-action-btn"
-                                                        data-plan-id="{{ plan.id }}" 
-                                                        data-action="approve">
-                                                    Approve
-                                                </button>
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-danger plan-action-btn"
-                                                        data-plan-id="{{ plan.id }}" 
-                                                        data-action="reject">
-                                                    Reject
-                                                </button>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-muted mb-0">No plans submitted for today.</p>
-                    {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <div class="card-footer text-end">
-                    <a href="{{ url_for('main.list_plans') }}" class="btn btn-primary">
-                        <i class="fas fa-list"></i> View All Plans
-                    </a>
-                </div>
+                {% else %}
+                <p class="text-gray-500 mb-0">No plans submitted for today.</p>
+                {% endif %}
+            </div>
+            <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg text-right">
+                <a href="{{ url_for('main.list_plans') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                    <i class="fas fa-list mr-2"></i> View All Plans
+                </a>
             </div>
         </div>
     </div>
@@ -245,137 +287,125 @@
     <!-- Core Charts Section -->
 
     <!-- Executive Dashboard KPI Cards -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2"></i>Executive Business Intelligence
-                    </h5>
+    <div class="mt-8">
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="p-4 bg-gray-800 text-white rounded-t-lg">
+                <h5 class="text-xl font-semibold mb-1 flex items-center">
+                    <i class="fas fa-chart-line mr-2"></i>Executive Business Intelligence
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
+                    <div class="w-full">
+                        <div class="bg-white p-5 rounded-lg shadow-sm h-full border border-gray-200">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h6 class="text-sm font-medium text-gray-500">Daily Productivity</h6>
+                                    <h3 class="mt-2 text-3xl font-bold text-gray-800">{{ executive_metrics.avg_sites_per_enom }}</h3>
+                                    <p class="text-gray-500 text-sm">Sites per ENOM per day</p>
+                                </div>
+                                <div class="flex items-center justify-center w-16 h-16 rounded-lg bg-blue-100 p-3">
+                                    <i class="fas fa-user-hard-hat text-blue-600 text-3xl"></i>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-4">
+                                <div class="bg-blue-600 h-1.5 rounded-full" style="width: {{ executive_metrics.avg_sites_per_enom * 10 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full">
+                        <div class="bg-white p-5 rounded-lg shadow-sm h-full border border-gray-200">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h6 class="text-sm font-medium text-gray-500">Site Health</h6>
+                                    <h3 class="mt-2 text-3xl font-bold text-gray-800">{{ executive_metrics.avg_alarms_per_site }}</h3>
+                                    <p class="text-gray-500 text-sm">Alarms per site (weekly avg)</p>
+                                </div>
+                                <div class="flex items-center justify-center w-16 h-16 rounded-lg bg-red-100 p-3">
+                                    <i class="fas fa-bell text-red-600 text-3xl"></i>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-4">
+                                <div class="bg-red-600 h-1.5 rounded-full" style="width: {{ executive_metrics.avg_alarms_per_site * 10 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full">
+                        <div class="bg-white p-5 rounded-lg shadow-sm h-full border border-gray-200">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h6 class="text-sm font-medium text-gray-500">Coverage</h6>
+                                    <h3 class="mt-2 text-3xl font-bold text-gray-800">{{ executive_metrics.unique_visited_sites }}</h3>
+                                    <p class="text-gray-500 text-sm">Unique sites visited (2 weeks)</p>
+                                </div>
+                                <div class="flex items-center justify-center w-16 h-16 rounded-lg bg-blue-100 p-3">
+                                    <i class="fas fa-tower-cell text-blue-600 text-3xl"></i>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-4">
+                                <div class="bg-blue-600 h-1.5 rounded-full" style="width: {{ executive_metrics.unique_visited_sites / 5 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-0 shadow-sm bg-gradient">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="card-subtitle text-muted">Daily Productivity</h6>
-                                            <h3 class="mt-2 mb-0">{{ executive_metrics.avg_sites_per_enom }}</h3>
-                                            <p class="text-muted mb-0">Sites per ENOM per day</p>
-                                        </div>
-                                        <div class="icon-box bg-primary bg-opacity-10 rounded p-3">
-                                            <i class="fas fa-user-hard-hat text-primary" style="font-size: 2rem;"></i>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div class="w-full">
+                        <div class="bg-white p-5 rounded-lg shadow-sm h-full border border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h6 class="text-sm font-medium text-gray-500">Execution Excellence</h6>
+                                    <div class="flex items-center mt-2">
+                                        <h3 class="text-3xl font-bold text-gray-800">{{ executive_metrics.completion_percentage }}%</h3>
+                                        <div class="ml-3">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold
+                                                {% if executive_metrics.completion_percentage > 85 %}bg-green-500 text-white
+                                                {% elif executive_metrics.completion_percentage > 70 %}bg-yellow-500 text-gray-900
+                                                {% else %}bg-red-500 text-white{% endif %}">
+                                                Completion Rate
+                                            </span>
                                         </div>
                                     </div>
-                                    <div class="progress mt-3" style="height: 5px;">
-                                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ executive_metrics.avg_sites_per_enom * 10 }}%"></div>
-                                    </div>
+                                    <p class="text-gray-500 text-sm">Of planned site visits completed</p>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="card-subtitle text-muted">Site Health</h6>
-                                            <h3 class="mt-2 mb-0">{{ executive_metrics.avg_alarms_per_site }}</h3>
-                                            <p class="text-muted mb-0">Alarms per site (weekly avg)</p>
-                                        </div>
-                                        <div class="icon-box bg-danger bg-opacity-10 rounded p-3">
-                                            <i class="fas fa-bell text-danger" style="font-size: 2rem;"></i>
-                                        </div>
-                                    </div>
-                                    <div class="progress mt-3" style="height: 5px;">
-                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ executive_metrics.avg_alarms_per_site * 10 }}%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="card-subtitle text-muted">Coverage</h6>
-                                            <h3 class="mt-2 mb-0">{{ executive_metrics.unique_visited_sites }}</h3>
-                                            <p class="text-muted mb-0">Unique sites visited (2 weeks)</p>
-                                        </div>
-                                        <div class="icon-box bg-info bg-opacity-10 rounded p-3">
-                                            <i class="fas fa-tower-cell text-info" style="font-size: 2rem;"></i>
-                                        </div>
-                                    </div>
-                                    <div class="progress mt-3" style="height: 5px;">
-                                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ executive_metrics.unique_visited_sites / 5 }}%"></div>
+                                <div class="progress-circle 
+                                    {% if executive_metrics.completion_percentage > 85 %}progress-circle-bg-success
+                                    {% elif executive_metrics.completion_percentage > 70 %}progress-circle-bg-warning
+                                    {% else %}progress-circle-bg-danger{% endif %}"
+                                    style="--percent: {{ executive_metrics.completion_percentage }}%">
+                                    <div class="progress-circle-inner">
+                                        <span class="text-lg font-bold">{{ executive_metrics.completion_percentage }}%</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="row mt-3">
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="card-subtitle text-muted">Execution Excellence</h6>
-                                            <div class="d-flex align-items-center mt-2">
-                                                <h3 class="mb-0">{{ executive_metrics.completion_percentage }}%</h3>
-                                                <div class="ms-3">
-                                                    <span class="badge rounded-pill 
-                                                        {% if executive_metrics.completion_percentage > 85 %}bg-success
-                                                        {% elif executive_metrics.completion_percentage > 70 %}bg-warning
-                                                        {% else %}bg-danger{% endif %}">
-                                                        Completion Rate
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <p class="text-muted mb-0">Of planned site visits completed</p>
-                                        </div>
-                                        <div class="progress-circle 
-                                            {% if executive_metrics.completion_percentage > 85 %}progress-circle-bg-success
-                                            {% elif executive_metrics.completion_percentage > 70 %}progress-circle-bg-warning
-                                            {% else %}progress-circle-bg-danger{% endif %}"
-                                            style="--percent: {{ executive_metrics.completion_percentage }}%">
-                                            <div class="progress-circle-inner">
-                                                <span class="fs-5 fw-bold">{{ executive_metrics.completion_percentage }}%</span>
-                                            </div>
+                    <div class="w-full">
+                        <div class="bg-white p-5 rounded-lg shadow-sm h-full border border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h6 class="card-subtitle text-sm font-medium text-gray-500">Strategic Alignment</h6>
+                                    <div class="flex items-center mt-2">
+                                        <h3 class="text-3xl font-bold text-gray-800">{{ executive_metrics.alignment_percentage }}%</h3>
+                                        <div class="ml-3">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold
+                                                {% if executive_metrics.alignment_percentage > 85 %}bg-green-500 text-white
+                                                {% elif executive_metrics.alignment_percentage > 70 %}bg-yellow-500 text-gray-900
+                                                {% else %}bg-red-500 text-white{% endif %}">
+                                                Alignment Rate
+                                            </span>
                                         </div>
                                     </div>
+                                    <p class="text-gray-500 text-sm">Site planning aligned with alarms</p>
+                                    <p class="text-gray-500 text-xs mt-1">Total alarms: {{ executive_metrics.total_alarm_count }}</p>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h6 class="card-subtitle text-muted">Strategic Alignment</h6>
-                                            <div class="d-flex align-items-center mt-2">
-                                                <h3 class="mb-0">{{ executive_metrics.alignment_percentage }}%</h3>
-                                                <div class="ms-3">
-                                                    <span class="badge rounded-pill 
-                                                        {% if executive_metrics.alignment_percentage > 85 %}bg-success
-                                                        {% elif executive_metrics.alignment_percentage > 70 %}bg-warning
-                                                        {% else %}bg-danger{% endif %}">
-                                                        Alignment Rate
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <p class="text-muted mb-0">Site planning aligned with alarms</p>
-                                            <p class="text-muted small mb-0">Total alarms: {{ executive_metrics.total_alarm_count }}</p>
-                                        </div>
-                                        <div class="progress-circle 
-                                            {% if executive_metrics.alignment_percentage > 85 %}progress-circle-bg-success
-                                            {% elif executive_metrics.alignment_percentage > 70 %}progress-circle-bg-warning
-                                            {% else %}progress-circle-bg-danger{% endif %}"
-                                            style="--percent: {{ executive_metrics.alignment_percentage }}%">
-                                            <div class="progress-circle-inner">
-                                                <span class="fs-5 fw-bold">{{ executive_metrics.alignment_percentage }}%</span>
-                                            </div>
-                                        </div>
+                                <div class="progress-circle 
+                                    {% if executive_metrics.alignment_percentage > 85 %}progress-circle-bg-success
+                                    {% elif executive_metrics.alignment_percentage > 70 %}progress-circle-bg-warning
+                                    {% else %}progress-circle-bg-danger{% endif %}"
+                                    style="--percent: {{ executive_metrics.alignment_percentage }}%">
+                                    <div class="progress-circle-inner">
+                                        <span class="text-lg font-bold">{{ executive_metrics.alignment_percentage }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -387,111 +417,103 @@
     </div>
     <!-- End of Executive Dashboard KPI Cards -->
     
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Planned Sites Category</h5>
-                    <small class="text-muted">Breakdown of planned site visits by problem category for each ENOM (Last 30 Days)</small>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Planned Sites Category</h5>
+                    <small class="text-gray-600">Breakdown of planned site visits by problem category for each ENOM (Last 30 Days)</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="plannedSitesByCategoryChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Resource Allocation Intelligence</h5>
-                    <small class="text-muted">Optimizing human capital and identifying training needs</small>
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Resource Allocation Intelligence</h5>
+                    <small class="text-gray-600">Optimizing human capital and identifying training needs</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="resourceAllocationChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mt-4"> 
-        <div class="col-12">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Temporal Operational Performance</h5>
-                    <small class="text-muted">Tracking operational rhythm and seasonal variations</small>
+    <div class="mt-8"> 
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Temporal Operational Performance</h5>
+                    <small class="text-gray-600">Tracking operational rhythm and seasonal variations</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     {% if trend_data %}
-                        <p class="text-muted mb-3">
+                        <p class="text-gray-600 mb-4">
                             Business performance overview: 
-                            <span class="{% if trend_data.tickets|last < (trend_data.tickets|sum / trend_data.tickets|length) %}text-success{% else %}text-warning{% endif %}">
+                            <span class="{% if trend_data.tickets|last < (trend_data.tickets|sum / trend_data.tickets|length) %}text-green-600{% else %}text-yellow-600{% endif %}">
                                 {{ trend_data.tickets|last }} customer issues
                             </span>, 
-                            <span class="{% if trend_data.site_visits|last > (trend_data.site_visits|sum / trend_data.site_visits|length) %}text-success{% else %}text-warning{% endif %}">
+                            <span class="{% if trend_data.site_visits|last > (trend_data.site_visits|sum / trend_data.site_visits|length) %}text-green-600{% else %}text-yellow-600{% endif %}">
                                 {{ trend_data.site_visits|last }} site visits
                             </span>, 
-                            <span class="{% if trend_data.alarms_resolved|last > (trend_data.alarms_resolved|sum / trend_data.alarms_resolved|length) %}text-success{% else %}text-warning{% endif %}">
+                            <span class="{% if trend_data.alarms_resolved|last > (trend_data.alarms_resolved|sum / trend_data.alarms_resolved|length) %}text-green-600{% else %}text-yellow-600{% endif %}">
                                 {{ trend_data.alarms_resolved|last }} alarms resolved
                             </span>, 
-                            <span class="{% if trend_data.plan_efficiency|last > 85 %}text-success{% elif trend_data.plan_efficiency|last > 70 %}text-warning{% else %}text-danger{% endif %}">
+                            <span class="{% if trend_data.plan_efficiency|last > 85 %}text-green-600{% elif trend_data.plan_efficiency|last > 70 %}text-yellow-600{% else %}text-red-600{% endif %}">
                                 {{ trend_data.plan_efficiency|last }}% plan efficiency
                             </span>
                         </p>
                     {% else %}
-                        <p class="text-muted mb-3">No performance data available for the last 7 days.</p>
+                        <p class="text-gray-600 mb-4">No performance data available for the last 7 days.</p>
                     {% endif %}
-                    <canvas id="temporalPerformanceChart" width="400" height="200" style="max-height: 200px;"></canvas>
+                    <canvas id="temporalPerformanceChart" width="400" height="200" class="max-h-52"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Alarm Management Scorecard -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Comprehensive Alarm Management Scorecard</h5>
-                    <small class="text-muted">Strategic decision support for infrastructure management</small>
+    <div class="mt-8">
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                <h5 class="text-xl font-semibold text-gray-800 mb-1">Comprehensive Alarm Management Scorecard</h5>
+                <small class="text-gray-600">Strategic decision support for infrastructure management</small>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                    <div class="flex items-center">
+                        <div class="mr-3">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white text-lg font-bold">{{ alarm_stats.total|default(0) }}</span>
+                        </div>
+                        <div>
+                            <h6 class="text-base font-medium text-gray-700 mb-0">Total Alarms</h6>
+                            <small class="text-gray-500">All categories</small>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="mr-3">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-600 text-white text-lg font-bold">{{ alarm_stats.resolution_rate|default(0) }}%</span>
+                        </div>
+                        <div>
+                            <h6 class="text-base font-medium text-gray-700 mb-0">Resolution Rate</h6>
+                            <small class="text-gray-500">Last 30 days</small>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="mr-3">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500 text-gray-900 text-lg font-bold">{{ alarm_stats.avg_resolution_time|default(0) }} hrs</span>
+                        </div>
+                        <div>
+                            <h6 class="text-base font-medium text-gray-700 mb-0">Avg. Resolution Time</h6>
+                            <small class="text-gray-500">All categories</small>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row align-items-center mb-3">
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <span class="badge bg-primary rounded-pill p-2">{{ alarm_stats.total|default(0) }}</span>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Total Alarms</h6>
-                                    <small class="text-muted">All categories</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <span class="badge bg-success rounded-pill p-2">{{ alarm_stats.resolution_rate|default(0) }}%</span>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Resolution Rate</h6>
-                                    <small class="text-muted">Last 30 days</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <span class="badge bg-warning text-dark rounded-pill p-2">{{ alarm_stats.avg_resolution_time|default(0) }} hrs</span>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Avg. Resolution Time</h6>
-                                    <small class="text-muted">All categories</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-wrapper">
-                        <canvas id="alarmManagementChart"></canvas>
-                    </div>
+                <div class="relative min-h-[300px]">
+                    <canvas id="alarmManagementChart"></canvas>
                 </div>
             </div>
         </div>
@@ -499,86 +521,86 @@
 
     
     <!-- Advanced Data Visualization Section -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Strategic Planning Alignment Trend</h5>
-                    <small class="text-muted">Tracking plans that include sites with pre-existing alarms</small>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Strategic Planning Alignment Trend</h5>
+                    <small class="text-gray-600">Tracking plans that include sites with pre-existing alarms</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="alignmentTrendChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Plan Execution Rate</h5>
-                    <small class="text-muted">Percentage of planned site visits completed by date</small>
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Plan Execution Rate</h5>
+                    <small class="text-gray-600">Percentage of planned site visits completed by date</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="executionRateChart" height="250"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Top 10 Visited Sites</h5>
-                    <small class="text-muted">Most frequently visited sites in the last 2 weeks</small>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Top 10 Visited Sites</h5>
+                    <small class="text-gray-600">Most frequently visited sites in the last 2 weeks</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="topVisitedSitesChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Top 10 Alarm Sites</h5>
-                    <small class="text-muted">Sites with the most alarms in the last 2 weeks</small>
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Top 10 Alarm Sites</h5>
+                    <small class="text-gray-600">Sites with the most alarms in the last 2 weeks</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="topAlarmSitesChart" height="250"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Alarm & Response Correlation</h5>
-                    <small class="text-muted">Correlation between alarms and remark data over time</small>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Alarm & Response Correlation</h5>
+                    <small class="text-gray-600">Correlation between alarms and remark data over time</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="alarmRemarkChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Visit vs Alarm Distribution</h5>
-                    <small class="text-muted">Correlation between site visits and alarm frequency</small>
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Visit vs Alarm Distribution</h5>
+                    <small class="text-gray-600">Correlation between site visits and alarm frequency</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="visitAlarmScatterChart" height="250"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Visit Effectiveness</h5>
-                    <small class="text-muted">Sites with alarms after visits (ineffective resolutions)</small>
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-xl font-semibold text-gray-800 mb-1">Visit Effectiveness</h5>
+                    <small class="text-gray-600">Sites with alarms after visits (ineffective resolutions)</small>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     <canvas id="visitEffectivenessChart" height="250"></canvas>
                 </div>
             </div>
@@ -587,30 +609,28 @@
     {% endif %}
 
     <!-- Map Section -->
-    <div class="map-container">
-        <h4 class="text-center mb-4">Site Locations with Active Tickets and Today's Planned Visits</h4>
-        <div class="map-controls mb-3">
-            <div class="input-group">
-                <input type="text" id="site-search" class="form-control" placeholder="Search for a site...">
-                <button class="btn btn-outline-secondary" type="button" id="clear-search">
+    <div class="bg-white rounded-lg shadow-md p-6 mt-8 map-container">
+        <h4 class="text-2xl font-semibold text-gray-800 text-center mb-6">Site Locations with Active Tickets and Today's Planned Visits</h4>
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+            <div class="relative w-full sm:w-1/2">
+                <input type="text" id="site-search" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-700" placeholder="Search for a site...">
+                <button class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 focus:outline-none" type="button" id="clear-search">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="custom-map-controls mt-2">
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-light" id="center-indonesia" title="Center on Indonesia">
-                        <i class="fas fa-home"></i>
-                    </button>
-                    <button type="button" class="btn btn-light" id="toggle-clusters" title="Toggle Clustering">
-                        <i class="fas fa-layer-group"></i>
-                    </button>
-                    <button type="button" class="btn btn-light" id="toggle-planned" title="Toggle Planned Sites">
-                        <i class="fas fa-calendar-check"></i>
-                    </button>
-                </div>
+            <div class="flex flex-wrap justify-center sm:justify-end gap-2 custom-map-controls">
+                <button type="button" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" id="center-indonesia" title="Center on Indonesia">
+                    <i class="fas fa-home"></i>
+                </button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" id="toggle-clusters" title="Toggle Clustering">
+                    <i class="fas fa-layer-group"></i>
+                </button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" id="toggle-planned" title="Toggle Planned Sites">
+                    <i class="fas fa-calendar-check"></i>
+                </button>
             </div>
         </div>
-        <div id="siteMap">
+        <div id="siteMap" class="h-[700px] w-full rounded-lg relative overflow-hidden">
             <div class="map-loading">
                 <i class="fas fa-spinner fa-spin"></i>
                 <span>Loading map...</span>
