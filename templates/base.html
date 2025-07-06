@@ -7,6 +7,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}PATARO RAP - Performance & Activity Tracker for Availability & Recovery Optimization RAP{% endblock %}</title>
     
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+
     <!-- Tailwind CSS CDN - The core of our new styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
