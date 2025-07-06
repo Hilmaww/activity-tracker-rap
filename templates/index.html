@@ -241,112 +241,9 @@
             </div>
         </div>
     </div>
-    {% endif %}
-
-    <!-- Charts Section only for TSEL -->
-    {% if current_user.role == 'tsel' %}
-    <!-- Removed Site Alignment & Proactive Management and Operational Efficiency Quadrant as per request -->
 
     <!-- Core Charts Section -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Resource Allocation Intelligence</h5>
-                    <small class="text-muted">Optimizing human capital and identifying training needs</small>
-                </div>
-                <div class="card-body">
-                    <canvas id="resourceAllocationChart"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Temporal Operational Performance</h5>
-                    <small class="text-muted">Tracking operational rhythm and seasonal variations</small>
-                </div>
-                <div class="card-body">
-                    {% if trend_data %}
-                        <p class="text-muted mb-3">
-                            Business performance overview: 
-                            <span class="{% if trend_data.tickets|last < (trend_data.tickets|sum / trend_data.tickets|length) %}text-success{% else %}text-warning{% endif %}">
-                                {{ trend_data.tickets|last }} customer issues
-                            </span>, 
-                            <span class="{% if trend_data.site_visits|last > (trend_data.site_visits|sum / trend_data.site_visits|length) %}text-success{% else %}text-warning{% endif %}">
-                                {{ trend_data.site_visits|last }} site visits
-                            </span>, 
-                            <span class="{% if trend_data.alarms_resolved|last > (trend_data.alarms_resolved|sum / trend_data.alarms_resolved|length) %}text-success{% else %}text-warning{% endif %}">
-                                {{ trend_data.alarms_resolved|last }} alarms resolved
-                            </span>, 
-                            <span class="{% if trend_data.plan_efficiency|last > 85 %}text-success{% elif trend_data.plan_efficiency|last > 70 %}text-warning{% else %}text-danger{% endif %}">
-                                {{ trend_data.plan_efficiency|last }}% plan efficiency
-                            </span>
-                        </p>
-                    {% else %}
-                        <p class="text-muted mb-3">No performance data available for the last 7 days.</p>
-                    {% endif %}
-                    <canvas id="temporalPerformanceChart" width="400" height="200" style="max-height: 200px;"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Alarm Management Scorecard -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Comprehensive Alarm Management Scorecard</h5>
-                    <small class="text-muted">Strategic decision support for infrastructure management</small>
-                </div>
-                <div class="card-body">
-                    <div class="row align-items-center mb-3">
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <span class="badge bg-primary rounded-pill p-2">{{ alarm_stats.total|default(0) }}</span>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Total Alarms</h6>
-                                    <small class="text-muted">All categories</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <span class="badge bg-success rounded-pill p-2">{{ alarm_stats.resolution_rate|default(0) }}%</span>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Resolution Rate</h6>
-                                    <small class="text-muted">Last 30 days</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <span class="badge bg-warning text-dark rounded-pill p-2">{{ alarm_stats.avg_resolution_time|default(0) }} hrs</span>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Avg. Resolution Time</h6>
-                                    <small class="text-muted">All categories</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-wrapper">
-                        <canvas id="alarmManagementChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Add this after the status cards section -->
-    {% if current_user.role == 'tsel' %}
     <!-- Executive Dashboard KPI Cards -->
     <div class="row mt-4">
         <div class="col-12">
@@ -488,6 +385,118 @@
             </div>
         </div>
     </div>
+    <!-- End of Executive Dashboard KPI Cards -->
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Planned Sites Category</h5>
+                    <small class="text-muted">Breakdown of planned site visits by problem category for each ENOM (Last 30 Days)</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="plannedSitesByCategoryChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Resource Allocation Intelligence</h5>
+                    <small class="text-muted">Optimizing human capital and identifying training needs</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="resourceAllocationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4"> 
+        <div class="col-12">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Temporal Operational Performance</h5>
+                    <small class="text-muted">Tracking operational rhythm and seasonal variations</small>
+                </div>
+                <div class="card-body">
+                    {% if trend_data %}
+                        <p class="text-muted mb-3">
+                            Business performance overview: 
+                            <span class="{% if trend_data.tickets|last < (trend_data.tickets|sum / trend_data.tickets|length) %}text-success{% else %}text-warning{% endif %}">
+                                {{ trend_data.tickets|last }} customer issues
+                            </span>, 
+                            <span class="{% if trend_data.site_visits|last > (trend_data.site_visits|sum / trend_data.site_visits|length) %}text-success{% else %}text-warning{% endif %}">
+                                {{ trend_data.site_visits|last }} site visits
+                            </span>, 
+                            <span class="{% if trend_data.alarms_resolved|last > (trend_data.alarms_resolved|sum / trend_data.alarms_resolved|length) %}text-success{% else %}text-warning{% endif %}">
+                                {{ trend_data.alarms_resolved|last }} alarms resolved
+                            </span>, 
+                            <span class="{% if trend_data.plan_efficiency|last > 85 %}text-success{% elif trend_data.plan_efficiency|last > 70 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ trend_data.plan_efficiency|last }}% plan efficiency
+                            </span>
+                        </p>
+                    {% else %}
+                        <p class="text-muted mb-3">No performance data available for the last 7 days.</p>
+                    {% endif %}
+                    <canvas id="temporalPerformanceChart" width="400" height="200" style="max-height: 200px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alarm Management Scorecard -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Comprehensive Alarm Management Scorecard</h5>
+                    <small class="text-muted">Strategic decision support for infrastructure management</small>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <span class="badge bg-primary rounded-pill p-2">{{ alarm_stats.total|default(0) }}</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Total Alarms</h6>
+                                    <small class="text-muted">All categories</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <span class="badge bg-success rounded-pill p-2">{{ alarm_stats.resolution_rate|default(0) }}%</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Resolution Rate</h6>
+                                    <small class="text-muted">Last 30 days</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <span class="badge bg-warning text-dark rounded-pill p-2">{{ alarm_stats.avg_resolution_time|default(0) }} hrs</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Avg. Resolution Time</h6>
+                                    <small class="text-muted">All categories</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="alarmManagementChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     
     <!-- Advanced Data Visualization Section -->
     <div class="row mt-4">
@@ -505,29 +514,18 @@
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
-                    <h5 class="card-title">Visit vs Alarm Distribution</h5>
-                    <small class="text-muted">Correlation between site visits and alarm frequency</small>
+                    <h5 class="card-title">Plan Execution Rate</h5>
+                    <small class="text-muted">Percentage of planned site visits completed by date</small>
                 </div>
                 <div class="card-body">
-                    <canvas id="visitAlarmScatterChart" height="250"></canvas>
+                    <canvas id="executionRateChart" height="250"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Planned Sites by ENOM & Category (Last 30 Days)</h5>
-                    <small class="text-muted">Breakdown of planned site visits by problem category for each ENOM</small>
-                </div>
-                <div class="card-body">
-                    <canvas id="plannedSitesByCategoryChart" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
                     <h5 class="card-title">Top 10 Visited Sites</h5>
@@ -538,7 +536,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
                     <h5 class="card-title">Top 10 Alarm Sites</h5>
@@ -551,19 +549,7 @@
         </div>
     </div>
 
-    <!-- NEW EXECUTIVE INSIGHTS CHARTS SECTION -->
     <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title">Plan Execution Rate</h5>
-                    <small class="text-muted">Percentage of planned site visits completed by date</small>
-                </div>
-                <div class="card-body">
-                    <canvas id="executionRateChart" height="250"></canvas>
-                </div>
-            </div>
-        </div>
         <div class="col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
@@ -572,6 +558,17 @@
                 </div>
                 <div class="card-body">
                     <canvas id="alarmRemarkChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title">Visit vs Alarm Distribution</h5>
+                    <small class="text-muted">Correlation between site visits and alarm frequency</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="visitAlarmScatterChart" height="250"></canvas>
                 </div>
             </div>
         </div>
