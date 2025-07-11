@@ -602,7 +602,8 @@ def index():
         'dates': [],
         'execution_percentages': [],
         'total_planned': [],
-        'total_executed': []
+        'total_executed': [],
+        'uncompleted_visits': []
     }
     
     # Get data for the last 14 days
@@ -627,8 +628,12 @@ def index():
             PlannedSite.updated_actions != 'Not Done Yet'
         ).count()
         
+        # CALCULATE UNCOMPLETED VISITS HERE
+        uncompleted = total_planned - total_executed
+
         execution_by_date['total_planned'].append(total_planned)
         execution_by_date['total_executed'].append(total_executed)
+        execution_by_date['uncompleted_visits'].append(uncompleted) # APPEND IT HERE
         
         # Calculate execution percentage
         execution_percentage = round((total_executed / total_planned * 100) if total_planned > 0 else 0)
