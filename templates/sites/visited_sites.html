@@ -126,10 +126,7 @@
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize DataTable
-        // Note: DataTables has its own styling. For full Tailwind integration,
-        // you might need a DataTables-Tailwind plugin or custom CSS overrides.
-        // This keeps the core DataTables functionality while removing jQuery.
+        // Initialize DataTable with Tailwind integration
         const dataTableElement = document.getElementById('visited-sites-table');
         if (dataTableElement) {
             new DataTable(dataTableElement, {
@@ -146,13 +143,8 @@
                         last: '<i class="fas fa-angle-double-right"></i>'
                     }
                 },
-                // DataTables DOM option needs to be adjusted for Tailwind.
-                // This is a common challenge. You'd typically re-render the DOM
-                // using Tailwind classes or use a DataTables Tailwind integration.
-                // For now, I'm removing the custom DOM option as it's Bootstrap-specific.
-                // If you need custom DOM, it would require more extensive JS to create elements
-                // with Tailwind classes.
-                // dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex"f>>t<"d-flex justify-content-between align-items-center mt-3"<"d-flex align-items-center"i><"d-flex"p>>'
+                // The DataTables Tailwind integration JS handles the DOM structure and styling.
+                // No need for a custom 'dom' option here unless you want to deviate from the default Tailwind layout.
             });
         }
 

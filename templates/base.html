@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}PATARO RAP - Performance & Activity Tracker for Availability & Recovery Optimization RAP{% endblock %}</title>
     
+    <!-- Favicon Links -->
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
@@ -44,10 +45,15 @@
     <!-- SweetAlert2 for custom alerts/modals -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- DataTables (if used, ensure styling is compatible) -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <!-- DataTables Core CSS and JS -->
+    <!-- Removed Bootstrap-specific DataTables CSS and JS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-2.0.8/datatables.min.css"/>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-2.0.8/datatables.min.js"></script>
+
+    <!-- DataTables Tailwind Integration CSS and JS -->
+    <!-- Note: These require DataTables 2.x and Tailwind 3.x -->
+    <link href="https://cdn.datatables.net/2.0.8/css/dataTables.tailwindcss.min.css" rel="stylesheet">
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.tailwindcss.min.js"></script>
 
     <style>
         /* Base styles for Inter font */
