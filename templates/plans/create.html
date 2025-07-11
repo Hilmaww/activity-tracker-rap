@@ -3,43 +3,45 @@
 {% block title %}Create Daily Plan{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Create Daily Plan</h2>
-    <form method="POST" id="plan-form" class="needs-validation" novalidate>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Create Daily Plan</h2>
+    
+    <form method="POST" id="plan-form" class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <div class="mb-3">
-            <label for="plan_date" class="form-label">Plan Date</label>
-            <input type="date" class="form-control" id="plan_date" name="plan_date" 
+        
+        <div>
+            <label for="plan_date" class="block text-sm font-medium text-gray-700 mb-1">Plan Date</label>
+            <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="plan_date" name="plan_date" 
                    min="{{ today }}" value="{{ today }}" required>
-            <div class="invalid-feedback">Please select a valid date.</div>
+            <div class="text-red-500 text-sm mt-1 hidden" id="plan_date-feedback">Please select a valid date.</div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                <h4 class="mb-0">Planned Sites</h4>
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                <h4 class="text-lg font-semibold text-gray-800 mb-0">Planned Sites</h4>
             </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="plan-text" class="form-label">Enter Plan Details</label>
-                    <textarea class="form-control" id="plan-text" rows="10" 
+            <div class="p-6">
+                <div class="mb-6">
+                    <label for="plan-text" class="block text-sm font-medium text-gray-700 mb-1">Enter Plan Details</label>
+                    <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="plan-text" rows="10" 
                               placeholder="Enter plan details in the format:
 # SITE_ID Description of planned actions
 # Another_SITE_ID Another description"></textarea>
                 </div>
                 
-                <div id="parsed-sites" class="d-none">
+                <div id="parsed-sites" class="hidden">
                     <!-- This will be populated with hidden inputs -->
                 </div>
                 
-                <button type="button" class="btn btn-primary parse-plan-btn">
+                <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 parse-plan-btn">
                     Parse Plan Text
                 </button>
             </div>
         </div>
 
-        <div class="mt-4">
-            <button type="submit" class="btn btn-primary" name="action" value="draft">Save as Draft</button>
-            <button type="submit" class="btn btn-success" name="action" value="submit">Submit for Review</button>
+        <div class="mt-6 flex space-x-4">
+            <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200" name="action" value="draft">Save as Draft</button>
+            <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200" name="action" value="submit">Submit for Review</button>
         </div>
     </form>
 </div>
@@ -48,252 +50,269 @@
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
     document.addEventListener("DOMContentLoaded", function() {
+        // Set plan date to Jakarta time
         let now = new Date(); 
         let jakartaDate = new Intl.DateTimeFormat('en-CA', { 
             timeZone: 'Asia/Jakarta', 
             year: 'numeric', 
             month: '2-digit', 
             day: '2-digit'
-        }).format(now);  // Format as YYYY-MM-DD
+        }).format(now); // Format as YYYY-MM-DD
 
-        document.getElementById('plan_date').value = jakartaDate;
+        const planDateInput = document.getElementById('plan_date');
+        if (planDateInput) {
+            planDateInput.value = jakartaDate;
+        }
 
-        document.querySelectorAll('[type="submit"]').forEach(button => {
+        // Add event listeners to submit buttons to parse plan text before submission
+        document.querySelectorAll('button[type="submit"]').forEach(button => {
             button.addEventListener('click', function() {
                 parsePlanText();
             });
         });
 
         // Add event listener for the parse plan button
-        document.querySelector('.parse-plan-btn').addEventListener('click', function() {
-            parsePlanText();
+        const parsePlanButton = document.querySelector('.parse-plan-btn');
+        if (parsePlanButton) {
+            parsePlanButton.addEventListener('click', function() {
+                parsePlanText();
+            });
+        }
+
+        // --- Select2 and Dynamic Site Addition/Removal (Refactored to Native JS) ---
+        // Note: Select2 itself still requires jQuery. This refactoring focuses on
+        // converting the surrounding logic and dynamic HTML generation to native JS
+        // and Tailwind styling. The Select2 library itself is still loaded via jQuery.
+
+        // Function to format site options for Select2 (converted to native DOM)
+        function formatSite(site) {
+            if (!site.id) {
+                return site.text;
+            }
+            const div = document.createElement('div');
+            div.className = 'p-1'; // Tailwind padding
+            const siteName = document.createElement('div');
+            siteName.className = 'font-medium text-gray-800'; // Tailwind font styles
+            siteName.textContent = site.text;
+            div.appendChild(siteName);
+
+            if (site.kabupaten) {
+                const kabupaten = document.createElement('small');
+                kabupaten.className = 'text-gray-500 text-xs'; // Tailwind text styles
+                kabupaten.textContent = `Kabupaten: ${site.kabupaten}`;
+                div.appendChild(kabupaten);
+            }
+            return div;
+        }
+
+        // Initialize Select2 for the initial site-select-1 (if it exists)
+        const initialSiteSelect = document.getElementById('site-select-1');
+        if (initialSiteSelect && typeof jQuery !== 'undefined') { // Check if jQuery is loaded for Select2
+            $(initialSiteSelect).select2({
+                theme: 'default', // Using default theme, will style with custom CSS
+                placeholder: 'Search for a site...',
+                allowClear: true,
+                width: '100%',
+                ajax: {
+                    url: '/api/sites/search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return { term: params.term || '' };
+                    },
+                    processResults: function(data) {
+                        return { results: data.results, pagination: data.pagination };
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('Select2 AJAX error:', textStatus, errorThrown);
+                        toastr.error('Error searching sites');
+                    }
+                },
+                minimumInputLength: 2,
+                templateResult: formatSite,
+                templateSelection: formatSite
+            });
+        }
+
+        // Add site button handler (removed as parsing text is the primary method)
+        // The original HTML snippet didn't have an 'add-site' button, but the JS did.
+        // Assuming the text parsing is the main method for adding sites now.
+        // If dynamic site adding with Select2 is still desired, a button for it needs to be added to HTML.
+
+        // Event delegation for dynamically added remove-site buttons
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.remove-site')) {
+                const removeButton = event.target.closest('.remove-site');
+                const plannedSiteDiv = removeButton.closest('.planned-site');
+                
+                // Get all planned sites currently in the DOM
+                const allPlannedSites = document.querySelectorAll('.planned-site');
+
+                if (allPlannedSites.length > 1) {
+                    if (plannedSiteDiv) {
+                        plannedSiteDiv.remove();
+                    }
+                } else {
+                    toastr.warning('At least one site is required');
+                }
+            }
         });
     });
+
+    // Function to parse plan text and generate hidden inputs and preview
+    function parsePlanText() {
+        const text = document.getElementById('plan-text').value;
+        const parsedSites = [];
+        let currentAssignee = '';
+        let visitOrder = 1;
         
-$(document).ready(function() {
-    // Initialize Select2 for site selection
-    $('#site-select-1').select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Search for a site...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '/api/sites/search',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) {
-                return {
-                    term: params.term || ''
-                };
-            },
-            processResults: function(data) {
-                return {
-                    results: data.results,
-                    pagination: data.pagination
-                };
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                console.error('Select2 AJAX error:', textStatus, errorThrown);
-                toastr.error('Error searching sites');
-            }
-        },
-        minimumInputLength: 2,
-        templateResult: formatSite,
-        templateSelection: formatSite
-    });
-    
-    // Custom formatting for site options
-    function formatSite(site) {
-        if (!site.id) {
-            return site.text;
+        // Clear any existing preview table
+        const existingPreview = document.getElementById('plan-preview-container');
+        if (existingPreview) {
+            existingPreview.remove();
         }
-        return $('<div class="site-option">' +
-            '<div class="site-name">' + site.text + '</div>' +
-            (site.kabupaten ? '<small class="text-muted">Kabupaten: ' + site.kabupaten + '</small>' : '') +
-            '</div>');
+
+        // Split by lines and process each line
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            line = line.trim();
+            
+            // Check if line is an assignee line
+            if (line.toLowerCase().startsWith('bang') || line.toLowerCase().startsWith('bg')) {
+                let assignees = line
+                    .replace(/@~/g, '@') // Normalize @~ to @ for easier processing
+                    .split(/[\s,]+/) // Split by spaces or commas
+                    .filter(word => word !== '@' && word.toLowerCase() !== 'bang' && word.toLowerCase() !== 'bg' && word.toLowerCase() !== 'dan')
+                    .map(word => word.replace(/^@/, '')) // Remove leading '@' symbol
+                    .join(', '); // Convert array to a comma-separated string
+
+                currentAssignee = assignees;
+            }
+
+            // Check if line is a site entry
+            if (line.startsWith('#') || line.startsWith('*') || line.startsWith('-')) {
+                const siteInfo = line.substring(1).trim();
+                const siteIdMatch = siteInfo.match(/^([A-Za-z0-9]{6})/); // Regex to capture first 6 alphanumeric chars
+                const siteId = siteIdMatch ? siteIdMatch[1].toUpperCase() : '';
+                const actions = siteInfo.substring(siteId.length).trim();
+                
+                if (siteId && actions) {
+                    parsedSites.push({
+                        siteId: siteId,
+                        actions: actions,
+                        visitOrder: visitOrder++,
+                        assignee: currentAssignee,
+                        duration: 60 // Default duration in minutes
+                    });
+                }
+            }
+        });
+        
+        // Update hidden inputs
+        const parsedSitesDiv = document.getElementById('parsed-sites');
+        if (parsedSitesDiv) {
+            parsedSitesDiv.innerHTML = ''; // Clear previous inputs
+            parsedSites.forEach((site, index) => {
+                parsedSitesDiv.innerHTML += `
+                    <input type="hidden" name="site_id[]" value="${site.siteId.toUpperCase()}">
+                    <input type="hidden" name="planned_actions[]" value="${site.actions}">
+                    <input type="hidden" name="visit_order[]" value="${site.visitOrder}">
+                    <input type="hidden" name="duration[]" value="${site.duration}">
+                    <input type="hidden" name="assignee[]" value="${site.assignee}">
+                `;
+            });
+        }
+        
+        // Show preview table
+        showPreview(parsedSites);
     }
 
-    // Add site button handler
-    $('#add-site').on('click', function() {
-        const siteCount = $('.planned-site').length + 1;
-        const newSite = `
-            <div class="planned-site mb-3">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="site-select-${siteCount}">Site</label>
-                        <select class="site-select form-control" id="site-select-${siteCount}" name="site_id[]" required>
-                            <option value="">Select Site</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Planned Actions</label>
-                        <textarea class="form-control" name="planned_actions[]" rows="2" required placeholder="Enter planned actions..."></textarea>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="duration_${siteCount}">Duration (minutes)</label>
-                        <input type="number" name="duration[]" class="form-control" id="duration_${siteCount}" min="15" max="480" value="15">
-                    </div>
-                    <div class="col-md-1">
-                        <label class="form-label">&nbsp;</label>
-                        <button type="button" class="btn btn-danger remove-site" aria-label="Remove site">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+    // Function to show the preview table
+    function showPreview(sites) {
+        const previewHtml = `
+            <div id="plan-preview-container" class="mt-8 bg-white rounded-lg shadow-md">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h5 class="text-lg font-semibold text-gray-800 mb-0">Preview</h5>
+                </div>
+                <div class="p-6 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Planned Actions</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignee</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${sites.map(site => `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${site.visitOrder}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${site.siteId}</td>
+                                    <td class="px-6 py-4 whitespace-normal text-sm text-gray-700 max-w-xs">${site.actions}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${site.assignee}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${site.duration} min</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
         
-        $('#planned-sites').append(newSite);
-        // Initialize Select2 for the new select
-        $(`#site-select-${siteCount}`).select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for a site...',
-            allowClear: true,
-            width: '100%',
-            ajax: {
-                url: '/api/sites/search',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return {
-                        term: params.term || '',
-                        page: params.page || 1
-                    };
-                },
-                processResults: function(data) {
-                    return {
-                        results: data.results,
-                        pagination: data.pagination
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 2,
-            templateResult: formatSite,
-            templateSelection: formatSite
-        });
-    });
-
-    // Remove site button handler
-    $(document).on('click', '.remove-site', function() {
-        if ($('.planned-site').length > 1) {
-            $(this).closest('.planned-site').remove();
-        } else {
-            toastr.warning('At least one site is required');
+        const planForm = document.getElementById('plan-form');
+        if (planForm) {
+            planForm.insertAdjacentHTML('beforeend', previewHtml);
         }
-    });
-});
-
-function parsePlanText() {
-    const text = document.getElementById('plan-text').value;
-    const parsedSites = [];
-    let currentAssignee = '';
-    let visitOrder = 1;
-    
-    // Split by lines and process each line
-    const lines = text.split('\n');
-    lines.forEach(line => {
-        line = line.trim();
-        
-        // Check if line is an assignee line
-        if (line.toLowerCase().startsWith('bang') || line.toLowerCase().startsWith('bg')) {
-            let assignees = line
-                .replace(/@~/g, '@') // Normalize @~ to @ for easier processing
-                .split(/[\s,]+/) // Split by spaces or commas
-                .filter(word => word !== '@' && word.toLowerCase() !== 'bang' && word.toLowerCase() !== 'bg' && word.toLowerCase() !== 'dan')
-                .map(word => word.replace(/^@/, '')) // Remove leading '@' symbol
-                .join(', '); // Convert array to a comma-separated string
-
-            currentAssignee = assignees;
-        }
-
-        
-        // Check if line is a site entry
-        if (line.startsWith('#') || line.startsWith('*') || line.startsWith('-')) {
-            const siteInfo = line.substring(1).trim();
-            const siteId = siteInfo.split(' ')[0].substring(0, 6).toUpperCase();
-            const actions = siteInfo.substring(siteId.length).trim();
-            
-            if (siteId && actions) {
-                parsedSites.push({
-                    siteId: siteId,
-                    actions: actions,
-                    visitOrder: visitOrder++,
-                    assignee: currentAssignee,
-                    duration: 60 // Default duration in minutes
-                });
-            }
-        }
-    });
-    
-    // Update hidden inputs
-    const parsedSitesDiv = document.getElementById('parsed-sites');
-    parsedSitesDiv.innerHTML = '';
-    
-    parsedSites.forEach((site, index) => {
-        parsedSitesDiv.innerHTML += `
-            <input type="hidden" name="site_id[]" value="${site.siteId.toUpperCase()}">
-            <input type="hidden" name="planned_actions[]" value="${site.actions}">
-            <input type="hidden" name="visit_order[]" value="${site.visitOrder}">
-            <input type="hidden" name="duration[]" value="${site.duration}">
-            <input type="hidden" name="assignee[]" value="${site.assignee}">
-        `;
-    });
-    
-    // Show preview table
-    showPreview(parsedSites);
-}
-
-function showPreview(sites) {
-    const previewHtml = `
-        <div class="mt-4">
-            <h5>Preview</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Order</th>
-                            <th>Site ID</th>
-                            <th>Planned Actions</th>
-                            <th>Assignee</th>
-                            <th>Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${sites.map(site => `
-                            <tr>
-                                <td>${site.visitOrder}</td>
-                                <td>${site.siteId}</td>
-                                <td>${site.actions}</td>
-                                <td>${site.assignee}</td>
-                                <td>${site.duration} min</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('parsed-sites').insertAdjacentHTML('afterend', previewHtml);
-}
+    }
 </script>
 
 <style>
-.site-option {
-    padding: 4px;
+/* Custom styles for Select2 to make it look more Tailwind-ish, overriding default Select2 styles */
+/* These styles target Select2's internal classes */
+.select2-container--default .select2-selection--single {
+    @apply h-10 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500;
 }
 
-.site-name {
-    font-weight: 500;
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    @apply leading-10 px-3 text-gray-700;
 }
 
-.select2-container {
-    width: 100% !important;
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    @apply h-full w-8 flex items-center justify-center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    @apply h-full w-8 flex items-center justify-center;
 }
 
 .select2-dropdown {
-    z-index: 9999;
+    @apply rounded-md shadow-lg border border-gray-200 z-50; /* Ensure dropdown is above other content */
+}
+
+.select2-search--dropdown .select2-search__field {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+}
+
+.select2-results__option {
+    @apply p-3 cursor-pointer hover:bg-gray-100;
+}
+
+.select2-results__option--highlighted {
+    @apply bg-indigo-100 text-indigo-800; /* Highlighted option */
+}
+
+.select2-results__option[aria-selected=true] {
+    @apply bg-gray-200; /* Selected option */
+}
+
+/* Custom formatting for site options within Select2 dropdown */
+.site-option .site-name {
+    @apply font-medium text-gray-800;
+}
+.site-option small {
+    @apply text-gray-500 text-xs;
 }
 </style>
 {% endblock %} 

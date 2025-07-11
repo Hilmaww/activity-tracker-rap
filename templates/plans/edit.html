@@ -3,185 +3,176 @@
 {% block title %}Edit Plan - {{ plan.plan_date.strftime('%d-%m-%Y') }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Edit Plan</h2>
-        <div class="btn-group">
-            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Plan
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Edit Plan</h2>
+        <div>
+            <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Plan
             </a>
         </div>
     </div>
-    <form method="POST" id="plan-form" class="needs-validation" novalidate action="{{ url_for('main.edit_plan', plan_id=plan.id) }}">
+    <form method="POST" id="plan-form" action="{{ url_for('main.edit_plan', plan_id=plan.id) }}" class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="plan_date" class="form-label">Plan Date</label>
-                            <input type="date" class="form-control" id="plan_date" name="plan_date" 
-                                   value="{{ plan.plan_date.strftime('%Y-%m-%d') }}" required>
-
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status" name="status" required>
-                                {% if current_user.role == 'enom' %}
-                                    <option value="DRAFT" {% if plan.status.name == 'DRAFT' %}selected{% endif %}>Draft</option>
-                                    <option value="SUBMITTED" {% if plan.status.name == 'SUBMITTED' or plan.status.name == 'APPROVED' or plan.status.name == 'REJECTED' %}selected{% endif %}>Submit for Review</option>
-                                {% elif current_user.role == 'tsel' %}
-                                    <option value="APPROVED" {% if plan.status.name == 'APPROVED' %}selected{% endif %}>Approve</option>
-                                    <option value="REJECTED" {% if plan.status.name == 'REJECTED' %}selected{% endif %}>Reject</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                    </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="plan_date" class="block text-sm font-medium text-gray-700 mb-1">Plan Date</label>
+                    <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="plan_date" name="plan_date" 
+                           value="{{ plan.plan_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="status" name="status" required>
+                        {% if current_user.role == 'enom' %}
+                            <option value="DRAFT" {% if plan.status.name == 'DRAFT' %}selected{% endif %}>Draft</option>
+                            <option value="SUBMITTED" {% if plan.status.name == 'SUBMITTED' or plan.status.name == 'APPROVED' or plan.status.name == 'REJECTED' %}selected{% endif %}>Submit for Review</option>
+                        {% elif current_user.role == 'tsel' %}
+                            <option value="APPROVED" {% if plan.status.name == 'APPROVED' %}selected{% endif %}>Approve</option>
+                            <option value="REJECTED" {% if plan.status.name == 'REJECTED' %}selected{% endif %}>Reject</option>
+                        {% endif %}
+                    </select>
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                <h4 class="mb-0">Planned Sites</h4>
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                <h4 class="text-lg font-semibold text-gray-800 mb-0">Planned Sites</h4>
             </div>
-            <div class="card-body">
-                <div id="planned-sites">
-                    {% if plan.planned_sites %}
-                        {% for site in plan.planned_sites %}
-                        <div class="planned-site mb-4">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label for="site-select-{{ loop.index }}">Site</label>
-                                    <select class="site-select form-select"
-                                            id="site-select-{{ loop.index }}"
-                                            name="site_id[]"
-                                            required>
-                                        {% for per_site in sites %}
-                                        <option value="{{ per_site.id }}" 
-                                                data-name="{{ per_site.name }}" 
-                                                data-location="{{ per_site.location }}"
-                                                {% if per_site.id == site.site.id %} selected {% endif %}>
-                                            {{ per_site.site_id }} - {{ per_site.name }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Planned Actions</label>
-                                    <textarea class="form-control" 
-                                              name="planned_actions[]" 
-                                              rows="2" 
-                                              required>{{ site.planned_actions }}</textarea>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="updated_actions_{{ loop.index }}">Updated Actions</label>
-                                    <textarea class="form-control" 
-                                              name="updated_actions[]" 
-                                              rows="2"
-                                              {% if plan.status.name == 'DRAFT' %}disabled{% endif %}
-                                              >{{ site.updated_actions }}</textarea>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="ts_{{ loop.index }}">TS</label>
-                                    <input type="text" 
-                                           name="ts[]" 
-                                           class="form-control" 
-                                           id="ts_{{ loop.index }}" 
-                                           value="{{ site.assignee }}">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="duration_{{ loop.index }}">Duration (minutes)</label>
+            <div class="p-6" id="planned-sites">
+                {% if plan.planned_sites %}
+                    {% for site in plan.planned_sites %}
+                    <div class="planned-site bg-gray-50 p-4 rounded-lg shadow-sm mb-4 border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                            <div class="col-span-1">
+                                <label for="site-select-{{ loop.index }}" class="block text-sm font-medium text-gray-700 mb-1">Site</label>
+                                <select class="site-select block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        id="site-select-{{ loop.index }}"
+                                        name="site_id[]"
+                                        required>
+                                    {% for per_site in sites %}
+                                    <option value="{{ per_site.id }}" 
+                                            data-name="{{ per_site.name }}" 
+                                            data-kabupaten="{{ per_site.kabupaten }}"
+                                            {% if per_site.id == site.site.id %} selected {% endif %}>
+                                        {{ per_site.site_id }} - {{ per_site.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Planned Actions</label>
+                                <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                          name="planned_actions[]" 
+                                          rows="2" 
+                                          required>{{ site.planned_actions }}</textarea>
+                            </div>
+                            <div class="col-span-1">
+                                <label for="updated_actions_{{ loop.index }}" class="block text-sm font-medium text-gray-700 mb-1">Updated Actions</label>
+                                <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                          name="updated_actions[]" 
+                                          rows="2"
+                                          {% if plan.status.name == 'DRAFT' %}disabled{% endif %}
+                                          >{{ site.updated_actions }}</textarea>
+                            </div>
+                            <div class="col-span-1">
+                                <label for="ts_{{ loop.index }}" class="block text-sm font-medium text-gray-700 mb-1">TS</label>
+                                <input type="text" 
+                                       name="assignee[]" 
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                       id="ts_{{ loop.index }}" 
+                                       value="{{ site.assignee }}">
+                            </div>
+                            <div class="col-span-1 flex items-end justify-end space-x-2">
+                                <div class="w-full">
+                                    <label for="duration_{{ loop.index }}" class="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
                                     <input type="number" 
                                            name="duration[]" 
-                                           class="form-control" 
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
                                            id="duration_{{ loop.index }}" 
                                            min="15" 
                                            max="480" 
                                            value="{{ site.estimated_duration }}">
                                 </div>
-                                <div class="col-md-1">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button type="button" class="btn btn-danger remove-site">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                                <button type="button" class="inline-flex items-center justify-center p-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 remove-site">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="planned-site mb-4">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label for="site-select-1">Site</label>
-                                    <select class="site-select form-control" 
-                                            id="site-select-1" 
-                                            name="site_id[]" 
-                                            required>
-                                        <option value="">Select Site</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Planned Actions</label>
-                                    <textarea class="form-control" 
-                                              name="planned_actions[]" 
-                                              rows="2" 
-                                              required 
-                                              placeholder="Enter planned actions..."></textarea>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="ts_1">TS</label>
-                                    <input type="text" 
-                                           name="ts[]" 
-                                           class="form-control" 
-                                           id="ts_1" 
-                                           value="None">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="duration_1">Duration (minutes)</label>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="planned-site bg-gray-50 p-4 rounded-lg shadow-sm mb-4 border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                            <div class="col-span-1">
+                                <label for="site-select-1" class="block text-sm font-medium text-gray-700 mb-1">Site</label>
+                                <select class="site-select block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                        id="site-select-1" 
+                                        name="site_id[]" 
+                                        required>
+                                    <option value="">Select Site</option>
+                                </select>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Planned Actions</label>
+                                <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                          name="planned_actions[]" 
+                                          rows="2" 
+                                          required 
+                                          placeholder="Enter planned actions..."></textarea>
+                            </div>
+                            <div class="col-span-1">
+                                <label for="updated_actions_1" class="block text-sm font-medium text-gray-700 mb-1">Updated Actions</label>
+                                <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                          name="updated_actions[]" 
+                                          rows="2" 
+                                          disabled 
+                                          placeholder=""></textarea>
+                            </div>
+                            <div class="col-span-1">
+                                <label for="ts_1" class="block text-sm font-medium text-gray-700 mb-1">TS</label>
+                                <input type="text" 
+                                       name="assignee[]" 
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                       id="ts_1" 
+                                       value="">
+                            </div>
+                            <div class="col-span-1 flex items-end justify-end space-x-2">
+                                <div class="w-full">
+                                    <label for="duration_1" class="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
                                     <input type="number" 
                                            name="duration[]" 
-                                           class="form-control" 
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
                                            id="duration_1" 
                                            min="15" 
                                            max="480" 
                                            value="15">
                                 </div>
-                                <div class="col-md-3">
-                                    <label for="updated_actions_1">Updated Actions</label>
-                                    <textarea class="form-control" 
-                                              name="updated_actions[]" 
-                                              rows="2" 
-                                              required 
-                                              placeholder="{{ plan.planned_sites[i].updated_actions }}"></textarea>
-                                </div>
-                                <div class="col-md-1">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button type="button" class="btn btn-danger remove-site">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
+                                <button type="button" class="inline-flex items-center justify-center p-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 remove-site">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
-                    {% endif %}
-                </div>
-                
-                <button type="button" class="btn btn-secondary" id="add-site">
-                    <i class="fas fa-plus"></i> Add Site
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" id="add-site">
+                    <i class="fas fa-plus mr-2"></i> Add Site
                 </button>
             </div>
         </div>
 
-        <div class="d-flex justify-content-between">
-            <button type="submit" class="btn btn-primary" name="action" value="save">
-                <i class="fas fa-save"></i> Save Changes
+        <div class="flex justify-end space-x-4 mt-6">
+            <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" name="action" value="save">
+                <i class="fas fa-save mr-2"></i> Save Changes
             </button>
             {% if current_user.role == 'enom' and plan.status.name == 'DRAFT' %}
-            <button type="submit" class="btn btn-success" name="action" value="submit">
-                <i class="fas fa-paper-plane"></i> Submit for Review
+            <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200" name="action" value="submit">
+                <i class="fas fa-paper-plane mr-2"></i> Submit for Review
             </button>
             {% endif %}
         </div>
@@ -191,141 +182,246 @@
 
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
-$(document).ready(function() {
-    // Initialize Select2 for all site dropdowns
-    $('.site-select').each(function() {
-        initializeSelect2($(this));
-    });
-    // $(document).on('focus', '.site-select', function() {
-    //     if (!$(this).data('select2')) {  // Prevent re-initialization
-    //         initializeSelect2($(this));
-    //     }
-    // });
-    function initializeSelect2($element) {
-        $element.select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Search for a site...',
-            allowClear: true,
-            width: '100%',
-            ajax: {
-                url: '/api/sites/search',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    console.log("Search params:", params);
-                    return {
-                        term: params.term || '',
-                        page: params.page || 1
-                    };
-                },
-                processResults: function(data) {
-                    console.log("API response:", data);
-                    return {
-                        results: data.results,
-                        pagination: data.pagination
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 2,
-            templateResult: formatSite,
-            templateSelection: formatSite
+    document.addEventListener("DOMContentLoaded", function() {
+        // Function to format site options for Select2 (converted to native DOM)
+        function formatSite(site) {
+            if (!site.id) {
+                return site.text;
+            }
+            const div = document.createElement('div');
+            div.className = 'p-1'; // Tailwind padding
+            const siteName = document.createElement('div');
+            siteName.className = 'font-medium text-gray-800'; // Tailwind font styles
+            siteName.textContent = site.text;
+            div.appendChild(siteName);
+
+            if (site.kabupaten) {
+                const kabupaten = document.createElement('small');
+                kabupaten.className = 'text-gray-500 text-xs'; // Tailwind text styles
+                kabupaten.textContent = `Kabupaten: ${site.kabupaten}`;
+                div.appendChild(kabupaten);
+            }
+            return div;
+        }
+
+        // Initialize Select2 for all existing site dropdowns
+        document.querySelectorAll('.site-select').forEach(selectElement => {
+            if (typeof jQuery !== 'undefined') { // Ensure jQuery is loaded for Select2
+                $(selectElement).select2({
+                    theme: 'default', // Using default theme, will style with custom CSS
+                    placeholder: 'Search for a site...',
+                    allowClear: true,
+                    width: '100%',
+                    ajax: {
+                        url: '/api/sites/search',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return { term: params.term || '' };
+                        },
+                        processResults: function(data) {
+                            return { results: data.results, pagination: data.pagination };
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            console.error('Select2 AJAX error:', textStatus, errorThrown);
+                            toastr.error('Error searching sites');
+                        }
+                    },
+                    minimumInputLength: 2,
+                    templateResult: formatSite,
+                    templateSelection: formatSite
+                });
+
+                // Set initial selection if a value exists
+                const initialValue = selectElement.value;
+                if (initialValue) {
+                    const option = selectElement.querySelector(`option[value="${initialValue}"]`);
+                    if (option) {
+                        const data = {
+                            id: option.value,
+                            text: option.textContent.split(' - ')[0], // Assuming format "SITE_ID - Site Name"
+                            kabupaten: option.dataset.kabupaten // Get custom data attribute
+                        };
+                        $(selectElement).val(initialValue).trigger('change');
+                        $(selectElement).trigger({
+                            type: 'select2:select',
+                            params: {
+                                data: data
+                            }
+                        });
+                    }
+                }
+            }
         });
-    }
 
-    function formatSite(site) {
-        if (!site.id) {
-            return site.text;
+        // Add site button handler
+        const addSiteButton = document.getElementById('add-site');
+        if (addSiteButton) {
+            addSiteButton.addEventListener('click', function() {
+                const plannedSitesContainer = document.getElementById('planned-sites');
+                const siteCount = plannedSitesContainer.querySelectorAll('.planned-site').length + 1;
+                
+                const newSiteHtml = `
+                    <div class="planned-site bg-gray-50 p-4 rounded-lg shadow-sm mb-4 border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                            <div class="col-span-1">
+                                <label for="site-select-${siteCount}" class="block text-sm font-medium text-gray-700 mb-1">Site</label>
+                                <select class="site-select block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                        id="site-select-${siteCount}" 
+                                        name="site_id[]" 
+                                        required>
+                                    <option value="">Select a site...</option>
+                                </select>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Planned Actions</label>
+                                <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                          name="planned_actions[]" 
+                                          rows="2" 
+                                          required 
+                                          placeholder="Enter planned actions..."></textarea>
+                            </div>
+                            <div class="col-span-1">
+                                <label for="updated_actions_${siteCount}" class="block text-sm font-medium text-gray-700 mb-1">Updated Actions</label>
+                                <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                          name="updated_actions[]" 
+                                          rows="2" 
+                                          disabled 
+                                          placeholder=""></textarea>
+                            </div>
+                            <div class="col-span-1">
+                                <label for="ts_${siteCount}" class="block text-sm font-medium text-gray-700 mb-1">TS</label>
+                                <input type="text" 
+                                       name="assignee[]" 
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                       id="ts_${siteCount}" 
+                                       value="">
+                            </div>
+                            <div class="col-span-1 flex items-end justify-end space-x-2">
+                                <div class="w-full">
+                                    <label for="duration_${siteCount}" class="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
+                                    <input type="number" 
+                                           name="duration[]" 
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                                           id="duration_${siteCount}" 
+                                           min="15" 
+                                           max="480" 
+                                           value="15">
+                                </div>
+                                <button type="button" class="inline-flex items-center justify-center p-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 remove-site">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                plannedSitesContainer.insertAdjacentHTML('beforeend', newSiteHtml);
+                
+                // Initialize Select2 for the new site dropdown
+                const newSelectElement = document.getElementById(`site-select-${siteCount}`);
+                if (newSelectElement && typeof jQuery !== 'undefined') {
+                    $(newSelectElement).select2({
+                        theme: 'default',
+                        placeholder: 'Search for a site...',
+                        allowClear: true,
+                        width: '100%',
+                        ajax: {
+                            url: '/api/sites/search',
+                            dataType: 'json',
+                            delay: 250,
+                            data: function(params) {
+                                return { term: params.term || '' };
+                            },
+                            processResults: function(data) {
+                                return { results: data.results, pagination: data.pagination };
+                            },
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                console.error('Select2 AJAX error:', textStatus, errorThrown);
+                                toastr.error('Error searching sites');
+                            }
+                        },
+                        minimumInputLength: 2,
+                        templateResult: formatSite,
+                        templateSelection: formatSite
+                    });
+                }
+            });
         }
-        // For search results
-        return $('<div class="site-option">' +
-                '<div class="site-name">' + site.text + '</div>' +
-                (site.kabupaten ? '<small class="text-muted">Kabupaten: ' + site.kabupaten + '</small>' : '') +
-                '</div>');
-    }
 
-    // Reinitialize Select2 when adding a new site row
-    $('#add-site').on('click', function() {
-        const siteCount = $('.planned-site').length + 1;
-        const newSite = `
-            <div class="planned-site mb-4">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label for="site-select-${siteCount}">Site</label>
-                        <select class="site-select form-control" id="site-select-${siteCount}" name="site_id[]" required>
-                            <option value="">Select a site...</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Planned Actions</label>
-                        <textarea class="form-control" name="planned_actions[]" rows="2" required></textarea>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="duration_${siteCount}">Duration (minutes)</label>
-                        <input type="number" name="duration[]" class="form-control" id="duration_${siteCount}" min="15" max="480" value="15">
-                    </div>
-                    <div class="col-md-1">
-                        <label class="form-label">&nbsp;</label>
-                        <button type="button" class="btn btn-danger remove-site">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('#planned-sites').append(newSite);
-        
-        // Initialize Select2 for the new site dropdown
-        initializeSelect2($(`#site-select-${siteCount}`));
-    });
+        // Event delegation for dynamically added remove-site buttons
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.remove-site')) {
+                const removeButton = event.target.closest('.remove-site');
+                const plannedSiteDiv = removeButton.closest('.planned-site');
+                
+                const allPlannedSites = document.querySelectorAll('.planned-site');
 
-    // Remove site button handler
-    $(document).on('click', '.remove-site', function() {
-        if ($('.planned-site').length > 1) {
-            $(this).closest('.planned-site').remove();
-        } else {
-            toastr.warning('At least one site is required');
-        }
-    });
+                if (allPlannedSites.length > 1) {
+                    if (plannedSiteDiv) {
+                        plannedSiteDiv.remove();
+                    }
+                } else {
+                    toastr.warning('At least one site is required');
+                }
+            }
+        });
 
-    // Form validation
-    $('#plan-form').on('submit', function(e) {
-        if (!this.checkValidity()) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        $(this).addClass('was-validated');
+        // Form validation (removed Bootstrap's 'needs-validation' and 'was-validated')
+        // Relying on HTML5 validation and Tailwind styling for inputs.
     });
-});
 </script>
 
 <style>
-.site-result {
-    padding: 8px;
+/* Custom styles for Select2 to make it look more Tailwind-ish, overriding default Select2 styles */
+/* These styles target Select2's internal classes */
+.select2-container--default .select2-selection--single {
+    @apply h-10 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500;
 }
 
-.site-name {
-    font-weight: 500;
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    @apply leading-10 px-3 text-gray-700;
 }
 
-.select2-container {
-    width: 100% !important;
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    @apply h-full w-8 flex items-center justify-center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    @apply h-full w-8 flex items-center justify-center;
 }
 
 .select2-dropdown {
-    z-index: 9999;
+    @apply rounded-md shadow-lg border border-gray-200 z-50; /* Ensure dropdown is above other content */
 }
 
+.select2-search--dropdown .select2-search__field {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+}
+
+.select2-results__option {
+    @apply p-3 cursor-pointer hover:bg-gray-100;
+}
+
+.select2-results__option--highlighted {
+    @apply bg-indigo-100 text-indigo-800; /* Highlighted option */
+}
+
+.select2-results__option[aria-selected=true] {
+    @apply bg-gray-200; /* Selected option */
+}
+
+/* Custom formatting for site options within Select2 dropdown */
+.site-option .site-name {
+    @apply font-medium text-gray-800;
+}
+.site-option small {
+    @apply text-gray-500 text-xs;
+}
+
+/* Custom styles for the planned-site rows */
 .planned-site {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-}
-
-.formatted-date {
-    display: block;
-    margin-top: 5px;
+    @apply bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200;
 }
 </style>
 {% endblock %} 

@@ -3,17 +3,17 @@
 {% block title %}View Plan - {{ plan.plan_date.strftime('%d-%m-%Y') }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Daily Plan Details</h2>
-        <div class="btn-group">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Daily Plan Details</h2>
+        <div class="flex space-x-3">
             {% if current_user.role == 'tsel' and plan.status.name == 'SUBMITTED' %}
-                <button type="button" class="btn btn-success plan-action-btn"
+                <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 plan-action-btn"
                         data-plan-id="{{ plan.id }}" 
                         data-action="approve">
                     Approve Plan
                 </button>
-                <button type="button" class="btn btn-danger plan-action-btn"
+                <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 plan-action-btn"
                         data-plan-id="{{ plan.id }}" 
                         data-action="reject">
                     Reject Plan
@@ -21,60 +21,58 @@
             {% endif %}
             {% if current_user.id == plan.enom_user_id %}
                 <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
-                   class="btn btn-primary">Edit Plan</a>
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Edit Plan</a>
             {% endif %}
         </div>
     </div>
 
     <!-- Plan details display -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Date:</strong> {{ plan.plan_date.strftime('%d-%m-%Y') }}</p>
-                    <p><strong>Status:</strong> 
-                        <span class="badge bg-{{ plan.status.name|lower }}">
-                            {{ plan.status.name }}
-                        </span>
-                    </p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong>Created by:</strong> {{ plan.enom_user.username }}</p>
-                    <p><strong>Created at:</strong> {{ plan.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}</p>
-                </div>
+    <div class="bg-white rounded-lg shadow-md mb-8 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="mb-2 text-gray-700"><strong class="font-semibold text-gray-800">Date:</strong> {{ plan.plan_date.strftime('%d-%m-%Y') }}</p>
+                <p class="mb-0 text-gray-700"><strong class="font-semibold text-gray-800">Status:</strong> 
+                    <span class="badge-base badge-{{ plan.status.name|lower }}">
+                        {{ plan.status.name }}
+                    </span>
+                </p>
+            </div>
+            <div>
+                <p class="mb-2 text-gray-700"><strong class="font-semibold text-gray-800">Created by:</strong> {{ plan.enom_user.username }}</p>
+                <p class="mb-0 text-gray-700"><strong class="font-semibold text-gray-800">Created at:</strong> {{ plan.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}</p>
             </div>
         </div>
     </div>
 
     <!-- Planned sites list -->
-    <h4>Planned Site Visits</h4>
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
+    <h4 class="text-xl font-semibold text-gray-800 mb-4">Planned Site Visits</h4>
+    <div class="bg-white rounded-lg shadow-md overflow-x-auto mb-8">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
                 <tr>
-                    <th>Order</th>
-                    <th>Site</th>
-                    <th>Planned Actions</th>
-                    <th>tim TS</th>
-                    <th>Updated Actions</th>
-                    <th>Duration</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Planned Actions</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TS</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated Actions</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="bg-white divide-y divide-gray-200">
                 {% for site in plan.planned_sites|sort(attribute='visit_order') %}
                 <tr>
-                    <td>{{ site.visit_order }}</td>
-                    <td>{{ site.site.site_id }} - {{ site.site.name }}</td>
-                    <td>{{ site.planned_actions }}</td>
-                    <td>{{ site.assignee }}</td>
-                    <td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ site.visit_order }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.site.site_id }} - {{ site.site.name }}</td>
+                    <td class="px-6 py-4 whitespace-normal text-sm text-gray-700 max-w-xs">{{ site.planned_actions }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.assignee }}</td>
+                    <td class="px-6 py-4 whitespace-normal text-sm text-gray-700 max-w-xs">
                         {% if plan.status.name in ['SUBMITTED', 'APPROVED', 'REJECTED'] %}
                             {{ site.updated_actions }}
                         {% else %}
-                            <span class="text-muted">Not available in draft</span>
+                            <span class="text-gray-500">Not available in draft</span>
                         {% endif %}
                     </td>
-                    <td>{{ site.estimated_duration }} minutes</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.estimated_duration }} minutes</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -82,37 +80,113 @@
     </div>
 
     <!-- Comments section -->
-    <div class="mt-4">
-        <h4>Comments</h4>
-        <div class="card">
-            <div class="card-body">
-                {% for comment in plan.comments|sort(attribute='created_at') %}
-                <div class="comment mb-3">
-                    <div class="d-flex justify-content-between">
-                        <strong>{{ comment.user.username }}</strong>
-                        <small class="text-muted">
-                            {{ comment.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}
-                        </small>
-                    </div>
-                    <p class="mb-0">{{ comment.comment }}</p>
+    <div class="mt-8">
+        <h4 class="text-xl font-semibold text-gray-800 mb-4">Comments</h4>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            {% for comment in plan.comments|sort(attribute='created_at') %}
+            <div class="comment mb-4 pb-4 {% if not loop.last %}border-b border-gray-200{% endif %}">
+                <div class="flex justify-between items-center mb-1">
+                    <strong class="font-semibold text-gray-800">{{ comment.user.username }}</strong>
+                    <small class="text-gray-500 text-xs">
+                        {{ comment.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}
+                    </small>
                 </div>
-                {% if not loop.last %}
-                    <hr>
-                {% endif %}
-                {% endfor %}
-                
-                <!-- Comment form -->
-                <form method="POST" action="{{ url_for('main.add_comment', plan_id=plan.id) }}" 
-                      class="mt-3">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <div class="form-group">
-                        <textarea class="form-control" name="comment" rows="2" 
-                                placeholder="Add a comment..." required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary mt-2">Add Comment</button>
-                </form>
+                <p class="mb-0 text-gray-700">{{ comment.comment }}</p>
             </div>
+            {% endfor %}
+            
+            <!-- Comment form -->
+            <form method="POST" action="{{ url_for('main.add_comment', plan_id=plan.id) }}" class="mt-6 space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div>
+                    <label for="comment-text" class="sr-only">Add a comment</label>
+                    <textarea class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="comment-text" name="comment" rows="2" 
+                              placeholder="Add a comment..." required></textarea>
+                </div>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Add Comment</button>
+            </form>
         </div>
     </div>
 </div>
+
+<!-- Action Confirmation Modal (for Approve/Reject) -->
+<div id="actionConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="actionConfirmModalTitle">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-auto p-6 transform transition-all sm:my-8 sm:w-full">
+        <div class="flex justify-between items-center mb-4">
+            <h5 class="text-lg font-semibold text-gray-900" id="actionConfirmModalTitle">Confirm Action</h5>
+            <button type="button" class="text-gray-400 hover:text-gray-600" onclick="closeModal('actionConfirmModal')" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="text-gray-700 mb-6" id="actionConfirmModalBody">
+            Are you sure you want to [action] this plan?
+        </div>
+        <div class="flex justify-end space-x-3">
+            <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" onclick="closeModal('actionConfirmModal')">Cancel</button>
+            <form id="planActionForm" method="POST" class="inline-block">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action_type" id="actionTypeInput" value=""/>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200" id="confirmActionButton">Confirm</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ nonce_value | default('') }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle plan action buttons (Approve/Reject)
+    document.addEventListener('click', function(e) {
+        const targetButton = e.target.closest('.plan-action-btn');
+        if (targetButton) {
+            const planId = targetButton.dataset.planId;
+            const action = targetButton.dataset.action; // 'approve' or 'reject'
+            showActionConfirmModal(planId, action);
+        }
+    });
+
+    // Function to show the custom action confirmation modal
+    function showActionConfirmModal(planId, action) {
+        const modal = document.getElementById('actionConfirmModal');
+        const modalTitle = document.getElementById('actionConfirmModalTitle');
+        const modalBody = document.getElementById('actionConfirmModalBody');
+        const confirmButton = document.getElementById('confirmActionButton');
+        const form = document.getElementById('planActionForm');
+        const actionTypeInput = document.getElementById('actionTypeInput');
+
+        const actionText = action === 'approve' ? 'approve' : 'reject';
+        const buttonColorClass = action === 'approve' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-red-600 hover:bg-red-700 focus:ring-red-500';
+
+        modalTitle.textContent = `Confirm ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`;
+        modalBody.innerHTML = `Are you sure you want to <strong class="font-semibold">${actionText}</strong> this plan?`;
+        
+        // Update form action and hidden input
+        form.action = `/plans/${planId}/${action}`; // e.g., /plans/123/approve or /plans/123/reject
+        actionTypeInput.value = action;
+
+        // Update confirm button styling and text
+        confirmButton.textContent = actionText.charAt(0).toUpperCase() + actionText.slice(1);
+        confirmButton.className = `inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${buttonColorClass} focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200`;
+
+        modal.classList.remove('hidden'); // Show the modal
+    }
+
+    // Function to close any custom modal
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden'); // Hide the modal
+        }
+    };
+
+    // Close modal if clicking outside the content
+    document.getElementById('actionConfirmModal').addEventListener('click', function(e) {
+        if (e.target === this) { // Only close if clicking on the overlay itself
+            closeModal('actionConfirmModal');
+        }
+    });
+});
+</script>
 {% endblock %} 

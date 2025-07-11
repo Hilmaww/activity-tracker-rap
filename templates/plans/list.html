@@ -3,24 +3,26 @@
 {% block title %}Daily Plans{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Daily Plans</h2>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Daily Plans</h2>
         {% if current_user.role == 'enom' %}
-        <a href="{{ url_for('main.create_plan') }}" class="btn btn-primary">Create New Plan</a>
+        <a href="{{ url_for('main.create_plan') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+            Create New Plan
+        </a>
         {% endif %}
     </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="GET" class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Date</label>
-                    <input type="date" class="form-control" name="date" value="{{ request.args.get('date', '') }}">
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="p-6">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" name="date" value="{{ request.args.get('date', '') }}">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" name="status">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" name="status">
                         <option value="">All Statuses</option>
                         {% for status in statuses %}
                         <option value="{{ status.name }}" {% if request.args.get('status') == status.name %}selected{% endif %}>
@@ -30,9 +32,9 @@
                     </select>
                 </div>
                 {% if current_user.role == 'tsel' %}
-                <div class="col-md-3">
-                    <label class="form-label">ENOM User</label>
-                    <select class="form-select" name="enom_user">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ENOM User</label>
+                    <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" name="enom_user">
                         <option value="">All Users</option>
                         {% for user in enom_users %}
                         <option value="{{ user.id }}" {% if request.args.get('enom_user')|int == user.id %}selected{% endif %}>
@@ -42,41 +44,40 @@
                     </select>
                 </div>
                 {% endif %}
-                <div class="col-md-3">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="submit" class="btn btn-primary d-block w-100">Filter</button>
+                <div class="col-span-1 flex items-end">
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Filter</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
+    <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="daily-plans-table">
+            <thead class="bg-gray-50">
                 <tr>
-                    <th>Actions</th>
-                    <th>Date</th>
-                    <th>ENOM User</th>
-                    <th>Sites</th>
-                    <th>Total Duration</th>
-                    <th>Status</th>
-                    <th>Created At</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ENOM User</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sites</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Duration</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="bg-white divide-y divide-gray-200">
                 {% for plan in plans %}
-                <tr class="{% if plan.plan_date == today %}table-info{% endif %}">
-                    <td>
-                        <div class="btn-group">
+                <tr class="{% if plan.plan_date == today %}bg-blue-50{% endif %}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
                             <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" 
-                               class="btn btn-sm btn-primary">View</a>
+                               class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">View</a>
                             {% if current_user.role == 'tsel' or 
-                                  (current_user.id == plan.enom_user_id) %}
+                                    (current_user.id == plan.enom_user_id) %}
                                 <a href="{{ url_for('main.edit_plan', plan_id=plan.id) }}" 
-                                   class="btn btn-sm btn-warning">Edit</a>
+                                   class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-yellow-600 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200">Edit</a>
                                 {% if current_user.role == 'tsel' %}
                                 <button type="button" 
-                                        class="btn btn-sm btn-danger delete-plan-btn"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 delete-plan-btn"
                                         data-plan-id="{{ plan.id }}">
                                     Delete
                                 </button>
@@ -84,28 +85,28 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {{ plan.plan_date.strftime('%d-%m-%Y') }}
                         {% if plan.created_at_jakarta %}
-                        <small class="text-muted d-block">
+                        <small class="text-gray-500 block">
                             Created: {{ plan.created_at_jakarta.strftime('%H:%M') }}
                         </small>
                         {% endif %}
                     </td>
-                    <td>{{ plan.enom_user.username }}</td>
-                    <td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ plan.enom_user.username }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {{ plan.planned_sites|length }} sites
-                        <small class="text-muted d-block">
+                        <small class="text-gray-500 block">
                             {{ plan.planned_sites|map(attribute='site.name')|join(', ') }}
                         </small>
                     </td>
-                    <td>{{ plan.planned_sites|sum(attribute='estimated_duration') }} minutes</td>
-                    <td>
-                        <span class="badge bg-{{ plan.status.name|lower }}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ plan.planned_sites|sum(attribute='estimated_duration') }} minutes</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="badge-base badge-{{ plan.status.name|lower }}">
                             {{ plan.status.name }}
                         </span>
                     </td>
-                    <td>{{ plan.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ plan.created_at_jakarta.strftime('%d-%m-%Y %H:%M') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -114,59 +115,89 @@
 </div>
 
 <!-- Add delete confirmation modal -->
-<div class="modal fade" id="deletePlanModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to delete this plan?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form id="deletePlanForm" method="POST" style="display: inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </div>
+<!-- Mimicking Shadcn Dialog/AlertDialog structure with Tailwind and native JS -->
+<div id="deletePlanModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="deletePlanModalTitle">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-auto p-6 transform transition-all sm:my-8 sm:w-full">
+        <div class="flex justify-between items-center mb-4">
+            <h5 class="text-lg font-semibold text-gray-900" id="deletePlanModalTitle">Confirm Delete</h5>
+            <button type="button" class="text-gray-400 hover:text-gray-600" onclick="closeModal('deletePlanModal')" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="text-gray-700 mb-6">
+            Are you sure you want to delete this plan? This action cannot be undone.
+        </div>
+        <div class="flex justify-end space-x-3">
+            <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" onclick="closeModal('deletePlanModal')">Cancel</button>
+            <form id="deletePlanForm" method="POST" class="inline-block">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">Delete</button>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Add JavaScript for delete confirmation -->
+{% endblock %}
+
+{% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    const dataTableElement = document.getElementById('daily-plans-table');
+    if (dataTableElement) {
+        new DataTable(dataTableElement, {
+            order: [[1, 'desc']], // Order by Date (descending)
+            pageLength: 25,
+            language: {
+                search: "Search plans:",
+                lengthMenu: "Show _MENU_ plans per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ plans",
+                paginate: {
+                    first: '<i class="fas fa-angle-double-left"></i>',
+                    previous: '<i class="fas fa-angle-left"></i>',
+                    next: '<i class="fas fa-angle-right"></i>',
+                    last: '<i class="fas fa-angle-double-right"></i>'
+                }
+            }
+        });
+    }
+
     // Handle delete plan button clicks
     document.addEventListener('click', function(e) {
         if (e.target.closest('.delete-plan-btn')) {
             const planId = e.target.closest('.delete-plan-btn').dataset.planId;
-            confirmDelete(planId);
+            showDeleteModal(planId);
         }
     });
-});
 
-function confirmDelete(planId) {
-    const modal = new bootstrap.Modal(document.getElementById('deletePlanModal'));
-    const form = document.getElementById('deletePlanForm');
-    form.action = `/plans/${planId}/delete`;
-    modal.show();
-}
+    // Function to show the custom delete modal
+    function showDeleteModal(planId) {
+        const modal = document.getElementById('deletePlanModal');
+        const form = document.getElementById('deletePlanForm');
+        form.action = `/plans/${planId}/delete`;
+        modal.classList.remove('hidden'); // Show the modal
+    }
 
-// Format all dates to dd/mm/yyyy
-document.addEventListener('DOMContentLoaded', function() {
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            const date = new Date(this.value);
-            const formatted = date.toLocaleDateString('en-GB'); // dd/mm/yyyy format
-            const display = this.nextElementSibling;
-            if (display && display.classList.contains('date-display')) {
-                display.textContent = formatted;
-            }
-        });
+    // Function to close the custom delete modal
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden'); // Hide the modal
+        }
+    };
+
+    // Optional: Close modal if clicking outside the content
+    document.getElementById('deletePlanModal').addEventListener('click', function(e) {
+        if (e.target === this) { // Only close if clicking on the overlay itself
+            closeModal('deletePlanModal');
+        }
     });
+
+    // The date formatting logic from the previous snippet is not directly applicable
+    // to this page's date inputs, as they are part of a filter form and not
+    // displayed with a separate 'date-display' element.
+    // If you intend to format dates displayed in the table, that would be a separate
+    // task, likely handled server-side or by DataTables rendering.
 });
 </script>
 {% endblock %} 
