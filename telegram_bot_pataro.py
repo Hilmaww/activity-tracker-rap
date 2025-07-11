@@ -896,7 +896,7 @@ Example: `/siteactivity PSP513`
 Replace 'username' with your system username
 
 **Plan Submission Flow:**
-1. Type `/plan` and send your initial plan like normal
+1. Type /plan and send your initial plan like normal
 2. The bot will send you a pre-formatted `/sendplan` template.
 3. Fill in the `{C,P,S}` category for each site in the template.
 4. Copy the entire template and send it back to the bot using `/sendplan`.
@@ -1179,7 +1179,7 @@ I will then send you a formatted template to fill in the site categories (C/P/S)
         plan = self.db.get_user_daily_plan(user.id, today)
 
         if not plan:
-            await update.message.reply_text("📋 No plan found for today. Use `/plan` to create one.")
+            await update.message.reply_text("📋 No plan found for today. Use /plan to create one.")
             return
 
         # Use the method that filters out deleted sites
