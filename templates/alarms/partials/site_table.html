@@ -1,118 +1,122 @@
-<div class="table-responsive">
-    <table id="sitesTable" class="table table-striped table-hover align-middle">
-        <thead>
+<div class="overflow-x-auto">
+    <table id="sitesTable" class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
             <tr>
-                <th>Site ID</th>
-                <th>Site Name</th>
-                <th>Location</th>
-                <th>Alarms</th>
-                <th>Latest Issue</th>
-                <th>Priority</th>
-                <th>Planning Status</th>
-                <th>Actions</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site ID</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site Name</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alarms</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Issue</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Planning Status</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody class="bg-white divide-y divide-gray-200">
             {% for site_data in sites %}
                 {% set site = site_data.site %}
                 {% set is_planned = site_data.is_planned %}
                 {% set has_open_alarms = site_data.has_open_alarms %}
                 {% set latest_alarm = site_data.latest_alarm %}
                 
-                <tr class="{% if has_open_alarms and not is_planned %}table-warning{% elif is_planned %}table-success{% endif %}">
-                    <td class="fw-bold">{{ site.site_id }}</td>
-                    <td>{{ site.name }}</td>
-                    <td>{{ site.kabupaten }}</td>
-                    <td>
-                        <div class="d-flex flex-column">
-                            <span class="fs-5 fw-bold">{{ site_data.alarm_count }}</span>
-                            <div>
-                                {% for status in site_data.status_counts %}
-                                    <span class="badge bg-{{ status.lower() }} me-1">
-                                        {{ site_data.status_counts[status] }}
+                <tr class="
+                    {% if has_open_alarms and not is_planned %}bg-yellow-50{% endif %}
+                    {% if is_planned %}bg-green-50{% endif %}
+                    hover:bg-gray-100 transition-colors duration-150 ease-in-out transform hover:-translate-y-0.5 hover:shadow-md
+                ">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{{ site.site_id }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.kabupaten }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <div class="flex flex-col">
+                            <span class="text-xl font-bold text-gray-800">{{ site_data.alarm_count }}</span>
+                            <div class="mt-1">
+                                {% for status, count in site_data.status_counts.items() %}
+                                    <span class="badge-base badge-{{ status.lower() }} mr-1">
+                                        {{ count }}
                                     </span>
                                 {% endfor %}
                             </div>
                         </div>
                     </td>
-                    <td>
-                        <div class="text-truncate" style="max-width: 200px;" 
-                             data-bs-toggle="tooltip" title="{{ latest_alarm.description }}">
+                    <td class="px-6 py-4 text-sm text-gray-700">
+                        <div class="truncate w-48" 
+                             data-tooltip-target="tooltip-{{ loop.index }}" data-tooltip-placement="top">
                             {{ latest_alarm.description }}
                         </div>
-                        <small class="text-muted">
+                        <div id="tooltip-{{ loop.index }}" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip">
+                            {{ latest_alarm.description }}
+                            <div class="tooltip-arrow" data-popper-arrow></div>
+                        </div>
+                        <small class="block text-xs text-gray-500">
                             {{ latest_alarm.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
                         </small>
                     </td>
-                    <td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {% if site_data.highest_priority > 10 %}
-                            <div class="d-flex align-items-center">
-                                <div class="priority-indicator priority-high me-2"></div>
-                                <span class="badge bg-danger">High ({{ site_data.highest_priority }})</span>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-red-600 shadow-md shadow-red-500/50 mr-2"></div>
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-800">High ({{ site_data.highest_priority }})</span>
                             </div>
                         {% elif site_data.highest_priority > 5 %}
-                            <div class="d-flex align-items-center">
-                                <div class="priority-indicator priority-medium me-2"></div>
-                                <span class="badge bg-warning text-dark">Medium ({{ site_data.highest_priority }})</span>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-yellow-500 shadow-md shadow-yellow-500/50 mr-2"></div>
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800">Medium ({{ site_data.highest_priority }})</span>
                             </div>
                         {% else %}
-                            <div class="d-flex align-items-center">
-                                <div class="priority-indicator priority-low me-2"></div>
-                                <span class="badge bg-info">Low ({{ site_data.highest_priority }})</span>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-blue-500 shadow-md shadow-blue-500/50 mr-2"></div>
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">Low ({{ site_data.highest_priority }})</span>
                             </div>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
                         {% if is_planned %}
-                            <div class="site-status-planned">
-                                <i class="fas fa-check-circle text-success"></i>
+                            <div class="flex items-center bg-green-100 text-green-800 px-3 py-1.5 rounded-md">
+                                <i class="fas fa-check-circle text-green-600 mr-2 text-base"></i>
                                 <span>Planned for {{ site_data.plan_date.strftime('%Y-%m-%d') }}</span>
                             </div>
                         {% else %}
-                            <div class="site-status-unplanned">
-                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                            <div class="flex items-center bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-md">
+                                <i class="fas fa-exclamation-triangle text-yellow-600 mr-2 text-base"></i>
                                 <span>Needs Planning</span>
                             </div>
                         {% endif %}
                     </td>
-                    <td>
-                        <div class="action-buttons">
-                            <!-- View Site Alarms button -->
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex flex-col items-end space-y-2 min-w-[150px]">
                             <a href="{{ url_for('alarms.view_site_alarms', site_id=site.id) }}" 
-                               class="btn btn-sm btn-primary action-btn mb-2 w-100">
-                                <i class="fas fa-eye me-1"></i> View All Alarms ({{ site_data.alarm_count }})
+                               class="inline-flex items-center justify-center w-full px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                                <i class="fas fa-eye mr-1"></i> View All Alarms ({{ site_data.alarm_count }})
                             </a>
                             
-                            <!-- Conditional buttons based on planning status -->
                             {% if is_planned %}
                                 <a href="{{ url_for('main.view_plan', plan_id=site_data.plan_id) }}" 
-                                   class="btn btn-sm btn-success action-btn w-100">
-                                    <i class="fas fa-calendar-alt me-1"></i> View Plan
+                                   class="inline-flex items-center justify-center w-full px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+                                    <i class="fas fa-calendar-alt mr-1"></i> View Plan
                                 </a>
                             {% elif has_open_alarms and current_user.role == 'enom' %}
                                 <a href="{{ url_for('alarms.add_site_remark', site_id=site.id) }}" 
-                                   class="btn btn-sm btn-warning action-btn w-100">
-                                    <i class="fas fa-comment me-1"></i> Give Remark
+                                   class="inline-flex items-center justify-center w-full px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-yellow-600 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200">
+                                    <i class="fas fa-comment mr-1"></i> Give Remark
                                 </a>
                             {% endif %}
                             
-                            <!-- Quick Action Dropdown -->
-                            <div class="dropdown mt-2">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" type="button" 
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-cog me-1"></i> Quick Actions
+                            <div class="relative w-full group">
+                                <button class="inline-flex items-center justify-center w-full px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" type="button">
+                                    <i class="fas fa-cog mr-1"></i> Quick Actions <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-200 group-hover:rotate-180"></i>
                                 </button>
-                                <ul class="dropdown-menu">
+                                <ul class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 py-1" role="menu" aria-orientation="vertical" aria-labelledby="quickActionsDropdown">
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for('alarms.view_site_alarms', site_id=site.id) }}">
-                                            <i class="fas fa-bell me-1"></i> Manage Alarms
+                                        <a class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" href="{{ url_for('alarms.view_site_alarms', site_id=site.id) }}" role="menuitem">
+                                            <i class="fas fa-bell mr-2"></i> Manage Alarms
                                         </a>
                                     </li>
                                     {% if current_user.role == 'tsel' %}
                                         <li>
-                                            <a class="dropdown-item text-danger resolve-all-site-alarms" 
-                                               href="#" data-site-id="{{ site.id }}">
-                                                <i class="fas fa-check-double me-1"></i> Resolve All Alarms
+                                            <a class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 resolve-all-site-alarms" 
+                                               href="#" data-site-id="{{ site.id }}" role="menuitem">
+                                                <i class="fas fa-check-double mr-2"></i> Resolve All Alarms
                                             </a>
                                         </li>
                                     {% endif %}
@@ -127,69 +131,43 @@
 </div>
 
 <style>
-    /* Priority indicators */
-    .priority-indicator {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
+    /*
+        The `.badge-base` and specific `.badge-open`, etc. classes
+        should ideally be defined once in `base.html` or a global CSS file
+        since they are used across different templates.
+        I'm including them here for completeness if this partial is
+        viewed in isolation, but in a real app, they'd be global.
+    */
+    .badge-base {
+        @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
     }
-    
-    .priority-high {
-        background-color: #dc3545;
-        box-shadow: 0 0 5px #dc3545;
+    .badge-open { @apply badge-base bg-red-500 text-white; }
+    .badge-in_progress { @apply badge-base bg-yellow-500 text-gray-900; }
+    .badge-pending { @apply badge-base bg-gray-700 text-white; }
+    .badge-resolved { @apply badge-base bg-blue-500 text-white; }
+    .badge-closed { @apply badge-base bg-green-500 text-white; }
+    .badge-submitted { @apply badge-base bg-indigo-500 text-white; }
+    .badge-draft { @apply badge-base bg-gray-400 text-white; }
+    .badge-approved { @apply badge-base bg-green-600 text-white; }
+    .badge-rejected { @apply badge-base bg-red-600 text-white; }
+    .badge-acknowledged { @apply badge-base bg-purple-600 text-white; }
+    .badge-scheduled { @apply badge-base bg-teal-500 text-white; }
+
+    /* Custom tooltip styling to work with Tailwind and provide better appearance */
+    /* This assumes you're using Flowbite's tooltip JS or similar, or will implement one */
+    .tooltip[data-tooltip-target] {
+        @apply hidden; /* Hide by default */
     }
-    
-    .priority-medium {
-        background-color: #ffc107;
-        box-shadow: 0 0 5px #ffc107;
+
+    /* Show tooltip on hover (example basic implementation) */
+    [data-tooltip-target]:hover + .tooltip {
+        @apply block;
     }
-    
-    .priority-low {
-        background-color: #0dcaf0;
-        box-shadow: 0 0 5px #0dcaf0;
-    }
-    
-    /* Planning status */
-    .site-status-planned, .site-status-unplanned {
-        display: flex;
-        align-items: center;
-        padding: 6px 10px;
-        border-radius: 4px;
-    }
-    
-    .site-status-planned {
-        background-color: rgba(25, 135, 84, 0.1);
-    }
-    
-    .site-status-unplanned {
-        background-color: rgba(255, 193, 7, 0.1);
-    }
-    
-    .site-status-planned i, .site-status-unplanned i {
-        font-size: 16px;
-        margin-right: 8px;
-    }
-    
-    /* Action buttons */
-    .action-buttons {
-        min-width: 200px;
-    }
-    
-    .action-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    /* Row hover effect */
-    #sitesTable tbody tr {
-        transition: transform 0.15s ease-in-out;
-    }
-    
-    #sitesTable tbody tr:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        z-index: 1;
-        position: relative;
+
+    /* Tailwind version of truncation if needed, can be simplified to just 'truncate' utility */
+    .truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 </style> 

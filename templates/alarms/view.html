@@ -3,123 +3,123 @@
 {% block title %}Alarm Details - {{ super() }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <h2>
-                    <i class="fas fa-bell"></i> Alarm Details
-                </h2>
-                <div class="d-flex gap-2">
-                    <a href="{{ url_for('alarms.list_alarms') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Alarms
-                    </a>
-                    {% if current_user.role == 'enom' and alarm.status.value in ['OPEN', 'ACKNOWLEDGED'] %}
-                        <a href="{{ url_for('alarms.add_remark', alarm_id=alarm.id) }}" class="btn btn-warning">
-                            <i class="fas fa-comment"></i> Add Remark
-                        </a>
-                    {% endif %}
-                    {% if alarm.status.value not in ['RESOLVED', 'CLOSED'] %}
-                        <button class="btn btn-success resolve-alarm" data-alarm-id="{{ alarm.id }}">
-                            <i class="fas fa-check"></i> Resolve
-                        </button>
-                    {% endif %}
-                    {% if current_user.role == 'tsel' and alarm.status.value == 'RESOLVED' %}
-                        <button class="btn btn-secondary close-alarm" data-alarm-id="{{ alarm.id }}">
-                            <i class="fas fa-lock"></i> Close
-                        </button>
-                    {% endif %}
-                </div>
-            </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-bell mr-3 text-indigo-600"></i> Alarm Details
+        </h2>
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ url_for('alarms.list_alarms') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Alarms
+            </a>
+            {% if current_user.role == 'enom' and alarm.status.value in ['OPEN', 'ACKNOWLEDGED'] %}
+                <a href="{{ url_for('alarms.add_remark', alarm_id=alarm.id) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-yellow-800 bg-yellow-300 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200">
+                    <i class="fas fa-comment mr-2"></i> Add Remark
+                </a>
+            {% endif %}
+            {% if alarm.status.value not in ['RESOLVED', 'CLOSED'] %}
+                <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 resolve-alarm" data-alarm-id="{{ alarm.id }}">
+                    <i class="fas fa-check mr-2"></i> Resolve
+                </button>
+            {% endif %}
+            {% if current_user.role == 'tsel' and alarm.status.value == 'RESOLVED' %}
+                <button class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 close-alarm" data-alarm-id="{{ alarm.id }}">
+                    <i class="fas fa-lock mr-2"></i> Close
+                </button>
+            {% endif %}
         </div>
     </div>
     
-    <div class="row">
+    <div class="grid grid-cols-1 gap-6">
         <!-- Alarm Details -->
-        <div class="col-md-12 mb-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle"></i> Alarm Information
+        <div class="w-full mb-4">
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="p-4 bg-indigo-600 text-white rounded-t-lg">
+                    <h5 class="text-lg font-semibold mb-0 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i> Alarm Information
                     </h5>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <table class="table table-bordered">
-                                <tr>
-                                    <th style="width: 40%">Site ID</th>
-                                    <td>{{ alarm.site.site_id }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Site Name</th>
-                                    <td>{{ alarm.site.name }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Location</th>
-                                    <td>{{ alarm.site.kabupaten }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Category</th>
-                                    <td>
-                                        <span class="badge bg-secondary">
-                                            {{ alarm.category.replace('_', ' ') }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Status</th>
-                                    <td>
-                                        <span class="badge bg-{{ alarm.status.lower() }}">
-                                            {{ alarm.status.replace('_', ' ') }}
-                                        </span>
-                                    </td>
-                                </tr>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Site ID</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ alarm.site.site_id }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site Name</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ alarm.site.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ alarm.site.kabupaten }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-600 text-white">
+                                                {{ alarm.category.replace('_', ' ') }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm">
+                                            <span class="badge-base badge-{{ alarm.status.lower() }}">
+                                                {{ alarm.status.replace('_', ' ') }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
                             </table>
                         </div>
-                        <div class="col-md-6">
-                            <table class="table table-bordered">
-                                <tr>
-                                    <th style="width: 40%">Priority Score</th>
-                                    <td>
-                                        {% if alarm.priority_score > 10 %}
-                                            <span class="badge bg-danger">High ({{ alarm.priority_score }})</span>
-                                        {% elif alarm.priority_score > 5 %}
-                                            <span class="badge bg-warning text-dark">Medium ({{ alarm.priority_score }})</span>
-                                        {% else %}
-                                            <span class="badge bg-info">Low ({{ alarm.priority_score }})</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>Source File</th>
-                                    <td>{{ alarm.source_file or 'N/A' }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Created By</th>
-                                    <td>{{ alarm.uploaded_by.username if alarm.uploaded_by else 'N/A' }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Created At</th>
-                                    <td>{{ alarm.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Resolved At</th>
-                                    <td>
-                                        {% if alarm.resolved_at %}
-                                            {{ alarm.resolved_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
-                                        {% else %}
-                                            <span class="text-muted">Not yet resolved</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
+                        <div>
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Priority Score</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm">
+                                            {% if alarm.priority_score > 10 %}
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-500 text-white">High ({{ alarm.priority_score }})</span>
+                                            {% elif alarm.priority_score > 5 %}
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-500 text-gray-900">Medium ({{ alarm.priority_score }})</span>
+                                            {% else %}
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-500 text-white">Low ({{ alarm.priority_score }})</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source File</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ alarm.source_file or 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created By</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ alarm.uploaded_by.username if alarm.uploaded_by else 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ alarm.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resolved At</th>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">
+                                            {% if alarm.resolved_at %}
+                                                {{ alarm.resolved_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
+                                            {% else %}
+                                                <span class="text-gray-500">Not yet resolved</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
                             </table>
                         </div>
                     </div>
                     
-                    <div class="mt-3">
-                        <h5>Description</h5>
-                        <div class="p-3 bg-light rounded">
+                    <div class="mt-6">
+                        <h5 class="text-lg font-semibold text-gray-800 mb-2">Description</h5>
+                        <div class="p-4 bg-gray-100 rounded-md text-gray-700 border border-gray-200">
                             {{ alarm.description }}
                         </div>
                     </div>
@@ -128,41 +128,41 @@
         </div>
         
         <!-- Related Daily Plans -->
-        <div class="col-md-12 mb-4">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-calendar-alt"></i> Related Daily Plans
+        <div class="w-full mb-4">
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="p-4 bg-blue-600 text-white rounded-t-lg">
+                    <h5 class="text-lg font-semibold mb-0 flex items-center">
+                        <i class="fas fa-calendar-alt mr-2"></i> Related Daily Plans
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     {% set planned_visits = alarm.site.planned_sites %}
                     {% if planned_visits %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
                                     <tr>
-                                        <th>Plan Date</th>
-                                        <th>Planned Actions</th>
-                                        <th>Status</th>
-                                        <th>ENOM Team</th>
-                                        <th>View</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Planned Actions</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ENOM Team</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">View</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="bg-white divide-y divide-gray-200">
                                     {% for visit in planned_visits %}
                                         <tr>
-                                            <td>{{ visit.daily_plan.plan_date.strftime('%Y-%m-%d') }}</td>
-                                            <td>{{ visit.planned_actions }}</td>
-                                            <td>
-                                                <span class="badge bg-{{ visit.daily_plan.status.lower() }}">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ visit.daily_plan.plan_date.strftime('%Y-%m-%d') }}</td>
+                                            <td class="px-6 py-4 whitespace-normal text-sm text-gray-700 max-w-xs">{{ visit.planned_actions }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                                <span class="badge-base badge-{{ visit.daily_plan.status.lower() }}">
                                                     {{ visit.daily_plan.status.replace('_', ' ') }}
                                                 </span>
                                             </td>
-                                            <td>{{ visit.daily_plan.enom_user.username }}</td>
-                                            <td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ visit.daily_plan.enom_user.username }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a href="{{ url_for('main.view_plan', plan_id=visit.daily_plan.id) }}" 
-                                                   class="btn btn-sm btn-outline-primary">
+                                                   class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                             </td>
@@ -172,8 +172,9 @@
                             </table>
                         </div>
                     {% else %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i> No daily plans found for this site.
+                        <div class="relative flex items-center p-4 rounded-lg text-sm bg-yellow-100 text-yellow-700 border border-yellow-200" role="alert">
+                            <span class="mr-2"><i class="fas fa-exclamation-triangle"></i></span>
+                            <div>No daily plans found for this site.</div>
                         </div>
                     {% endif %}
                 </div>
@@ -181,55 +182,54 @@
         </div>
         
         <!-- Remarks -->
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-warning text-dark">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-comments"></i> Remarks
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="p-4 bg-yellow-400 text-gray-900 rounded-t-lg">
+                    <div class="flex justify-between items-center">
+                        <h5 class="text-lg font-semibold mb-0 flex items-center">
+                            <i class="fas fa-comments mr-2"></i> Remarks
                         </h5>
                         {% if alarm.status.value in ['OPEN', 'ACKNOWLEDGED'] %}
-                            <a href="{{ url_for('alarms.add_remark', alarm_id=alarm.id) }}" class="btn btn-sm btn-dark">
-                                <i class="fas fa-plus"></i> Add Remark
+                            <a href="{{ url_for('alarms.add_remark', alarm_id=alarm.id) }}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors duration-200">
+                                <i class="fas fa-plus mr-1"></i> Add Remark
                             </a>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     {% if remarks %}
-                        <div class="timeline">
+                        <div class="timeline-remarks">
                             {% for remark in remarks %}
-                                <div class="card mb-3 border-left-primary">
-                                    <div class="card-header bg-light">
-                                        <div class="d-flex justify-content-between align-items-center">
+                                <div class="relative pl-6 pb-8 last:pb-0 before:absolute before:top-0 before:left-0 before:h-full before:w-1 before:bg-gray-200 last:before:h-0">
+                                    <div class="absolute -left-1.5 top-2 w-4 h-4 rounded-full bg-indigo-600 border-2 border-white z-10"></div>
+                                    <div class="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+                                        <div class="flex justify-between items-center mb-2">
                                             <div>
-                                                <strong>{{ remark.user.username }}</strong>
-                                                <small class="text-muted ms-2">
+                                                <strong class="font-semibold text-gray-800">{{ remark.user.username }}</strong>
+                                                <small class="text-gray-500 ml-2 text-xs">
                                                     {{ remark.created_at_jakarta.strftime('%Y-%m-%d %H:%M') }}
                                                 </small>
                                             </div>
-                                            <div>
-                                                <span class="badge bg-info">
+                                            <div class="flex flex-wrap gap-2">
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800">
                                                     Planned Visit: {{ remark.planned_visit_date_jakarta.strftime('%Y-%m-%d %H:%M') }}
                                                 </span>
                                                 {% if remark.assignee %}
-                                                    <span class="badge bg-secondary ms-1">
+                                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-200 text-gray-800">
                                                         Assignee: {{ remark.assignee }}
                                                     </span>
                                                 {% endif %}
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="card-body">
-                                        <h6>Initial Findings:</h6>
-                                        <p>{{ remark.initial_findings }}</p>
+                                        <h6 class="text-base font-semibold text-gray-800 mb-1">Initial Findings:</h6>
+                                        <p class="mb-3 text-gray-700">{{ remark.initial_findings }}</p>
                                         
-                                        <h6>Planned Actions:</h6>
-                                        <p>{{ remark.planned_actions }}</p>
+                                        <h6 class="text-base font-semibold text-gray-800 mb-1">Planned Actions:</h6>
+                                        <p class="mb-3 text-gray-700">{{ remark.planned_actions }}</p>
                                         
                                         {% if remark.estimated_resolution_time %}
-                                            <div class="text-muted">
-                                                <i class="fas fa-clock"></i> Estimated Resolution Time: 
+                                            <div class="text-gray-500 text-sm flex items-center">
+                                                <i class="fas fa-clock mr-2"></i> Estimated Resolution Time: 
                                                 {{ remark.estimated_resolution_time }} minutes
                                             </div>
                                         {% endif %}
@@ -238,8 +238,9 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> No remarks have been added yet.
+                        <div class="relative flex items-center p-4 rounded-lg text-sm bg-blue-100 text-blue-700 border border-blue-200" role="alert">
+                            <span class="mr-2"><i class="fas fa-info-circle"></i></span>
+                            <div>No remarks have been added yet.</div>
                         </div>
                     {% endif %}
                 </div>
@@ -247,79 +248,144 @@
         </div>
     </div>
 </div>
+
+<!-- Resolve Alarm Modal -->
+<div id="resolveAlarmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="resolveAlarmModalTitle">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto p-6 transform transition-all sm:my-8 sm:w-full">
+        <div class="flex justify-between items-center mb-4">
+            <h5 class="text-lg font-semibold text-gray-900" id="resolveAlarmModalTitle">Resolve Alarm</h5>
+            <button type="button" class="text-gray-400 hover:text-gray-600" onclick="closeModal('resolveAlarmModal')" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="resolveAlarmForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="mb-4">
+                <label for="resolution_note" class="block text-sm font-medium text-gray-700 mb-1">Resolution Note (optional):</label>
+                <textarea id="resolution_note" name="resolution_note" rows="4" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter resolution details..."></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" onclick="closeModal('resolveAlarmModal')">Cancel</button>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">Resolve</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Close Alarm Modal -->
+<div id="closeAlarmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="closeAlarmModalTitle">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-auto p-6 transform transition-all sm:my-8 sm:w-full">
+        <div class="flex justify-between items-center mb-4">
+            <h5 class="text-lg font-semibold text-gray-900" id="closeAlarmModalTitle">Close Alarm</h5>
+            <button type="button" class="text-gray-400 hover:text-gray-600" onclick="closeModal('closeAlarmModal')" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="text-gray-700 mb-6">
+            Are you sure you want to close this alarm?
+        </div>
+        <div class="flex justify-end space-x-3">
+            <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200" onclick="closeModal('closeAlarmModal')">Cancel</button>
+            <form id="closeAlarmForm" method="POST" class="inline-block">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">Yes, Close It</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle resolve alarm
-        $('.resolve-alarm').on('click', function(e) {
-            e.preventDefault();
-            const alarmId = $(this).data('alarm-id');
-            
-            Swal.fire({
-                title: 'Resolve Alarm',
-                text: 'Add a resolution note (optional):',
-                input: 'textarea',
-                showCancelButton: true,
-                confirmButtonText: 'Resolve',
-                showLoaderOnConfirm: true,
-                preConfirm: (resolution_note) => {
-                    return $.ajax({
-                        url: `/alarms/resolve/${alarmId}`,
-                        type: 'POST',
-                        data: { 
-                            resolution_note: resolution_note,
-                            csrf_token: $('meta[name="csrf-token"]').attr('content')
-                        }
-                    }).then(response => {
-                        return response;
-                    }).catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    toastr.success('Alarm resolved successfully');
-                    setTimeout(() => window.location.reload(), 1500);
-                }
-            });
-        });
-        
-        // Handle close alarm
-        $('.close-alarm').on('click', function(e) {
-            e.preventDefault();
-            const alarmId = $(this).data('alarm-id');
-            
-            Swal.fire({
-                title: 'Close Alarm',
-                text: 'Are you sure you want to close this alarm?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, close it',
-                showLoaderOnConfirm: true,
-                preConfirm: () => {
-                    return $.ajax({
-                        url: `/alarms/close/${alarmId}`,
-                        type: 'POST',
-                        headers: {
-                            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
-                        }
-                    }).then(response => {
-                        return response;
-                    }).catch(error => {
-                        Swal.showValidationMessage(`Request failed: ${error.responseJSON?.message || 'Unknown error'}`);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    toastr.success('Alarm closed successfully');
-                    setTimeout(() => window.location.reload(), 1500);
-                }
-            });
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle resolve alarm button clicks
+    document.addEventListener('click', function(e) {
+        const resolveButton = e.target.closest('.resolve-alarm');
+        if (resolveButton) {
+            const alarmId = resolveButton.dataset.alarmId;
+            showResolveAlarmModal(alarmId);
+        }
     });
+
+    // Handle close alarm button clicks
+    document.addEventListener('click', function(e) {
+        const closeButton = e.target.closest('.close-alarm');
+        if (closeButton) {
+            const alarmId = closeButton.dataset.alarmId;
+            showCloseAlarmModal(alarmId);
+        }
+    });
+
+    // Function to show the custom resolve alarm modal
+    function showResolveAlarmModal(alarmId) {
+        const modal = document.getElementById('resolveAlarmModal');
+        const form = document.getElementById('resolveAlarmForm');
+        form.action = `/alarms/resolve/${alarmId}`; // Set the form action dynamically
+        modal.classList.remove('hidden'); // Show the modal
+    }
+
+    // Function to show the custom close alarm modal
+    function showCloseAlarmModal(alarmId) {
+        const modal = document.getElementById('closeAlarmModal');
+        const form = document.getElementById('closeAlarmForm');
+        form.action = `/alarms/close/${alarmId}`; // Set the form action dynamically
+        modal.classList.remove('hidden'); // Show the modal
+    }
+
+    // Generic function to close any custom modal
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden'); // Hide the modal
+            // Optional: Clear form inputs when closing if needed
+            const form = modal.querySelector('form');
+            if (form) {
+                form.reset();
+            }
+        }
+    };
+
+    // Optional: Close modal if clicking outside the content
+    document.getElementById('resolveAlarmModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal('resolveAlarmModal');
+        }
+    });
+    document.getElementById('closeAlarmModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal('closeAlarmModal');
+        }
+    });
+
+    // Note: The original SweetAlert2 success/error handling with `toastr`
+    // and `window.location.reload()` would typically be handled by the
+    // server's response after the form submission.
+    // Ensure your Flask routes handle the form submission and then
+    // redirect or return JSON responses that trigger `toastr` messages
+    // and page reloads on the client-side.
+});
 </script>
+
+<style>
+/* Custom timeline for remarks */
+.timeline-remarks {
+    position: relative;
+    padding-left: 1.5rem; /* Space for the line and markers */
+}
+
+.timeline-remarks::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0.5rem; /* Adjust to align with markers */
+    height: 100%;
+    width: 2px;
+    background-color: #e5e7eb; /* Tailwind gray-200 */
+}
+
+.timeline-remarks > div:last-child::before {
+    height: 0; /* Stop the line at the last item */
+}
+</style>
 {% endblock %} 

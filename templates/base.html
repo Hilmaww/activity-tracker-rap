@@ -344,11 +344,11 @@
                         </div>
                     </div>
                     
-                    <div class="relative group">
-                        <button class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-400 flex items-center focus:outline-none" aria-haspopup="true" aria-expanded="false">
-                            Daily Plans <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-400 group-hover:rotate-180"></i>
+                    <div class="relative" id="daily-plans-dropdown-container">
+                        <button id="daily-plans-dropdown-button" class="text-gray-300 hover:text-white px-3 py-2 rounded-md transition-colors duration-400 flex items-center focus:outline-none" aria-haspopup="true" aria-expanded="false">
+                            Daily Plans <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-400"></i>
                         </button>
-                        <div class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-700">
+                        <div id="daily-plans-dropdown-content" class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 opacity-0 invisible transition-opacity duration-700">
                             <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="planDropdown">
                                 <a href="{{ url_for('main.list_plans') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">My Plans</a>
                                 <a href="{{ url_for('main.create_plan') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Create Plan</a>
@@ -468,6 +468,43 @@
                     mobilePlanDropdownContent.classList.toggle('hidden');
                     const icon = mobilePlanDropdownButton.querySelector('i');
                     icon.classList.toggle('rotate-180');
+                });
+            }
+
+            // --- BEGIN NEW JAVASCRIPT FOR DAILY PLANS DROPDOWN DELAY ---
+            const dailyPlansDropdownContainer = document.getElementById('daily-plans-dropdown-container');
+            const dailyPlansDropdownButton = document.getElementById('daily-plans-dropdown-button');
+            const dailyPlansDropdownContent = document.getElementById('daily-plans-dropdown-content');
+            let hideTimeout;
+            const HIDE_DELAY = 300; // milliseconds to wait before hiding
+
+            if (dailyPlansDropdownContainer && dailyPlansDropdownButton && dailyPlansDropdownContent) {
+                dailyPlansDropdownContainer.addEventListener('mouseenter', () => {
+                    clearTimeout(hideTimeout);
+                    dailyPlansDropdownContent.classList.remove('invisible', 'opacity-0');
+                    dailyPlansDropdownContent.classList.add('opacity-100');
+                    dailyPlansDropdownButton.querySelector('i').classList.add('rotate-180');
+                });
+
+                dailyPlansDropdownContainer.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => {
+                        dailyPlansDropdownContent.classList.remove('opacity-100');
+                        dailyPlansDropdownContent.classList.add('opacity-0', 'invisible');
+                        dailyPlansDropdownButton.querySelector('i').classList.remove('rotate-180');
+                    }, HIDE_DELAY); // Delay before setting to invisible
+                });
+
+                // This ensures if the mouse quickly re-enters the dropdown *itself*, it stays open
+                dailyPlansDropdownContent.addEventListener('mouseenter', () => {
+                    clearTimeout(hideTimeout);
+                });
+
+                dailyPlansDropdownContent.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => {
+                        dailyPlansDropdownContent.classList.remove('opacity-100');
+                        dailyPlansDropdownContent.classList.add('opacity-0', 'invisible');
+                        dailyPlansDropdownButton.querySelector('i').classList.remove('rotate-180');
+                    }, HIDE_DELAY); // Delay before setting to invisible
                 });
             }
 
