@@ -1367,7 +1367,7 @@
         }, 100);
     }
     
-    // Execution Rate Chart (Modified to show absolute values directly)
+    // Execution Rate Chart (Modified to show absolute values directly on bars)
     const executionRateCtx = document.getElementById('executionRateChart').getContext('2d');
     new Chart(executionRateCtx, {
         type: 'bar', // Still a bar chart, but now stacked
@@ -1375,8 +1375,10 @@
             labels: {{ executive_charts.execution_by_date.dates|tojson }},
             datasets: [{
                 label: 'Total Planned Visits',
-                data: {{ executive_charts.execution_by_date.total_planned|tojson }},
-                backgroundColor: 'rgba(201, 203, 207, 0.7)', // Light grey for total planned
+                // For this bar, we use the difference (uncompleted) to show as the bottom segment visually
+                // The actual `data` for this bar should be the uncompleted count for correct stacking behavior
+                data: {{ executive_charts.execution_by_date.total_planned|zip(executive_charts.execution_by_date.total_executed)|map('list')|map(attribute=0)|map('subtract', attribute=1)|list|tojson }},
+                backgroundColor: 'rgba(201, 203, 207, 0.7)', // Light grey for uncompleted portion
                 borderColor: 'rgb(201, 203, 207)',
                 borderWidth: 1,
                 stack: 'visits' // Stacked group for visits
@@ -1448,11 +1450,21 @@
                             if (context.dataset.type === 'line') {
                                 return `Execution Rate: ${context.parsed.y}%`;
                             } else if (context.dataset.label === 'Total Planned Visits') {
-                                return `Planned: ${context.parsed.y} visits`;
+                                // This tooltip now refers to the uncompleted portion
+                                const uncompleted = totalPlanned - totalExecuted;
+                                return `Uncompleted: ${uncompleted} visits`;
                             } else if (context.dataset.label === 'Completed Visits') {
                                 return `Completed: ${context.parsed.y} visits (Overall: ${executionPercentage}%)`;
                             }
                             return context.dataset.label + ': ' + context.parsed.y;
+                        },
+                        // Add a title callback for the tooltip to show overall context for bars
+                        title: function(tooltipItems) {
+                            const dataIndex = tooltipItems[0].dataIndex;
+                            const date = {{ executive_charts.execution_by_date.dates|tojson }}[dataIndex];
+                            const totalPlanned = {{ executive_charts.execution_by_date.total_planned|tojson }}[dataIndex];
+                            const totalExecuted = {{ executive_charts.execution_by_date.total_executed|tojson }}[dataIndex];
+                            return `${date} - Total Planned: ${totalPlanned}`;
                         }
                     }
                 },
@@ -1467,57 +1479,52 @@
                         const totalExecuted = {{ executive_charts.execution_by_date.total_executed|tojson }}[dataIndex];
 
                         if (context.dataset.label === 'Completed Visits') {
-                            // Show "Completed / Total" directly on the green bar
-                            return `${totalExecuted} / ${totalPlanned}`;
+                            // Show the count of completed visits on the green bar segment
+                            return value.toFixed(0); // value here is total_executed
+                        }
+                        if (context.dataset.label === 'Total Planned Visits') {
+                            // Show the count of uncompleted visits on the grey bar segment
+                            // value here is the calculated uncompleted count: (totalPlanned - totalExecuted)
+                            return value > 0 ? value.toFixed(0) : null;
                         }
                         if (context.dataset.label === 'Execution Rate (%)') {
                             // Show percentage on the line points
                             return value.toFixed(0) + '%';
                         }
-                        return null; // Don't show label for 'Total Planned Visits' (grey background)
+                        return null;
                     },
                     color: function(context) {
-                        // Color labels based on the dataset
+                        // Adjust label color for visibility
                         if (context.dataset.label === 'Completed Visits') {
-                            return 'white'; // White text for completed bar (green background)
+                            return 'white'; // White text on green bar
+                        }
+                        if (context.dataset.label === 'Total Planned Visits') {
+                            // Automatically select black or white based on background luminosity for accessibility
+                            return 'black'; // Or 'white' if the grey is dark enough. Let's assume black is visible on light grey.
                         }
                         if (context.dataset.label === 'Execution Rate (%)') {
                             return 'rgb(54, 162, 235)'; // Blue text for line
                         }
-                        return 'black'; // Default for any other (hidden) labels
+                        return 'black';
                     },
                     font: {
                         weight: 'bold',
-                        size: 10
+                        size: 10 // Keep font size manageable
                     },
-                    anchor: function(context) {
-                        // Anchor for bars (center of segment)
-                        if (context.dataset.type === 'bar') {
-                            return 'center';
-                        }
-                        // Anchor for line (end of point)
-                        return 'end';
-                    },
-                    align: function(context) {
-                        // Align for bars (center of segment)
-                        if (context.dataset.type === 'bar') {
-                            return 'center';
-                        }
-                        // Align for line (above the point)
-                        return 'end';
-                    },
-                    offset: function(context) {
-                        // No offset for bar labels, slightly above for line labels
-                        if (context.dataset.type === 'bar') {
-                            return 0;
-                        }
-                        return 4;
-                    },
+                    anchor: 'center', // Center the label within the bar segment
+                    align: 'center', // Center alignment for the label
+                    offset: 0, // No offset from the bar segment
                     display: function(context) {
-                        // Only display if the value is not zero, to avoid clutter
-                        // And ensure only 'Completed Visits' bar and 'Execution Rate' line get labels
-                        return (context.dataset.data[context.dataIndex] > 0 && 
-                               (context.dataset.label === 'Completed Visits' || context.dataset.label === 'Execution Rate (%)'));
+                        // Only display if the value is not zero, and for relevant datasets
+                        // For bar segments, only display if the segment has a value
+                        if (context.dataset.type === 'bar') {
+                            return context.dataset.data[context.dataIndex] > 0;
+                        }
+                        // For 'Execution Rate' line, display if value > 0
+                        if (context.dataset.label === 'Execution Rate (%)') {
+                             return context.dataset.data[context.dataIndex] > 0;
+                        }
+                        return false; // Hide labels for other datasets
                     }
                 }
             }
