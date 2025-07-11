@@ -641,7 +641,11 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script nonce="{{ nonce_value | default('') }}">
+    // Register the datalabels plugin globally
+    Chart.register(ChartDataLabels);
+
     document.querySelectorAll('.clickable').forEach(card => {
         card.addEventListener('click', function() {
             const status = this.dataset.status;
@@ -1454,6 +1458,67 @@
                 },
                 legend: {
                     position: 'bottom'
+                },
+                // Datalabels Plugin Configuration
+                datalabels: {
+                    formatter: function(value, context) {
+                        const dataIndex = context.dataIndex;
+                        const totalPlanned = {{ executive_charts.execution_by_date.total_planned|tojson }}[dataIndex];
+                        const totalExecuted = {{ executive_charts.execution_by_date.total_executed|tojson }}[dataIndex];
+
+                        if (context.dataset.label === 'Completed Visits') {
+                            // Show "Completed / Total" directly on the green bar
+                            return `${totalExecuted} / ${totalPlanned}`;
+                        }
+                        if (context.dataset.label === 'Execution Rate (%)') {
+                            // Show percentage on the line points
+                            return value.toFixed(0) + '%';
+                        }
+                        return null; // Don't show label for 'Total Planned Visits' (grey background)
+                    },
+                    color: function(context) {
+                        // Color labels based on the dataset
+                        if (context.dataset.label === 'Completed Visits') {
+                            return 'white'; // White text for completed bar (green background)
+                        }
+                        if (context.dataset.label === 'Execution Rate (%)') {
+                            return 'rgb(54, 162, 235)'; // Blue text for line
+                        }
+                        return 'black'; // Default for any other (hidden) labels
+                    },
+                    font: {
+                        weight: 'bold',
+                        size: 10
+                    },
+                    anchor: function(context) {
+                        // Anchor for bars (center of segment)
+                        if (context.dataset.type === 'bar') {
+                            return 'center';
+                        }
+                        // Anchor for line (end of point)
+                        return 'end';
+                    },
+                    align: function(context) {
+                        // Align for bars (center of segment)
+                        if (context.dataset.type === 'bar') {
+                            return 'center';
+                        }
+                        // Align for line (above the point)
+                        return 'end';
+                    },
+                    offset: function(context) {
+                        // No offset for bar labels, slightly above for line labels
+                        if (context.dataset.type === 'bar') {
+                            return 0;
+                        }
+                        return 4;
+                    },
+                    display: function(context) {
+                        // Only display if the value is not zero, to avoid clutter
+                        // And ensure only 'Completed Visits' bar and 'Execution Rate' line get labels
+                        return (context.dataset.data[context.dataIndex] > 0 && 
+                               (context.dataset.label === 'Completed Visits' || context.dataset.label === 'Execution Rate (%)'));
+                    }
                 }
             }
         }
