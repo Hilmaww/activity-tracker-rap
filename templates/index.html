@@ -1334,7 +1334,7 @@
                                     callbacks: {
                                         title: function(context) {
                                             const index = context[0].dataIndex;
-                                            return kabupatenData[kabupaten].site_names[index];
+                                            return {{ executive_charts.top_visited_sites.site_names|tojson }}[index];
                                         }
                                     },
                                     legend: {
@@ -1363,38 +1363,43 @@
         }, 100);
     }
     
-    // Execution Rate Chart
+    // Execution Rate Chart (Modified to show absolute values directly)
     const executionRateCtx = document.getElementById('executionRateChart').getContext('2d');
     new Chart(executionRateCtx, {
-        type: 'bar',
+        type: 'bar', // Still a bar chart, but now stacked
         data: {
             labels: {{ executive_charts.execution_by_date.dates|tojson }},
             datasets: [{
+                label: 'Total Planned Visits',
+                data: {{ executive_charts.execution_by_date.total_planned|tojson }},
+                backgroundColor: 'rgba(201, 203, 207, 0.7)', // Light grey for total planned
+                borderColor: 'rgb(201, 203, 207)',
+                borderWidth: 1,
+                stack: 'visits' // Stacked group for visits
+            }, {
+                label: 'Completed Visits',
+                data: {{ executive_charts.execution_by_date.total_executed|tojson }},
+                backgroundColor: 'rgba(40, 167, 69, 0.7)', // Green for completed visits
+                borderColor: 'rgb(40, 167, 69)',
+                borderWidth: 1,
+                stack: 'visits' // Stacked group for visits
+            }, {
                 label: 'Execution Rate (%)',
+                type: 'line', // Line chart for percentage
                 data: {{ executive_charts.execution_by_date.execution_percentages|tojson }},
-                backgroundColor: function(context) {
-                    const value = context.raw;
-                    // Color based on execution rate
-                    if (value >= 85) return 'rgba(40, 167, 69, 0.7)'; // Green for high
-                    if (value >= 70) return 'rgba(255, 193, 7, 0.7)'; // Yellow for medium
-                    return 'rgba(220, 53, 69, 0.7)'; // Red for low
-                },
-                borderColor: 'rgba(0, 0, 0, 0.1)',
-                borderWidth: 1
+                borderColor: 'rgb(54, 162, 235)', // Blue for percentage line
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgb(54, 162, 235)',
+                yAxisID: 'y1' // Use secondary Y-axis for percentage
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    suggestedMax: 100,
-                    title: {
-                        display: true,
-                        text: 'Execution Rate (%)'
-                    }
-                },
                 x: {
                     title: {
                         display: true,
@@ -1403,6 +1408,27 @@
                     ticks: {
                         maxRotation: 45,
                         minRotation: 45
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    stacked: true, // Crucial for stacking bars
+                    title: {
+                        display: true,
+                        text: 'Number of Visits'
+                    }
+                },
+                y1: { // Secondary Y-axis for percentage
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    suggestedMax: 100,
+                    title: {
+                        display: true,
+                        text: 'Execution Rate (%)'
+                    },
+                    grid: {
+                        drawOnChartArea: false // Do not draw grid lines for this axis
                     }
                 }
             },
@@ -1413,12 +1439,21 @@
                             const dataIndex = context.dataIndex;
                             const totalPlanned = {{ executive_charts.execution_by_date.total_planned|tojson }}[dataIndex];
                             const totalExecuted = {{ executive_charts.execution_by_date.total_executed|tojson }}[dataIndex];
-                            return [
-                                `Execution Rate: ${context.parsed.y}%`,
-                                `Completed: ${totalExecuted} of ${totalPlanned} planned visits`
-                            ];
+                            const executionPercentage = totalPlanned > 0 ? ((totalExecuted / totalPlanned) * 100).toFixed(1) : 0;
+
+                            if (context.dataset.type === 'line') {
+                                return `Execution Rate: ${context.parsed.y}%`;
+                            } else if (context.dataset.label === 'Total Planned Visits') {
+                                return `Planned: ${context.parsed.y} visits`;
+                            } else if (context.dataset.label === 'Completed Visits') {
+                                return `Completed: ${context.parsed.y} visits (Overall: ${executionPercentage}%)`;
+                            }
+                            return context.dataset.label + ': ' + context.parsed.y;
                         }
                     }
+                },
+                legend: {
+                    position: 'bottom'
                 }
             }
         }
@@ -1492,9 +1527,9 @@
             datasets: [{
                 label: 'Sites with Post-Visit Alarms',
                 data: {{ executive_charts.bubble_chart_data|tojson|safe }}.map(item => ({
-                    x: item.x,               // Days until alarm (faster is worse)
-                    y: item.y,               // Number of alarms (severity)
-                    r: item.r,               // Size based on number of sites
+                    x: item.x,          // Days until alarm (faster is worse)
+                    y: item.y,          // Number of alarms (severity)
+                    r: item.r,          // Size based on number of sites
                     site_count: item.site_count,
                     sites: item.sites
                 })),
@@ -1784,8 +1819,8 @@
         return L.divIcon({
             className: 'custom-marker',
             html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);">
-                    ${count}
-                   </div>`,
+                        ${count}
+                       </div>`,
             iconSize: [30, 30],
             iconAnchor: [15, 15]
         });
