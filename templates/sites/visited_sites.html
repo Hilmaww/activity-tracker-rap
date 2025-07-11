@@ -3,26 +3,30 @@
 {% block title %}Site Activity Tracker - Visited Sites{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-broadcast-tower"></i> BTS Site Activity Tracker</h2>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-broadcast-tower mr-3 text-indigo-600"></i> BTS Site Activity Tracker
+        </h2>
         <div>
-            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
-                <i class="fas fa-home"></i> Dashboard
+            <a href="{{ url_for('main.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                <i class="fas fa-home mr-2"></i> Dashboard
             </a>
         </div>
     </div>
 
     <!-- Filter Section -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-filter"></i> Filter Site Visits</h5>
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="p-4 bg-indigo-600 text-white rounded-t-lg">
+            <h5 class="text-lg font-semibold mb-0 flex items-center">
+                <i class="fas fa-filter mr-2"></i> Filter Site Visits
+            </h5>
         </div>
-        <div class="card-body">
-            <form id="filter-form" method="GET" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label for="time_frame" class="form-label">Time Frame</label>
-                    <select class="form-select" id="time_frame" name="time_frame">
+        <div class="p-6">
+            <form id="filter-form" method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label for="time_frame" class="block text-sm font-medium text-gray-700 mb-1">Time Frame</label>
+                    <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="time_frame" name="time_frame">
                         <option value="all" {% if time_frame == 'all' %}selected{% endif %}>All Time</option>
                         <option value="7days" {% if time_frame == '7days' %}selected{% endif %}>Last 7 Days</option>
                         <option value="30days" {% if time_frame == '30days' %}selected{% endif %}>Last 30 Days</option>
@@ -30,20 +34,20 @@
                         <option value="custom" {% if time_frame == 'custom' %}selected{% endif %}>Custom Range</option>
                     </select>
                 </div>
-                <div class="col-md-3 date-range {% if time_frame != 'custom' %}d-none{% endif %}">
-                    <label for="from_date" class="form-label">From Date</label>
-                    <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date }}">
+                <div class="date-range {% if time_frame != 'custom' %}hidden{% endif %}">
+                    <label for="from_date" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="from_date" name="from_date" value="{{ from_date }}">
                 </div>
-                <div class="col-md-3 date-range {% if time_frame != 'custom' %}d-none{% endif %}">
-                    <label for="to_date" class="form-label">To Date</label>
-                    <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date }}">
+                <div class="date-range {% if time_frame != 'custom' %}hidden{% endif %}">
+                    <label for="to_date" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="to_date" name="to_date" value="{{ to_date }}">
                 </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i> Apply Filters
+                <div class="flex space-x-2">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                        <i class="fas fa-search mr-2"></i> Apply Filters
                     </button>
-                    <a href="{{ url_for('main.visited_sites') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-undo"></i> Reset
+                    <a href="{{ url_for('main.visited_sites') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                        <i class="fas fa-undo mr-2"></i> Reset
                     </a>
                 </div>
             </form>
@@ -51,54 +55,56 @@
     </div>
 
     <!-- Sites Overview -->
-    <div class="card">
-        <div class="card-header bg-dark text-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-list"></i> Visited BTS Sites</h5>
-                <span class="badge bg-light text-dark">{{ visited_sites|length }} Sites</span>
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="p-4 bg-gray-800 text-white rounded-t-lg">
+            <div class="flex justify-between items-center">
+                <h5 class="text-lg font-semibold mb-0 flex items-center">
+                    <i class="fas fa-list mr-2"></i> Visited BTS Sites
+                </h5>
+                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-800">{{ visited_sites|length }} Sites</span>
             </div>
         </div>
-        <div class="card-body">
+        <div class="p-6">
             {% if visited_sites %}
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped" id="visited-sites-table">
-                        <thead class="table-dark">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200" id="visited-sites-table">
+                        <thead class="bg-gray-800 text-white">
                             <tr>
-                                <th>Site ID</th>
-                                <th>Site Name</th>
-                                <th>Location (Kabupaten)</th>
-                                <th>Visit Count</th>
-                                <th>Last Visit</th>
-                                <th>Last ENOM</th>
-                                <th>Actions</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Site ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Site Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Location (Kabupaten)</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Visit Count</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Last Visit</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Last ENOM</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bg-white divide-y divide-gray-200">
                             {% for site, visit_count in visited_sites %}
                                 <tr>
-                                    <td>{{ site.site_id }}</td>
-                                    <td>{{ site.name }}</td>
-                                    <td>{{ site.kabupaten }}</td>
-                                    <td>
-                                        <span class="badge bg-primary rounded-pill">{{ visit_count }}</span>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ site.site_id }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ site.kabupaten }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-indigo-600 text-white">{{ visit_count }}</span>
                                     </td>
-                                    <td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                         {% if site.id in latest_visits %}
                                             {{ latest_visits[site.id].date.strftime('%d-%m-%Y') }}
                                         {% else %}
                                             N/A
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                         {% if site.id in latest_visits %}
                                             {{ latest_visits[site.id].enom }}
                                         {% else %}
                                             N/A
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        <a href="{{ url_for('main.site_activities', site_id=site.id) }}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-history"></i> View Activity
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <a href="{{ url_for('main.site_activities', site_id=site.id) }}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                            <i class="fas fa-history mr-2"></i> View Activity
                                         </a>
                                     </td>
                                 </tr>
@@ -107,8 +113,9 @@
                     </table>
                 </div>
             {% else %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> No site visits found for the selected time period.
+                <div class="relative flex items-center p-4 rounded-lg text-sm bg-blue-100 text-blue-700 border border-blue-200" role="alert">
+                    <span class="mr-2"><i class="fas fa-info-circle"></i></span>
+                    <div>No site visits found for the selected time period.</div>
                 </div>
             {% endif %}
         </div>
@@ -118,34 +125,58 @@
 
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', function() {
         // Initialize DataTable
-        $('#visited-sites-table').DataTable({
-            order: [[3, 'desc']], // Order by visit count (descending)
-            pageLength: 25,
-            language: {
-                search: "Search sites:",
-                lengthMenu: "Show _MENU_ sites per page",
-                info: "Showing _START_ to _END_ of _TOTAL_ sites",
-                paginate: {
-                    first: '<i class="fas fa-angle-double-left"></i>',
-                    previous: '<i class="fas fa-angle-left"></i>',
-                    next: '<i class="fas fa-angle-right"></i>',
-                    last: '<i class="fas fa-angle-double-right"></i>'
-                }
-            },
-            dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex"f>>t<"d-flex justify-content-between align-items-center mt-3"<"d-flex align-items-center"i><"d-flex"p>>'
-        });
+        // Note: DataTables has its own styling. For full Tailwind integration,
+        // you might need a DataTables-Tailwind plugin or custom CSS overrides.
+        // This keeps the core DataTables functionality while removing jQuery.
+        const dataTableElement = document.getElementById('visited-sites-table');
+        if (dataTableElement) {
+            new DataTable(dataTableElement, {
+                order: [[3, 'desc']], // Order by visit count (descending)
+                pageLength: 25,
+                language: {
+                    search: "Search sites:",
+                    lengthMenu: "Show _MENU_ sites per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ sites",
+                    paginate: {
+                        first: '<i class="fas fa-angle-double-left"></i>',
+                        previous: '<i class="fas fa-angle-left"></i>',
+                        next: '<i class="fas fa-angle-right"></i>',
+                        last: '<i class="fas fa-angle-double-right"></i>'
+                    }
+                },
+                // DataTables DOM option needs to be adjusted for Tailwind.
+                // This is a common challenge. You'd typically re-render the DOM
+                // using Tailwind classes or use a DataTables Tailwind integration.
+                // For now, I'm removing the custom DOM option as it's Bootstrap-specific.
+                // If you need custom DOM, it would require more extensive JS to create elements
+                // with Tailwind classes.
+                // dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex"f>>t<"d-flex justify-content-between align-items-center mt-3"<"d-flex align-items-center"i><"d-flex"p>>'
+            });
+        }
 
         // Show/hide date range inputs based on time frame selection
-        $('#time_frame').on('change', function() {
-            if ($(this).val() === 'custom') {
-                $('.date-range').removeClass('d-none');
-            } else {
-                $('.date-range').addClass('d-none');
-                $('#filter-form').submit();
-            }
-        });
+        const timeFrameSelect = document.getElementById('time_frame');
+        const dateRangeElements = document.querySelectorAll('.date-range');
+        const filterForm = document.getElementById('filter-form');
+
+        if (timeFrameSelect) {
+            timeFrameSelect.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    dateRangeElements.forEach(element => {
+                        element.classList.remove('hidden');
+                    });
+                } else {
+                    dateRangeElements.forEach(element => {
+                        element.classList.add('hidden');
+                    });
+                    if (filterForm) {
+                        filterForm.submit();
+                    }
+                }
+            });
+        }
     });
 </script>
 {% endblock %} 

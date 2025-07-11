@@ -816,8 +816,8 @@ class TelegramBot:
 
     Berikut adalah panduan cepat untuk mulai menggunakan bot ini:
 
-    • `/start`: Untuk kembali ke menu awal ini kapan saja.
-    • `/help`: Menampilkan daftar semua perintah yang tersedia dan format penggunaannya.
+    • /start: Untuk kembali ke menu awal ini kapan saja.
+    • /help: Menampilkan daftar semua perintah yang tersedia dan format penggunaannya.
 
     ---
 
@@ -876,7 +876,7 @@ class TelegramBot:
 
 **Commands:**
 
-📝 `/plan` - Start submitting your daily plan. You'll send a simplified version first, then get a formatted template to complete.
+📝 /plan - Start submitting your daily plan. You'll send a simplified version first, then get a formatted template to complete.
 
 🚀 `/sendplan` - Submit the final formatted daily plan with categories.
 

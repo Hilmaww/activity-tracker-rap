@@ -258,7 +258,7 @@ def index():
     ).count()
     
     # Calculate average sites visited per ENOM per day
-    workdays_in_week = 5  # Assuming 5 working days per week
+    workdays_in_week = 7  # Assuming 5 working days per week
     avg_sites_per_enom = round(weekly_planned_visits / (enom_count * workdays_in_week), 1) if enom_count > 0 else 0
     
     weekly_alarms_count = AlarmRecord.query.filter(
@@ -356,8 +356,8 @@ def index():
         DailyPlan, PlannedSite.daily_plan_id == DailyPlan.id
     ).filter(
         DailyPlan.plan_date >= two_weeks_ago,
-        DailyPlan.plan_date <= current_date,
-        PlannedSite.updated_actions != 'Not Done Yet'
+        DailyPlan.plan_date <= current_date
+        # ,PlannedSite.updated_actions != 'Not Done Yet'
     ).distinct().count()
     
     # ========= NEW EXECUTIVE DASHBOARD CHARTS =========

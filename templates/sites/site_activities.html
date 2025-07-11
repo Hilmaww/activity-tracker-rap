@@ -1,70 +1,77 @@
-{% extends "base.html" %}
-
 {% block title %}Site Activities - {{ site.site_id }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="flex justify-between items-center mb-6">
         <div>
-            <h2><i class="fas fa-broadcast-tower"></i> {{ site.site_id }} - {{ site.name }}</h2>
-            <p class="text-muted">{{ site.kabupaten }} | Tower Owner: {{ site.tower_owner }}</p>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+                <i class="fas fa-broadcast-tower mr-3 text-indigo-600"></i> {{ site.site_id }} - {{ site.name }}
+            </h2>
+            <p class="text-gray-600 text-base mt-1">{{ site.kabupaten }} | Tower Owner: {{ site.tower_owner }}</p>
         </div>
         <div>
-            <a href="{{ url_for('main.visited_sites') }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Sites
+            <a href="{{ url_for('main.visited_sites') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Sites
             </a>
         </div>
     </div>
 
-    <!-- Site Information Card -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Site Information</h5>
+    <!-- Site Information Card & Recent Tickets Card -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Site Information Card -->
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full card-hover-effect">
+                <div class="p-4 bg-indigo-600 text-white rounded-t-lg">
+                    <h5 class="text-lg font-semibold mb-0 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i> Site Information
+                    </h5>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Site ID:</strong> {{ site.site_id }}</p>
-                            <p><strong>Name:</strong> {{ site.name }}</p>
-                            <p><strong>Kabupaten:</strong> {{ site.kabupaten }}</p>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="mb-2"><strong class="font-semibold text-gray-800">Site ID:</strong> {{ site.site_id }}</p>
+                            <p class="mb-2"><strong class="font-semibold text-gray-800">Name:</strong> {{ site.name }}</p>
+                            <p class="mb-0"><strong class="font-semibold text-gray-800">Kabupaten:</strong> {{ site.kabupaten }}</p>
                         </div>
-                        <div class="col-md-6">
-                            <p><strong>Tower Owner:</strong> {{ site.tower_owner }}</p>
-                            <p><strong>Latitude:</strong> {{ site.lat }}</p>
-                            <p><strong>Longitude:</strong> {{ site.long }}</p>
+                        <div>
+                            <p class="mb-2"><strong class="font-semibold text-gray-800">Tower Owner:</strong> {{ site.tower_owner }}</p>
+                            <p class="mb-2"><strong class="font-semibold text-gray-800">Latitude:</strong> {{ site.lat }}</p>
+                            <p class="mb-0"><strong class="font-semibold text-gray-800">Longitude:</strong> {{ site.long }}</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-ticket-alt"></i> Recent Tickets</h5>
+        <!-- Recent Tickets Card -->
+        <div class="w-full">
+            <div class="bg-white rounded-lg shadow-md h-full card-hover-effect">
+                <div class="p-4 bg-blue-600 text-white rounded-t-lg">
+                    <h5 class="text-lg font-semibold mb-0 flex items-center">
+                        <i class="fas fa-ticket-alt mr-2"></i> Recent Tickets
+                    </h5>
                 </div>
-                <div class="card-body">
+                <div class="p-6">
                     {% if ticket_history %}
-                        <div class="list-group">
+                        <div class="divide-y divide-gray-200">
                             {% for ticket in ticket_history %}
-                                <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">{{ ticket.ticket_number }}</h6>
-                                        <small class="text-muted">{{ ticket.created_at_jakarta.strftime('%d-%m-%Y') }}</small>
+                                <a href="{{ url_for('main.view_ticket', ticket_id=ticket.id) }}" class="block p-4 hover:bg-gray-50 transition-colors duration-200">
+                                    <div class="flex w-full justify-between items-center mb-1">
+                                        <h6 class="text-base font-semibold text-gray-800">{{ ticket.ticket_number }}</h6>
+                                        <small class="text-gray-500 text-xs">{{ ticket.created_at_jakarta.strftime('%d-%m-%Y') }}</small>
                                     </div>
-                                    <p class="mb-1 text-truncate">{{ ticket.description }}</p>
-                                    <small class="d-flex justify-content-between">
-                                        <span class="badge bg-{{ ticket.status.name|lower }}">{{ ticket.status.name }}</span>
-                                        <span>{{ ticket.problem_category.name }}</span>
-                                    </small>
+                                    <p class="mb-1 text-sm text-gray-700 truncate">{{ ticket.description }}</p>
+                                    <div class="flex justify-between items-center text-xs mt-1">
+                                        <span class="badge-base badge-{{ ticket.status.name|lower }}">{{ ticket.status.name }}</span>
+                                        <span class="text-gray-600">{{ ticket.problem_category.name }}</span>
+                                    </div>
                                 </a>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <div class="alert alert-info mb-0">
-                            <i class="fas fa-info-circle"></i> No recent tickets for this site.
+                        <div class="relative flex items-center p-4 rounded-lg text-sm bg-blue-100 text-blue-700 border border-blue-200" role="alert">
+                            <span class="mr-2"><i class="fas fa-info-circle"></i></span>
+                            <div>No recent tickets for this site.</div>
                         </div>
                     {% endif %}
                 </div>
@@ -73,15 +80,17 @@
     </div>
 
     <!-- Filter Section -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-filter"></i> Filter Activities</h5>
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="p-4 bg-indigo-600 text-white rounded-t-lg">
+            <h5 class="text-lg font-semibold mb-0 flex items-center">
+                <i class="fas fa-filter mr-2"></i> Filter Activities
+            </h5>
         </div>
-        <div class="card-body">
-            <form id="filter-form" method="GET" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label for="time_frame" class="form-label">Time Frame</label>
-                    <select class="form-select" id="time_frame" name="time_frame">
+        <div class="p-6">
+            <form id="filter-form" method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label for="time_frame" class="block text-sm font-medium text-gray-700 mb-1">Time Frame</label>
+                    <select class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="time_frame" name="time_frame">
                         <option value="all" {% if time_frame == 'all' %}selected{% endif %}>All Time</option>
                         <option value="7days" {% if time_frame == '7days' %}selected{% endif %}>Last 7 Days</option>
                         <option value="30days" {% if time_frame == '30days' %}selected{% endif %}>Last 30 Days</option>
@@ -89,20 +98,20 @@
                         <option value="custom" {% if time_frame == 'custom' %}selected{% endif %}>Custom Range</option>
                     </select>
                 </div>
-                <div class="col-md-3 date-range {% if time_frame != 'custom' %}d-none{% endif %}">
-                    <label for="from_date" class="form-label">From Date</label>
-                    <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date }}">
+                <div class="date-range {% if time_frame != 'custom' %}hidden{% endif %}">
+                    <label for="from_date" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="from_date" name="from_date" value="{{ from_date }}">
                 </div>
-                <div class="col-md-3 date-range {% if time_frame != 'custom' %}d-none{% endif %}">
-                    <label for="to_date" class="form-label">To Date</label>
-                    <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date }}">
+                <div class="date-range {% if time_frame != 'custom' %}hidden{% endif %}">
+                    <label for="to_date" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input type="date" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" id="to_date" name="to_date" value="{{ to_date }}">
                 </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i> Apply Filters
+                <div class="flex space-x-2">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                        <i class="fas fa-search mr-2"></i> Apply Filters
                     </button>
-                    <a href="{{ url_for('main.site_activities', site_id=site.id) }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-undo"></i> Reset
+                    <a href="{{ url_for('main.site_activities', site_id=site.id) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                        <i class="fas fa-undo mr-2"></i> Reset
                     </a>
                 </div>
             </form>
@@ -110,58 +119,58 @@
     </div>
 
     <!-- Site Activities Timeline -->
-    <div class="card">
-        <div class="card-header bg-dark text-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-history"></i> Site Visit Timeline</h5>
-                <span class="badge bg-light text-dark">{{ visits.total }} Visits</span>
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="p-4 bg-gray-800 text-white rounded-t-lg">
+            <div class="flex justify-between items-center">
+                <h5 class="text-lg font-semibold mb-0 flex items-center">
+                    <i class="fas fa-history mr-2"></i> Site Visit Timeline
+                </h5>
+                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-800">{{ visits.total }} Visits</span>
             </div>
         </div>
-        <div class="card-body">
+        <div class="p-6">
             {% if visits.items %}
                 <div class="timeline-container">
                     {% for planned_site, daily_plan, user in visits.items %}
                         <div class="timeline-item">
                             <div class="timeline-marker"></div>
                             <div class="timeline-content">
-                                <div class="card mb-3">
-                                    <div class="card-header">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-0">{{ daily_plan.plan_date.strftime('%d-%m-%Y') }}</h6>
-                                            <span class="badge bg-{{ daily_plan.status.name|lower }}">
+                                <div class="bg-white rounded-lg shadow-sm mb-4 border border-gray-200 card-hover-effect">
+                                    <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                                        <div class="flex justify-between items-center">
+                                            <h6 class="text-base font-semibold text-gray-800">{{ daily_plan.plan_date.strftime('%d-%m-%Y') }}</h6>
+                                            <span class="badge-base badge-{{ daily_plan.status.name|lower }}">
                                                 {{ daily_plan.status.name }}
                                             </span>
                                         </div>
                                     </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <p><strong>ENOM:</strong> {{ user.username }}</p>
-                                                <p><strong>Visit Order:</strong> #{{ planned_site.visit_order }}</p>
-                                                <p><strong>Duration:</strong> {{ planned_site.estimated_duration }} minutes</p>
+                                    <div class="p-6">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="mb-2"><strong class="font-semibold text-gray-800">ENOM:</strong> {{ user.username }}</p>
+                                                <p class="mb-2"><strong class="font-semibold text-gray-800">Visit Order:</strong> #{{ planned_site.visit_order }}</p>
+                                                <p class="mb-2"><strong class="font-semibold text-gray-800">Duration:</strong> {{ planned_site.estimated_duration }} minutes</p>
                                                 {% if planned_site.assignee %}
-                                                    <p><strong>Team Support:</strong> {{ planned_site.assignee }}</p>
+                                                    <p class="mb-0"><strong class="font-semibold text-gray-800">Team Support:</strong> {{ planned_site.assignee }}</p>
                                                 {% endif %}
                                             </div>
-                                            <div class="col-md-6">
-                                                <h6>Planned Actions:</h6>
-                                                <div class="mb-3">
-                                                    <div class="alert alert-secondary">
-                                                        {{ planned_site.planned_actions }}
-                                                    </div>
+                                            <div>
+                                                <h6 class="text-base font-semibold text-gray-800 mb-2">Planned Actions:</h6>
+                                                <div class="relative flex items-center p-3 rounded-md text-sm bg-gray-100 text-gray-700 border border-gray-200 mb-4">
+                                                    {{ planned_site.planned_actions }}
                                                 </div>
                                                 {% if planned_site.updated_actions and planned_site.updated_actions != 'Not Done Yet' %}
-                                                    <h6>Updated Actions:</h6>
-                                                    <div class="alert alert-success">
+                                                    <h6 class="text-base font-semibold text-gray-800 mb-2">Updated Actions:</h6>
+                                                    <div class="relative flex items-center p-3 rounded-md text-sm bg-green-100 text-green-700 border border-green-200">
                                                         {{ planned_site.updated_actions }}
                                                     </div>
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="card-footer bg-light">
-                                        <a href="{{ url_for('main.view_plan', plan_id=daily_plan.id) }}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i> View Full Plan
+                                    <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg text-right">
+                                        <a href="{{ url_for('main.view_plan', plan_id=daily_plan.id) }}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                            <i class="fas fa-eye mr-2"></i> View Full Plan
                                         </a>
                                     </div>
                                 </div>
@@ -171,56 +180,63 @@
                 </div>
 
                 <!-- Pagination -->
-                <nav aria-label="Page navigation">
-                    <ul class="pagination justify-content-center">
+                <nav aria-label="Page navigation" class="mt-6">
+                    <ul class="flex justify-center space-x-2">
                         {% if visits.has_prev %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('main.site_activities', site_id=site.id, page=visits.prev_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
-                                    <i class="fas fa-angle-left"></i> Previous
+                            <li>
+                                <a class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('main.site_activities', site_id=site.id, page=visits.prev_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
+                                    <i class="fas fa-angle-left mr-2"></i> Previous
                                 </a>
                             </li>
                         {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link"><i class="fas fa-angle-left"></i> Previous</span>
+                            <li>
+                                <span class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-400 cursor-not-allowed opacity-50">
+                                    <i class="fas fa-angle-left mr-2"></i> Previous
+                                </span>
                             </li>
                         {% endif %}
                         
                         {% for page_num in visits.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
                             {% if page_num %}
                                 {% if page_num == visits.page %}
-                                    <li class="page-item active">
-                                        <span class="page-link">{{ page_num }}</span>
+                                    <li>
+                                        <span class="inline-flex items-center px-4 py-2 text-white bg-indigo-600 rounded-md font-semibold">
+                                            {{ page_num }}
+                                        </span>
                                     </li>
                                 {% else %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('main.site_activities', site_id=site.id, page=page_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
+                                    <li>
+                                        <a class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('main.site_activities', site_id=site.id, page=page_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
                                             {{ page_num }}
                                         </a>
                                     </li>
                                 {% endif %}
                             {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
+                                <li>
+                                    <span class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-400 cursor-not-allowed opacity-50">...</span>
                                 </li>
                             {% endif %}
                         {% endfor %}
                         
                         {% if visits.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('main.site_activities', site_id=site.id, page=visits.next_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
-                                    Next <i class="fas fa-angle-right"></i>
+                            <li>
+                                <a class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200" href="{{ url_for('main.site_activities', site_id=site.id, page=visits.next_num, time_frame=time_frame, from_date=from_date, to_date=to_date) }}">
+                                    Next <i class="fas fa-angle-right ml-2"></i>
                                 </a>
                             </li>
                         {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link">Next <i class="fas fa-angle-right"></i></span>
+                            <li>
+                                <span class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-400 cursor-not-allowed opacity-50">
+                                    Next <i class="fas fa-angle-right ml-2"></i>
+                                </span>
                             </li>
                         {% endif %}
                     </ul>
                 </nav>
             {% else %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> No site activities found for the selected time period.
+                <div class="relative flex items-center p-4 rounded-lg text-sm bg-blue-100 text-blue-700 border border-blue-200" role="alert">
+                    <span class="mr-2"><i class="fas fa-info-circle"></i></span>
+                    <div>No site activities found for the selected time period.</div>
                 </div>
             {% endif %}
         </div>
@@ -230,7 +246,7 @@
 
 {% block extra_css %}
 <style>
-    /* Timeline Styling */
+    /* Timeline Styling - Converted to Tailwind where possible, direct CSS for pseudo-elements */
     .timeline-container {
         position: relative;
         padding: 20px 0;
@@ -241,9 +257,9 @@
         position: absolute;
         top: 0;
         bottom: 0;
-        left: 20px;
+        left: 20px; /* Adjusted for marker position */
         width: 4px;
-        background: #ddd;
+        background: #e5e7eb; /* Tailwind gray-200 */
         border-radius: 2px;
     }
     
@@ -254,47 +270,50 @@
     
     .timeline-marker {
         position: absolute;
-        left: 15px;
+        left: 15px; /* Aligned with the timeline line */
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: #3498db;
-        border: 2px solid #fff;
-        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+        background: #4f46e5; /* Tailwind indigo-600 */
+        border: 2px solid #ffffff; /* Tailwind white */
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); /* Tailwind indigo-600 with opacity */
         z-index: 1;
-        margin-top: 12px;
+        margin-top: 12px; /* Vertically center with card header */
     }
     
     .timeline-content {
         position: relative;
-        margin-left: 45px;
-    }
-    
-    /* Card enhancements */
-    .card {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    
-    .card:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
+        margin-left: 45px; /* Space for marker and line */
     }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script nonce="{{ nonce_value | default('') }}">
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get elements
+        const timeFrameSelect = document.getElementById('time_frame');
+        const dateRangeElements = document.querySelectorAll('.date-range');
+        const filterForm = document.getElementById('filter-form'); // Get the form element
+
         // Show/hide date range inputs based on time frame selection
-        $('#time_frame').on('change', function() {
-            if ($(this).val() === 'custom') {
-                $('.date-range').removeClass('d-none');
-            } else {
-                $('.date-range').addClass('d-none');
-                $('#filter-form').submit();
-            }
-        });
+        if (timeFrameSelect) {
+            timeFrameSelect.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    dateRangeElements.forEach(element => {
+                        element.classList.remove('hidden'); // Use Tailwind's 'hidden'
+                    });
+                } else {
+                    dateRangeElements.forEach(element => {
+                        element.classList.add('hidden'); // Use Tailwind's 'hidden'
+                    });
+                    // Submit the form if not 'custom' to apply the time frame filter
+                    if (filterForm) {
+                        filterForm.submit();
+                    }
+                }
+            });
+        }
     });
 </script>
 {% endblock %} 
