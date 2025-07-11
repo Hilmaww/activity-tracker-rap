@@ -1374,9 +1374,10 @@
         data: {
             labels: {{ executive_charts.execution_by_date.dates|tojson }},
             datasets: [{
-                label: 'Uncompleted Visits', /* CHANGED LABEL FOR CLARITY */
-                // NOW USE THE PRE-CALCULATED UNCOMPLETED VISITS
-                data: {{ executive_charts.execution_by_date.uncompleted_visits|tojson }}, 
+                label: 'Total Planned Visits',
+                // For this bar, we use the difference (uncompleted) to show as the bottom segment visually
+                // The actual `data` for this bar should be the uncompleted count for correct stacking behavior
+                data: {{ executive_charts.execution_by_date.total_planned|zip(executive_charts.execution_by_date.total_executed)|map('list')|map(attribute=0)|map('subtract', attribute=1)|list|tojson }},
                 backgroundColor: 'rgba(201, 203, 207, 0.7)', // Light grey for uncompleted portion
                 borderColor: 'rgb(201, 203, 207)',
                 borderWidth: 1,
@@ -1388,6 +1389,17 @@
                 borderColor: 'rgb(40, 167, 69)',
                 borderWidth: 1,
                 stack: 'visits' // Stacked group for visits
+            }, {
+                label: 'Execution Rate (%)',
+                type: 'line', // Line chart for percentage
+                data: {{ executive_charts.execution_by_date.execution_percentages|tojson }},
+                borderColor: 'rgb(54, 162, 235)', // Blue for percentage line
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgb(54, 162, 235)',
+                yAxisID: 'y1' // Use secondary Y-axis for percentage
             }]
         },
         options: {
@@ -1411,6 +1423,19 @@
                         display: true,
                         text: 'Number of Visits'
                     }
+                },
+                y1: { // Secondary Y-axis for percentage
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    suggestedMax: 100,
+                    title: {
+                        display: true,
+                        text: 'Execution Rate (%)'
+                    },
+                    grid: {
+                        drawOnChartArea: false // Do not draw grid lines for this axis
+                    }
                 }
             },
             plugins: {
@@ -1422,8 +1447,12 @@
                             const totalExecuted = {{ executive_charts.execution_by_date.total_executed|tojson }}[dataIndex];
                             const executionPercentage = totalPlanned > 0 ? ((totalExecuted / totalPlanned) * 100).toFixed(1) : 0;
 
-                            if (context.dataset.label === 'Uncompleted Visits') {
-                                return `Uncompleted: ${context.parsed.y} visits`;
+                            if (context.dataset.type === 'line') {
+                                return `Execution Rate: ${context.parsed.y}%`;
+                            } else if (context.dataset.label === 'Total Planned Visits') {
+                                // This tooltip now refers to the uncompleted portion
+                                const uncompleted = totalPlanned - totalExecuted;
+                                return `Uncompleted: ${uncompleted} visits`;
                             } else if (context.dataset.label === 'Completed Visits') {
                                 return `Completed: ${context.parsed.y} visits (Overall: ${executionPercentage}%)`;
                             }
@@ -1434,47 +1463,13 @@
                             const dataIndex = tooltipItems[0].dataIndex;
                             const date = {{ executive_charts.execution_by_date.dates|tojson }}[dataIndex];
                             const totalPlanned = {{ executive_charts.execution_by_date.total_planned|tojson }}[dataIndex];
-                            // No need for totalExecuted here as it's part of the label
+                            const totalExecuted = {{ executive_charts.execution_by_date.total_executed|tojson }}[dataIndex];
                             return `${date} - Total Planned: ${totalPlanned}`;
                         }
                     }
                 },
                 legend: {
                     position: 'bottom'
-                },
-                // Datalabels Plugin Configuration
-                datalabels: {
-                    formatter: function(value, context) {
-                        // The `value` for bar datasets will now correctly be the value of that segment
-                        if (context.dataset.label === 'Completed Visits' || context.dataset.label === 'Uncompleted Visits') {
-                            return value.toFixed(0);
-                        }
-                        return null; // No labels for other datasets (like line, if it were there)
-                    },
-                    color: function(context) {
-                        // Adjust label color for visibility
-                        if (context.dataset.label === 'Completed Visits') {
-                            return 'white'; // White text on green bar
-                        }
-                        if (context.dataset.label === 'Uncompleted Visits') {
-                            return 'black'; // Black text on light grey bar
-                        }
-                        return 'black';
-                    },
-                    font: {
-                        weight: 'bold',
-                        size: 10 // Keep font size manageable
-                    },
-                    anchor: 'center', // Center the label within the bar segment
-                    align: 'center', // Center alignment for the label
-                    offset: 0, // No offset from the bar segment
-                    display: function(context) {
-                        // Only display for bar datasets, if the value is not zero
-                        if (context.dataset.type === 'bar') {
-                            return context.dataset.data[context.dataIndex] > 0;
-                        }
-                        return false; // Hide labels for non-bar datasets
-                    }
                 }
             }
         }
